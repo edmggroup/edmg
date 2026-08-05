@@ -35,6 +35,10 @@
     --stat-teal-wash:#E1F2F1;
     --stat-indigo:#4A54A8;
     --stat-indigo-wash:#ECEDF7;
+    --stat-cyan:#1287A8;
+    --stat-cyan-wash:#E2F1F5;
+    --stat-rose:#B5476B;
+    --stat-rose-wash:#F6E7ED;
     --shadow-sm: 0 1px 2px rgba(21,27,41,0.05);
     --shadow-md: 0 2px 6px rgba(21,27,41,0.06), 0 8px 24px rgba(21,27,41,0.05);
     --radius:8px;
@@ -117,21 +121,22 @@
   .brand{ display:flex; align-items:center; gap:11px; }
   .brand-mark{ width:30px; height:30px; border-radius:7px; background:#fff; color:var(--navy-dark); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; }
   .brand-name{ font-weight:600; font-size:15px; letter-spacing:-0.005em; color:#fff; }
-  .identity-pill{ display:flex; align-items:center; gap:14px; }
+  .identity-pill{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:flex-end; }
   .identity-badge{ font-size:13px; padding:6px 13px; border-radius:20px; background:rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(255,255,255,0.14); }
   .identity-badge b{ font-weight:600; }
   .switch-link{ font-size:12.5px; color:rgba(255,255,255,0.65); background:none; border:none; text-decoration:none; padding:4px; font-weight:500; }
   .switch-link:hover{ color:#fff; text-decoration:underline; }
 
   .layout{ display:flex; align-items:flex-start; }
-  .sidebar{ width:210px; flex-shrink:0; padding:20px 14px; position:sticky; top:57px; height:calc(100vh - 57px); background:var(--surface); border-right:1px solid var(--border); }
+  .sidebar{ width:230px; flex-shrink:0; padding:20px 14px; position:sticky; top:57px; height:calc(100vh - 57px); overflow-y:auto; background:var(--surface); border-right:1px solid var(--border); }
+  .nav-group-label{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin:16px 10px 6px; }
+  .nav-group-label:first-child{ margin-top:2px; }
   .nav-item{
     display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:10px 12px; border-radius:7px;
     border:none; background:none; font-size:13.5px; font-weight:500; color:var(--ink-soft); margin-bottom:2px;
   }
   .nav-item .dot{ width:6px; height:6px; border-radius:50%; background:var(--border-strong); }
   .nav-item.active{ background:var(--navy-wash); color:var(--navy-dark); font-weight:600; }
-  .nav-item.active .dot{ background:var(--navy); }
   .nav-item:hover:not(.active){ background:var(--neutral-wash); }
 
   main#main{ flex:1; padding:28px 34px 64px; min-width:0; }
@@ -247,11 +252,23 @@
   /* ---------- Entry cards ---------- */
   .entry-card{
     background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm);
-    padding:20px 22px; margin-bottom:14px;
+    padding:20px 22px; margin-bottom:14px; border-left:4px solid transparent;
   }
+  .entry-card.cat-navy{ border-left-color:var(--navy); }
+  .entry-card.cat-indigo{ border-left-color:var(--stat-indigo); }
+  .entry-card.cat-purple{ border-left-color:var(--stat-purple); }
+  .entry-card.cat-blue{ border-left-color:var(--stat-blue); }
+  .entry-card.cat-teal{ border-left-color:var(--stat-teal); }
+  .entry-card.cat-cyan{ border-left-color:var(--stat-cyan); }
+  .entry-card.cat-rose{ border-left-color:var(--stat-rose); }
+  .entry-card.cat-neutral{ border-left-color:var(--ink-faint); }
   .entry-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--border); }
   .entry-idx{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-faint); letter-spacing:.03em; text-transform:uppercase; }
   .entry-title{ font-size:15px; font-weight:600; margin-top:3px; color:var(--ink); }
+  .entry-title.linkable, .task-link{ cursor:pointer; }
+  .entry-title.linkable:hover, .task-link:hover{ color:var(--navy); text-decoration:underline; }
+  @keyframes flashHighlight{ 0%{ box-shadow:0 0 0 3px var(--navy); } 70%{ box-shadow:0 0 0 3px var(--navy); } 100%{ box-shadow:var(--shadow-sm); } }
+  .flash-highlight{ animation: flashHighlight 1.7s ease; }
   .entry-meta{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
   .stamp{
     font-size:11px; font-weight:600; letter-spacing:.02em;
@@ -336,6 +353,9 @@
       <span style="font-size:10.5px; color:rgba(255,255,255,0.45); font-weight:600; letter-spacing:.04em; border:1px solid rgba(255,255,255,0.2); border-radius:4px; padding:1px 6px;">v1.0</span>
     </div>
     <div class="identity-pill">
+      <button class="switch-link" onclick="openSearchModal()" style="border:1px solid rgba(255,255,255,0.2); border-radius:20px; padding:5px 12px; display:flex; align-items:center; gap:6px;">
+        🔍 Search <span style="opacity:.55; font-size:10.5px;">Ctrl/⌘K</span>
+      </button>
       <span class="identity-badge" id="identityBadge"></span>
       <button class="switch-link" onclick="switchUser()">switch user</button>
     </div>
@@ -367,6 +387,7 @@ const state = {
   racReviews: [],
   financialApps: [],
   courses: [],
+  fabricationItems: [],
   calendarMonth: null,
   plannerWeekStart: null,
   view: 'overview',
@@ -391,6 +412,7 @@ const FINANCIAL_TYPES = ['Visiting Position','Travel Grant','Fellowship','Schola
 const FINANCIAL_OUTCOMES = { awaiting_result:{label:'Awaiting Result', cls:'warn'}, awarded:{label:'Awarded', cls:'good'}, not_awarded:{label:'Not Awarded', cls:'bad'} };
 const COURSE_TYPES = ['Course','Certification','Workshop','Training Program','MOOC','Other'];
 const COURSE_STATUSES = { not_started:{label:'Not Started', cls:'neutral'}, in_progress:{label:'In Progress', cls:'warn'}, completed:{label:'Completed', cls:'good'} };
+const FABRICATION_STAGES = { prep:{label:'Sample Preparation', cls:'neutral'}, fabrication:{label:'Device Fabrication', cls:'warn'}, testing:{label:'Testing', cls:'warn'}, completed:{label:'Completed', cls:'good'}, on_hold:{label:'On Hold', cls:'bad'} };
 
 const TECHNIQUES = ['CV (Cyclic Voltammetry)','GCD (Galvanostatic Charge-Discharge)','Battery Testing','Cycling Test','EIS (Impedance Spectroscopy)','XRD','SEM','TEM','TGA/DSC','NMR','UV-Vis','FTIR','BET (Surface Area)','XPS','Raman','GC-MS','Other'];
 const PAPER_STAGES = ['Planning','Drafting','Internal Review','Submitted','Under Review','Revisions Requested','Accepted','Published'];
@@ -427,12 +449,15 @@ const APP_KEY = 'change-this-to-your-own-random-string-2026';
 function backendConfigured(){
   return typeof DATA_API_URL === 'string' && DATA_API_URL.startsWith('http');
 }
-async function apiGetRaw(key){
-  const res = await fetch(DATA_API_URL + '?action=get&key=' + encodeURIComponent(key) + '&key_check=' + encodeURIComponent(APP_KEY));
+async function apiGetAll(keys){
+  // One request for everything instead of one request per collection — this is the
+  // single biggest lever on load time, since each network round-trip to Apps Script
+  // has real overhead (opening the spreadsheet, etc.) that adds up fast otherwise.
+  const res = await fetch(DATA_API_URL + '?action=getAll&keys=' + encodeURIComponent(keys.join(',')) + '&key_check=' + encodeURIComponent(APP_KEY));
   if(!res.ok) throw new Error('Backend returned ' + res.status);
   const json = await res.json();
   if(json && json.error) throw new Error(json.error);
-  return (json && json.value !== undefined && json.value !== null && json.value !== '') ? json.value : null;
+  return json.values || {};
 }
 async function apiSetRaw(key, value){
   const res = await fetch(DATA_API_URL, {
@@ -479,28 +504,19 @@ function testMyEmail(){
 function isValidEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v||'').trim()); }
 
 /* ============================ STORAGE ============================ */
-async function loadCollection(key){
-  try{
-    const raw = await apiGetRaw(key);
-    return raw ? JSON.parse(raw) : [];
-  }catch(e){ console.error('Load failed', key, e); return []; }
-}
 async function saveCollection(key, arr){
   try{
     await apiSetRaw(key, JSON.stringify(arr));
   }catch(e){ console.error('Storage save failed', key, e); alert('Could not save your change — check your internet connection and try again. If this keeps happening, the Drive backend link may need to be reconnected.'); }
-}
-async function loadSupervisorProfile(){
-  try{
-    const raw = await apiGetRaw('supervisor-pin');
-    return raw ? JSON.parse(raw) : { hash:null, email:null };
-  }catch(e){ console.error('Load supervisor profile failed', e); return { hash:null, email:null }; }
 }
 async function saveSupervisorProfile(profile){
   try{ await apiSetRaw('supervisor-pin', JSON.stringify(profile)); }catch(e){ console.error('Save supervisor profile failed', e); }
 }
 
 /* ============================ INIT ============================ */
+// Every collection key the app needs at startup, fetched in one batched request.
+const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','readings','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','supervisor-pin'];
+
 async function init(){
   if(!backendConfigured()){
     renderSetupNeeded();
@@ -508,39 +524,26 @@ async function init(){
   }
   renderLoginLoading();
   try{
-    const [students, weekly, samples, papers, instructions, meetings, coSupervisors, readings, proposals, conferences, plannerTasks, thesisPlans, racReviews, financialApps, courses, supervisorProfile] = await Promise.all([
-      loadCollection('students'),
-      loadCollection('weekly-reports'),
-      loadCollection('samples'),
-      loadCollection('papers'),
-      loadCollection('instructions'),
-      loadCollection('meetings'),
-      loadCollection('co-supervisors'),
-      loadCollection('readings'),
-      loadCollection('proposals'),
-      loadCollection('conferences'),
-      loadCollection('planner-tasks'),
-      loadCollection('thesis-plans'),
-      loadCollection('rac-reviews'),
-      loadCollection('financial-applications'),
-      loadCollection('courses'),
-      loadSupervisorProfile()
-    ]);
-    state.students = students;
-    state.weekly = weekly;
-    state.samples = samples;
-    state.papers = papers;
-    state.instructions = instructions;
-    state.meetings = meetings;
-    state.coSupervisors = coSupervisors;
-    state.readings = readings;
-    state.proposals = proposals;
-    state.conferences = conferences;
-    state.plannerTasks = plannerTasks;
-    state.thesisPlans = thesisPlans;
-    state.racReviews = racReviews;
-    state.financialApps = financialApps;
-    state.courses = courses;
+    const values = await apiGetAll(ALL_DATA_KEYS);
+    const arr = (key) => { try{ return values[key] ? JSON.parse(values[key]) : []; }catch(e){ return []; } };
+    state.students = arr('students');
+    state.weekly = arr('weekly-reports');
+    state.samples = arr('samples');
+    state.papers = arr('papers');
+    state.instructions = arr('instructions');
+    state.meetings = arr('meetings');
+    state.coSupervisors = arr('co-supervisors');
+    state.readings = arr('readings');
+    state.proposals = arr('proposals');
+    state.conferences = arr('conferences');
+    state.plannerTasks = arr('planner-tasks');
+    state.thesisPlans = arr('thesis-plans');
+    state.racReviews = arr('rac-reviews');
+    state.financialApps = arr('financial-applications');
+    state.courses = arr('courses');
+    state.fabricationItems = arr('fabrication-items');
+    let supervisorProfile = {};
+    try{ supervisorProfile = values['supervisor-pin'] ? JSON.parse(values['supervisor-pin']) : {}; }catch(e){ supervisorProfile = {}; }
     state.supervisorPinHash = supervisorProfile.hash || null;
     state.supervisorEmail = supervisorProfile.email || null;
     renderLogin();
@@ -554,7 +557,7 @@ function loginShell(cardHtml){
     <div class="login-hero">
       <div class="login-hero-mark">RG</div>
       <div class="login-hero-title">Research Group<br>Management System</div>
-      <div class="login-hero-tag">A shared, live workspace for weekly progress, characterization tracking, and the paper pipeline — built for supervisors, co-supervisors, and research scholars.</div>
+      <div class="login-hero-tag">A shared, live workspace for weekly progress, characterization tracking, and the paper pipeline — built for supervisors, mentors, and research scholars.</div>
       <ul class="login-hero-list">
         <li>Weekly progress with supervisor approval</li>
         <li>Characterization &amp; battery testing pipeline</li>
@@ -614,7 +617,7 @@ function renderLogin(){
       <label class="field-label">Who are you?</label>
       <div class="student-pick-list" id="studentPickList">
         ${state.students.map(s => `<button type="button" class="pick-chip ${state.loginPickId===s.id?'active':''}" onclick="pickStudent('${s.id}')">${escapeHtml(s.name)}</button>`).join('')}
-        <button type="button" class="pick-chip ${state.loginPickId==='__new__'?'active':''}" onclick="pickStudent('__new__')">+ New student</button>
+        <button type="button" class="pick-chip ${state.loginPickId==='__new__'?'active':''}" onclick="pickStudent('__new__')">+ New scholar</button>
       </div>
       ${state.loginPickId==='__new__' ? `
         <label class="field-label">Your name</label>
@@ -674,7 +677,7 @@ function renderLogin(){
   if(role === 'cosupervisor'){
     const picked = state.loginPickId ? state.coSupervisors.find(x=>x.id===state.loginPickId) : null;
     if(state.coSupervisors.length === 0){
-      coSupPickerHtml = `<div class="view-sub" style="margin-top:10px;">No co-supervisors have been added yet. Ask the supervisor to add you from Overview → Account → Co-supervisors.</div>`;
+      coSupPickerHtml = `<div class="view-sub" style="margin-top:10px;">No mentors have been added yet. Ask the supervisor to add you from Overview → Account → Mentors.</div>`;
     } else {
       coSupPickerHtml = `
         <label class="field-label">Who are you?</label>
@@ -708,8 +711,8 @@ function renderLogin(){
       <label class="field-label">I am logging in as</label>
       <div class="role-row">
         <button class="role-btn ${role==='supervisor'?'active':''}" onclick="chooseRole('supervisor')">Supervisor <small>Review reports, track the group</small></button>
-        <button class="role-btn ${role==='cosupervisor'?'active':''}" onclick="chooseRole('cosupervisor')">Co-Supervisor <small>Review your assigned students</small></button>
-        <button class="role-btn ${role==='student'?'active':''}" onclick="chooseRole('student')">Student <small>Log progress, samples, papers</small></button>
+        <button class="role-btn ${role==='cosupervisor'?'active':''}" onclick="chooseRole('cosupervisor')">Mentor <small>Review your assigned scholars</small></button>
+        <button class="role-btn ${role==='student'?'active':''}" onclick="chooseRole('student')">Research Scholar <small>Log progress, samples, papers</small></button>
       </div>
       ${role==='supervisor' ? `
         <label class="field-label">Your name</label>
@@ -828,7 +831,7 @@ async function doLogin(){
     state.identity = { role:'cosupervisor', id:c.id, name:c.name };
     showApp();
   } else {
-    state.loginError = 'Please choose whether you are the supervisor, a co-supervisor, or a student.';
+    state.loginError = 'Please choose whether you are the supervisor, a mentor, or a research scholar.';
     renderLogin();
   }
 }
@@ -844,34 +847,108 @@ function switchUser(){
 function showApp(){
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appShell').style.display='block';
-  const roleLabel = state.identity.role === 'supervisor' ? 'Supervisor' : state.identity.role === 'cosupervisor' ? 'Co-Supervisor' : 'Student';
+  const roleLabel = state.identity.role === 'supervisor' ? 'Supervisor' : state.identity.role === 'cosupervisor' ? 'Mentor' : 'Research Scholar';
   document.getElementById('identityBadge').innerHTML = `<b>${escapeHtml(state.identity.name)}</b> · ${roleLabel}`;
   renderSidebar();
   renderView();
+  showDigestPopup();
+}
+function showDigestPopup(){
+  let bodyHtml = '';
+  let primaryAction = '';
+  if(isSupervisorLike()){
+    const count = pendingQueue().length;
+    bodyHtml = count>0
+      ? `<p style="font-size:14px; line-height:1.6;">You have <b>${count}</b> item${count===1?'':'s'} waiting on your approval.</p>`
+      : `<p style="font-size:14px; line-height:1.6; color:var(--ink-soft);">Nothing is waiting on your approval right now.</p>`;
+    if(count>0) primaryAction = `<button class="action-btn" onclick="closeModal(); goView('approvals');">Go to Pending Approval</button>`;
+  } else {
+    const mine = {
+      weekly: state.weekly.filter(w=>w.studentId===state.identity.id),
+      samples: state.samples.filter(s=>s.studentId===state.identity.id),
+      proposals: state.proposals.filter(pr=>pr.studentId===state.identity.id),
+      conferences: state.conferences.filter(c=>c.studentId===state.identity.id),
+      rac: state.racReviews.filter(r=>r.studentId===state.identity.id),
+      financial: state.financialApps.filter(f=>f.studentId===state.identity.id),
+      courses: state.courses.filter(c=>c.studentId===state.identity.id)
+    };
+    const changesNeeded = mine.weekly.filter(w=>w.status==='changes_requested').length
+      + mine.samples.filter(s=>s.approvalStatus==='changes_requested').length
+      + mine.proposals.filter(pr=>pr.status==='changes_requested').length
+      + mine.conferences.filter(c=>c.approvalStatus==='changes_requested').length
+      + mine.rac.filter(r=>r.status==='changes_requested').length
+      + mine.financial.filter(f=>f.approvalStatus==='changes_requested').length
+      + mine.courses.filter(c=>c.approvalStatus==='changes_requested').length;
+    const upcomingMeetings = state.meetings.filter(m=>m.studentId===state.identity.id && (m.status==='proposed'||m.status==='confirmed') && m.plannedDate>=todayStr()).length;
+    if(changesNeeded>0){
+      bodyHtml += `<p style="font-size:14px; line-height:1.6;"><b>${changesNeeded}</b> item${changesNeeded===1?'':'s'} need${changesNeeded===1?'s':''} your attention — your supervisor requested changes.</p>`;
+    } else {
+      bodyHtml += `<p style="font-size:14px; line-height:1.6; color:var(--ink-soft);">Nothing needs your attention right now.</p>`;
+    }
+    if(upcomingMeetings>0){
+      bodyHtml += `<p style="font-size:13.5px; color:var(--ink-soft);">You have <b>${upcomingMeetings}</b> upcoming meeting${upcomingMeetings===1?'':'s'}.</p>`;
+    }
+  }
+  document.getElementById('modalRoot').innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-box">
+        <div class="modal-head"><h3>Welcome back, ${escapeHtml(state.identity.name)}</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
+        <div class="modal-body">
+          ${bodyHtml}
+          <div class="modal-foot">
+            <button class="small-btn" onclick="closeModal()">Dismiss</button>
+            ${primaryAction}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
-const NAV_ITEMS = [
-  { key:'overview', label:'Overview' },
-  { key:'calendar', label:'Calendar & Planner' },
-  { key:'proposal', label:'Proposal & Work Plan' },
-  { key:'thesis', label:'Thesis Plan' },
-  { key:'rac', label:'RAC Reviews' },
-  { key:'weekly', label:'Weekly Progress' },
-  { key:'samples', label:'Characterization' },
-  { key:'papers', label:'Paper Pipeline' },
-  { key:'conferences', label:'Conferences' },
-  { key:'financial', label:'Visiting & Financial Support' },
-  { key:'learning', label:'Learning & Courses' },
-  { key:'meetings', label:'Meetings' },
-  { key:'instructions', label:'Instructions' },
-  { key:'reports', label:'Reports' },
-  { key:'account', label:'Account' },
+const NAV_ITEM_COLORS = {
+  overview:'var(--navy)', approvals:'var(--warning)', calendar:'var(--stat-indigo)',
+  proposal:'var(--stat-indigo)', thesis:'var(--stat-purple)',
+  weekly:'var(--stat-blue)', fabrication:'var(--stat-teal)', samples:'var(--stat-cyan)', papers:'var(--stat-purple)',
+  rac:'var(--stat-rose)', learning:'var(--stat-blue)', financial:'var(--stat-teal)', conferences:'var(--stat-rose)',
+  meetings:'var(--stat-indigo)', instructions:'var(--navy)', reports:'var(--navy)', account:'var(--ink-faint)'
+};
+const NAV_GROUPS = [
+  { items: [
+    { key:'overview', label:'Overview' },
+    { key:'approvals', label:'Pending Approval', supervisorOnly:true },
+    { key:'calendar', label:'Calendar & Planner' },
+  ]},
+  { label:'Planning', items: [
+    { key:'proposal', label:'Proposal & Work Plan' },
+    { key:'thesis', label:'Thesis Plan' },
+  ]},
+  { label:'Progress', items: [
+    { key:'weekly', label:'Weekly Progress' },
+    { key:'fabrication', label:'Sample Prep & Fabrication' },
+    { key:'samples', label:'Characterization' },
+    { key:'papers', label:'Paper Pipeline' },
+  ]},
+  { label:'Academic Activities', items: [
+    { key:'rac', label:'RAC Reviews' },
+    { key:'learning', label:'Learning & Courses' },
+    { key:'financial', label:'Visiting & Financial Support' },
+    { key:'conferences', label:'Conferences' },
+  ]},
+  { label:'Admin', items: [
+    { key:'meetings', label:'Meetings' },
+    { key:'instructions', label:'Instructions' },
+    { key:'reports', label:'Reports' },
+    { key:'account', label:'Account' },
+  ]},
 ];
 function renderSidebar(){
-  document.getElementById('sidebar').innerHTML = NAV_ITEMS.map(item => `
-    <button class="nav-item ${state.view===item.key?'active':''}" onclick="goView('${item.key}')">
-      <span class="dot"></span>${item.label}
-    </button>
+  document.getElementById('sidebar').innerHTML = NAV_GROUPS.map(group => `
+    ${group.label ? `<div class="nav-group-label">${group.label}</div>` : ''}
+    ${group.items.filter(item => !item.supervisorOnly || isSupervisorLike()).map(item => `
+      <button class="nav-item ${state.view===item.key?'active':''}" onclick="goView('${item.key}')">
+        <span class="dot" style="background:${NAV_ITEM_COLORS[item.key] || 'var(--border-strong)'};"></span>${item.label}
+      </button>
+    `).join('')}
   `).join('');
 }
 function goView(key){ state.view = key; renderSidebar(); renderView(); }
@@ -879,12 +956,14 @@ function goView(key){ state.view = key; renderSidebar(); renderView(); }
 function renderView(){
   const main = document.getElementById('main');
   if(state.view==='overview') main.innerHTML = viewOverview();
+  else if(state.view==='approvals') main.innerHTML = viewApprovals();
   else if(state.view==='calendar') main.innerHTML = viewCalendar();
   else if(state.view==='proposal') main.innerHTML = viewProposal();
   else if(state.view==='thesis') main.innerHTML = viewThesis();
   else if(state.view==='rac') main.innerHTML = viewRac();
   else if(state.view==='weekly') main.innerHTML = viewWeekly();
   else if(state.view==='samples') main.innerHTML = viewSamples();
+  else if(state.view==='fabrication') main.innerHTML = viewFabrication();
   else if(state.view==='papers') main.innerHTML = viewPapers();
   else if(state.view==='conferences') main.innerHTML = viewConferences();
   else if(state.view==='financial') main.innerHTML = viewFinancial();
@@ -894,6 +973,96 @@ function renderView(){
   else if(state.view==='reports') main.innerHTML = viewReports();
   else if(state.view==='account') main.innerHTML = viewAccount();
 }
+
+const ITEM_TYPE_VIEW = {
+  instruction:'instructions', proposal:'proposal', thesis:'thesis', rac:'rac',
+  financial:'financial', course:'learning', weekly:'weekly', sample:'samples',
+  paper:'papers', conference:'conferences', meeting:'meetings', fabrication:'fabrication'
+};
+function goToItem(type, id, studentId){
+  const view = ITEM_TYPE_VIEW[type];
+  if(!view) return;
+  state.view = view;
+  if(studentId && isSupervisorLike()){
+    state.filterStudentId = studentId;
+  }
+  renderSidebar();
+  renderView();
+  setTimeout(()=>{
+    const el = document.getElementById(`item-${type}-${id}`);
+    if(el){
+      el.scrollIntoView({ behavior:'smooth', block:'center' });
+      el.classList.add('flash-highlight');
+      setTimeout(()=>el.classList.remove('flash-highlight'), 1800);
+    }
+  }, 60);
+}
+
+/* ============================ GLOBAL SEARCH ============================ */
+function buildSearchIndex(){
+  const items = [];
+  scopedList(state.weekly).forEach(w=> items.push({ type:'weekly', id:w.id, studentId:w.studentId, title:`Weekly report — week of ${fmtDate(w.weekStart)}`, category:'Weekly Progress' }));
+  scopedList(state.samples).forEach(s=> items.push({ type:'sample', id:s.id, studentId:s.studentId, title:s.sampleName, category:'Characterization' }));
+  scopedList(state.fabricationItems).forEach(it=> items.push({ type:'fabrication', id:it.id, studentId:it.studentId, title:it.itemName, category:'Sample Prep & Fabrication' }));
+  scopedList(state.papers).forEach(p=> items.push({ type:'paper', id:p.id, studentId:p.studentId, title:p.title, category:'Paper Pipeline' }));
+  scopedList(state.proposals).forEach(pr=> items.push({ type:'proposal', id:pr.id, studentId:pr.studentId, title:pr.title, category:'Proposal & Work Plan' }));
+  scopedList(state.thesisPlans).forEach(tp=> items.push({ type:'thesis', id:tp.id, studentId:tp.studentId, title:tp.title, category:'Thesis Plan' }));
+  scopedList(state.racReviews).forEach(r=> items.push({ type:'rac', id:r.id, studentId:r.studentId, title:r.title, category:'RAC Reviews' }));
+  scopedList(state.conferences).forEach(c=> items.push({ type:'conference', id:c.id, studentId:c.studentId, title:c.eventName, category:'Conferences' }));
+  scopedList(state.financialApps).forEach(f=> items.push({ type:'financial', id:f.id, studentId:f.studentId, title:f.title, category:'Visiting & Financial' }));
+  scopedList(state.courses).forEach(c=> items.push({ type:'course', id:c.id, studentId:c.studentId, title:c.title, category:'Learning & Courses' }));
+  scopedList(state.meetings).forEach(m=> items.push({ type:'meeting', id:m.id, studentId:m.studentId, title:m.title, category:'Meetings' }));
+  scopedList(state.instructions).forEach(ins=> items.push({ type:'instruction', id:ins.id, studentId:ins.studentId, title:(ins.text||'').slice(0,70), category:'Instructions' }));
+  return items;
+}
+function openSearchModal(){
+  if(!state.identity) return;
+  document.getElementById('modalRoot').innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-box" style="max-width:560px;">
+        <div class="modal-head">
+          <h3>Search everything</h3>
+          <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <input class="text-input" id="globalSearchInput" placeholder="Type to search titles across every section…" oninput="renderSearchResults()">
+          <div id="globalSearchResults" style="margin-top:10px; max-height:380px; overflow-y:auto;"></div>
+        </div>
+      </div>
+    </div>
+  `;
+  setTimeout(()=>{ document.getElementById('globalSearchInput')?.focus(); renderSearchResults(); }, 30);
+}
+function renderSearchResults(){
+  const input = document.getElementById('globalSearchInput');
+  if(!input) return;
+  const q = input.value.trim().toLowerCase();
+  const index = buildSearchIndex();
+  const results = q ? index.filter(it=> it.title.toLowerCase().includes(q)).slice(0,40) : index.slice(0,15);
+  const container = document.getElementById('globalSearchResults');
+  if(!container) return;
+  if(results.length===0){
+    container.innerHTML = `<div class="entry-meta" style="padding:14px 4px;">${q ? 'No matches for "'+escapeHtml(q)+'".' : 'Start typing to search across every section — or browse recent items below.'}</div>`;
+    return;
+  }
+  container.innerHTML = results.map(it=>`
+    <div class="task-link" style="display:flex; align-items:center; gap:10px; padding:10px 4px; border-top:1px solid var(--border);" onclick="closeModal(); goToItem('${it.type}','${it.id}','${it.studentId}');">
+      <div style="flex:1; min-width:0;">
+        <div style="font-weight:600; font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(it.title)}</div>
+        <div class="entry-meta">${escapeHtml(it.category)} · ${escapeHtml(studentName(it.studentId))}</div>
+      </div>
+    </div>
+  `).join('');
+}
+document.addEventListener('keydown', function(e){
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'){
+    e.preventDefault();
+    openSearchModal();
+  } else if(e.key === 'Escape'){
+    const root = document.getElementById('modalRoot');
+    if(root && root.innerHTML.trim()) closeModal();
+  }
+});
 
 function isSupervisorLike(){
   return state.identity.role === 'supervisor' || state.identity.role === 'cosupervisor';
@@ -919,7 +1088,7 @@ function supervisorFilterBar(){
     return `
       <div class="filter-row">
         <select onchange="setFilterStudent(this.value)">
-          <option value="all" ${state.filterStudentId==='all'?'selected':''}>All students</option>
+          <option value="all" ${state.filterStudentId==='all'?'selected':''}>All research scholars</option>
           ${state.students.map(s=>`<option value="${s.id}" ${state.filterStudentId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}
         </select>
       </div>`;
@@ -930,7 +1099,7 @@ function supervisorFilterBar(){
     return `
       <div class="filter-row">
         <select onchange="setFilterStudent(this.value)">
-          <option value="all" ${state.filterStudentId==='all'?'selected':''}>All my assigned students</option>
+          <option value="all" ${state.filterStudentId==='all'?'selected':''}>All my assigned scholars</option>
           ${assigned.map(s=>`<option value="${s.id}" ${state.filterStudentId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}
         </select>
       </div>`;
@@ -968,7 +1137,7 @@ function viewInstructions(){
 }
 function instructionCard(ins, i, total){
   return `
-    <div class="entry-card">
+    <div class="entry-card cat-navy" id="item-instruction-${ins.id}">
       <div class="entry-top">
         <div>
           <div class="entry-idx">I${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(ins.studentId))}</div>
@@ -986,7 +1155,7 @@ function instructionCard(ins, i, total){
 function openInstructionModal(){
   const visible = visibleStudentsForIdentity();
   const targetId = state.filterStudentId!=='all' ? state.filterStudentId : (visible[0]?.id || '');
-  if(!targetId){ alert('Add a student first.'); return; }
+  if(!targetId){ alert('Add a research scholar first.'); return; }
   showModal('Log an instruction', `
     <label class="field-label">For</label>
     <select class="text-input" id="f_insStudent">
@@ -1014,6 +1183,60 @@ async function deleteInstruction(id){
   renderView();
 }
 
+/* ============================ PENDING APPROVAL (unified queue) ============================ */
+function pendingQueue(){
+  const items = [];
+  scopedList(state.weekly).filter(w=>w.status==='pending').forEach(w=>
+    items.push({ type:'weekly', id:w.id, studentId:w.studentId, title:`Weekly report — week of ${fmtDate(w.weekStart)}`, date:w.weekStart, category:'Weekly Progress', color:'var(--stat-blue)' }));
+  scopedList(state.samples).filter(s=>s.approvalStatus==='pending').forEach(s=>
+    items.push({ type:'sample', id:s.id, studentId:s.studentId, title:s.sampleName, date:s.submittedDate, category:'Characterization', color:'var(--stat-cyan)' }));
+  scopedList(state.papers).filter(p=>!!p.pendingStage).forEach(p=>
+    items.push({ type:'paper', id:p.id, studentId:p.studentId, title:`${p.title} → ${p.pendingStage}`, date:p.lastUpdate, category:'Paper Pipeline', color:'var(--stat-purple)' }));
+  scopedList(state.proposals).filter(pr=>pr.status==='pending').forEach(pr=>
+    items.push({ type:'proposal', id:pr.id, studentId:pr.studentId, title:pr.title, date:pr.lastUpdate, category:'Proposal & Work Plan', color:'var(--stat-indigo)' }));
+  scopedList(state.thesisPlans).filter(tp=>tp.status==='pending').forEach(tp=>
+    items.push({ type:'thesis', id:tp.id, studentId:tp.studentId, title:tp.title, date:tp.lastUpdate, category:'Thesis Plan', color:'var(--stat-purple)' }));
+  scopedList(state.racReviews).filter(r=>r.status==='pending').forEach(r=>
+    items.push({ type:'rac', id:r.id, studentId:r.studentId, title:r.title, date:r.reviewDate, category:'RAC Reviews', color:'var(--stat-rose)' }));
+  scopedList(state.conferences).filter(c=>c.approvalStatus==='pending').forEach(c=>
+    items.push({ type:'conference', id:c.id, studentId:c.studentId, title:c.eventName, date:c.startDate, category:'Conferences', color:'var(--stat-rose)' }));
+  scopedList(state.financialApps).filter(f=>f.approvalStatus==='pending').forEach(f=>
+    items.push({ type:'financial', id:f.id, studentId:f.studentId, title:f.title, date:f.applicationDate, category:'Visiting & Financial', color:'var(--stat-teal)' }));
+  scopedList(state.courses).filter(c=>c.approvalStatus==='pending').forEach(c=>
+    items.push({ type:'course', id:c.id, studentId:c.studentId, title:c.title, date:c.startDate, category:'Learning & Courses', color:'var(--stat-blue)' }));
+  scopedList(state.meetings).filter(m=>m.status==='proposed').forEach(m=>
+    items.push({ type:'meeting', id:m.id, studentId:m.studentId, title:m.title, date:m.plannedDate, category:'Meetings', color:'var(--stat-indigo)' }));
+  scopedList(state.fabricationItems).filter(it=>it.approvalStatus==='pending').forEach(it=>
+    items.push({ type:'fabrication', id:it.id, studentId:it.studentId, title:it.itemName, date:it.startDate, category:'Sample Prep & Fabrication', color:'var(--stat-teal)' }));
+  return items.sort((a,b)=> (a.date||'').localeCompare(b.date||''));
+}
+function viewApprovals(){
+  const items = pendingQueue();
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Pending Approval</div>
+        <div class="view-sub">Every item across the group waiting on your decision, oldest first, in one place.</div>
+      </div>
+    </div>
+    ${supervisorFilterBar()}
+    ${items.length===0 ? emptyState('Nothing waiting on you', 'When students submit something, it will show up here for review — nothing to do right now.') : `
+      <div class="entry-card" style="padding:0;">
+        ${items.map((it,idx)=>`
+          <div style="display:flex; align-items:center; gap:12px; padding:13px 18px; ${idx>0?'border-top:1px solid var(--border);':''}">
+            <span style="width:8px; height:8px; border-radius:50%; background:${it.color}; flex-shrink:0;"></span>
+            <div style="flex:1; min-width:0;">
+              <span class="task-link" style="font-weight:600; font-size:13.5px;" onclick="goToItem('${it.type}','${it.id}','${it.studentId}')">${escapeHtml(it.title)}</span>
+              <div class="entry-meta">${escapeHtml(it.category)} · ${escapeHtml(studentName(it.studentId))}${it.date ? ' · '+fmtDate(it.date) : ''}</div>
+            </div>
+            <button class="small-btn" onclick="goToItem('${it.type}','${it.id}','${it.studentId}')">Review →</button>
+          </div>
+        `).join('')}
+      </div>
+    `}
+  `;
+}
+
 /* ============================ OVERVIEW ============================ */
 function viewOverview(){
   const weekly = scopedList(state.weekly);
@@ -1025,7 +1248,7 @@ function viewOverview(){
   const pendingSamples = samples.filter(s=>s.approvalStatus==='pending').length;
   const pendingPapers = papers.filter(p=>!!p.pendingStage).length;
   const pendingMeetings = meetings.filter(m=>m.status==='proposed').length;
-  const totalPendingApproval = pendingReports + pendingSamples + pendingPapers + pendingMeetings;
+  const totalPendingApproval = pendingQueue().length;
   const awaitingSamples = samples.filter(s=>!s.resultsReceivedDate).length;
   const overdueSamples = samples.filter(s=> !s.resultsReceivedDate && s.expectedDate && s.expectedDate < todayStr()).length;
   const activePapers = papers.filter(p=>p.stage!=='Published').length;
@@ -1063,10 +1286,10 @@ function viewOverview(){
   };
 
   const feed = [
-    ...weekly.map(w=>({ type:'Weekly', date:w.weekStart, text:`<b>${escapeHtml(studentName(w.studentId))}</b> logged progress — week of ${fmtDate(w.weekStart)}` , sortDate:w.weekStart})),
-    ...samples.map(s=>({ type:'Sample', date:s.submittedDate, text:`<b>${escapeHtml(studentName(s.studentId))}</b> submitted <b>${escapeHtml(s.sampleName)}</b> (${escapeHtml(s.technique)})${s.resultsReceivedDate? ' — results in':''}`, sortDate: s.resultsReceivedDate || s.submittedDate})),
-    ...papers.map(p=>({ type:'Paper', date:p.lastUpdate, text:`<b>${escapeHtml(studentName(p.studentId))}</b> — "${escapeHtml(p.title)}" is <b>${escapeHtml(p.stage)}</b>${p.pendingStage ? ` (proposed: ${escapeHtml(p.pendingStage)})` : ''}`, sortDate:p.lastUpdate })),
-    ...meetings.map(m=>({ type:'Meeting', date:m.lastUpdate, text:`<b>${escapeHtml(studentName(m.studentId))}</b> — ${escapeHtml(m.type)}: "${escapeHtml(m.title)}" (${m.status})`, sortDate:m.lastUpdate }))
+    ...weekly.map(w=>({ type:'Weekly', color:'var(--stat-blue)', date:w.weekStart, text:`<b>${escapeHtml(studentName(w.studentId))}</b> logged progress — <span class="task-link" onclick="goToItem('weekly','${w.id}','${w.studentId}')">week of ${fmtDate(w.weekStart)}</span>` , sortDate:w.weekStart})),
+    ...samples.map(s=>({ type:'Sample', color:'var(--stat-cyan)', date:s.submittedDate, text:`<b>${escapeHtml(studentName(s.studentId))}</b> submitted <span class="task-link" onclick="goToItem('sample','${s.id}','${s.studentId}')">${escapeHtml(s.sampleName)}</span> (${escapeHtml(s.technique)})${s.resultsReceivedDate? ' — results in':''}`, sortDate: s.resultsReceivedDate || s.submittedDate})),
+    ...papers.map(p=>({ type:'Paper', color:'var(--stat-purple)', date:p.lastUpdate, text:`<b>${escapeHtml(studentName(p.studentId))}</b> — <span class="task-link" onclick="goToItem('paper','${p.id}','${p.studentId}')">"${escapeHtml(p.title)}"</span> is <b>${escapeHtml(p.stage)}</b>${p.pendingStage ? ` (proposed: ${escapeHtml(p.pendingStage)})` : ''}`, sortDate:p.lastUpdate })),
+    ...meetings.map(m=>({ type:'Meeting', color:'var(--stat-indigo)', date:m.lastUpdate, text:`<b>${escapeHtml(studentName(m.studentId))}</b> — ${escapeHtml(m.type)}: <span class="task-link" onclick="goToItem('meeting','${m.id}','${m.studentId}')">"${escapeHtml(m.title)}"</span> (${m.status})`, sortDate:m.lastUpdate }))
   ].filter(f=>f.sortDate).sort((a,b)=> b.sortDate.localeCompare(a.sortDate)).slice(0,8);
 
   const roleTitle = { supervisor:'Group Overview', cosupervisor:'My Assigned Students', student:'My Overview' }[state.identity.role];
@@ -1082,7 +1305,7 @@ function viewOverview(){
     </div>
     <div class="stat-grid compact">
       ${isSupervisorLike()
-        ? `<div class="stat-card compact accent-blue ${totalPendingApproval>0?'warn':'ok'}"><div class="stat-num">${totalPendingApproval}</div><div class="stat-label"><span class="dot"></span>Awaiting approval</div></div>`
+        ? `<div class="stat-card compact accent-blue ${totalPendingApproval>0?'warn':'ok'}" style="cursor:pointer;" onclick="goView('approvals')"><div class="stat-num">${totalPendingApproval}</div><div class="stat-label"><span class="dot"></span>Awaiting approval</div></div>`
         : `<div class="stat-card compact accent-blue ${pendingReports>0?'warn':''}"><div class="stat-num">${pendingReports}</div><div class="stat-label"><span class="dot"></span>Reports pending</div></div>`}
       <div class="stat-card compact accent-teal ${overdueSamples>0?'warn':'ok'}"><div class="stat-num">${awaitingSamples}</div><div class="stat-label"><span class="dot"></span>Awaiting results</div></div>
       <div class="stat-card compact ${overdueSamples>0?'warn':''}"><div class="stat-num">${overdueSamples}</div><div class="stat-label"><span class="dot" style="background:var(--danger);"></span>Overdue</div></div>
@@ -1115,7 +1338,7 @@ function viewOverview(){
           ${feed.length===0 ? `<div class="empty-state"><div class="em-title">The logbook is empty</div><div class="em-sub">Once progress, samples, or papers are logged, they'll show up here.</div></div>` :
             feed.map((f,i)=>`
               <div class="feed-item compact">
-                <div class="feed-idx">${String(i+1).padStart(2,'0')}</div>
+                <span style="width:7px; height:7px; border-radius:50%; background:${f.color}; flex-shrink:0; margin-top:5px;"></span>
                 <div class="feed-body">${f.text} <span class="feed-date">· ${fmtDate(f.date)}</span></div>
               </div>`).join('')}
         </div>
@@ -1202,7 +1425,7 @@ function studentSummaryTable(){
     <h3 class="panel-title"><span class="dot" style="background:var(--stat-purple);"></span>By student</h3>
     <div class="entry-card compact-card" style="margin-bottom:22px; padding:0;">
       <table class="report-table" style="margin:0;">
-        <thead><tr><th style="padding-left:18px;">Student</th><th>Pending approval</th><th>Samples awaiting results</th><th>Active papers</th><th>Next meeting</th></tr></thead>
+        <thead><tr><th style="padding-left:18px;">Research Scholar</th><th>Pending approval</th><th>Samples awaiting results</th><th>Active papers</th><th>Next meeting</th></tr></thead>
         <tbody>
           ${visible.map(s=>{
             const w = state.weekly.filter(x=>x.studentId===s.id);
@@ -1229,8 +1452,8 @@ function studentSummaryTable(){
 
 function viewAccount(){
   const subMap = {
-    supervisor: 'Passcode, student access, co-supervisors, and backups.',
-    cosupervisor: 'Your PIN, your assigned students, and a backup of what you can see.',
+    supervisor: 'Passcode, research scholar access, mentors, and backups.',
+    cosupervisor: 'Your PIN, your assigned research scholars, and a backup of what you can see.',
     student: 'Your PIN and a backup of your own data.'
   };
   return `
@@ -1250,13 +1473,22 @@ function accessSection(){
     return `
       <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin-bottom:6px;">Account</h3>
       <div class="entry-card">
-        <div class="entry-block">Your entries are only visible to you and your supervisor. Other students can't see your reports, samples, or papers.</div>
+        <div class="entry-block">Your entries are only visible to you and your supervisor. Other research scholars can't see your reports, samples, or papers.</div>
         <div class="entry-block" style="margin-top:8px;">Update emails go to: <b>${escapeHtml(me?.email || 'not set')}</b></div>
         <div class="entry-actions">
           <button class="small-btn" onclick="openChangePinModal()">Change my PIN</button>
           <button class="small-btn" onclick="openChangeStudentEmailModal()">Change my email</button>
           <button class="small-btn" onclick="testMyEmail()">Send test email</button>
         </div>
+      </div>
+      <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Program details</h3>
+      <div class="entry-card">
+        <div class="entry-grid">
+          <div class="entry-block"><span class="lbl">Joining date</span>${me?.joiningDate ? fmtDate(me.joiningDate) : 'Not set'}</div>
+          <div class="entry-block"><span class="lbl">Duration of course</span>${me?.courseDuration ? escapeHtml(me.courseDuration) : 'Not set'}</div>
+        </div>
+        <div class="entry-meta" style="margin-top:8px;">Keep this up to date yourself — your supervisor can see it but this is self-reported.</div>
+        <div class="entry-actions"><button class="small-btn" onclick="openEditProgramDetailsModal()">Edit program details</button></div>
       </div>
       ${backupSection()}
     `;
@@ -1269,7 +1501,7 @@ function accessSection(){
       <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin-bottom:6px;">Your access</h3>
       <div class="entry-card">
         <div class="entry-block" style="margin-bottom:10px;">You can view and review entries for:</div>
-        ${assigned.length===0 ? `<div class="entry-meta">No students are currently assigned to you. Ask the supervisor to assign you.</div>` :
+        ${assigned.length===0 ? `<div class="entry-meta">No research scholars are currently assigned to you. Ask the supervisor to assign you.</div>` :
           `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px;">${assigned.map(s=>`<span class="stamp neutral">${escapeHtml(s.name)}</span>`).join('')}</div>`}
         <div class="entry-block" style="margin-top:10px;">Update emails go to: <b>${escapeHtml(me?.email || 'not set')}</b></div>
         <div class="entry-meta" style="margin-top:8px;">Only the supervisor can change your assignment or reset your PIN if you're locked out — ask them directly.</div>
@@ -1287,13 +1519,19 @@ function accessSection(){
   return `
     <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin-bottom:6px;">Access &amp; privacy</h3>
     <div class="entry-card">
-      <div class="entry-block" style="margin-bottom:14px;">Each student's account is PIN-protected, so students can only view and enter data under their own name. As supervisor, you can see everyone's records and reset a student's PIN if they forget it.</div>
+      <div class="entry-block" style="margin-bottom:14px;">Each research scholar's account is PIN-protected, so they can only view and enter data under their own name. As supervisor, you can see everyone's records, reset a scholar's PIN if they forget it, or remove an account entirely.</div>
       <div class="entry-block" style="margin-bottom:10px;">Update emails go to: <b>${escapeHtml(state.supervisorEmail || 'not set')}</b></div>
-      ${state.students.length===0 ? `<div class="entry-meta">No students have signed up yet.</div>` :
+      ${state.students.length===0 ? `<div class="entry-meta">No research scholars have signed up yet.</div>` :
         state.students.map(s=>`
-          <div style="display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-top:1px solid var(--border);">
-            <span style="font-size:13.5px;">${escapeHtml(s.name)} <span class="entry-meta">${escapeHtml(s.email || 'no email on file')}</span></span>
-            <button class="small-btn" onclick="openResetStudentPinModal('${s.id}')">Reset PIN</button>
+          <div style="padding:9px 0; border-top:1px solid var(--border);">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+              <span style="font-size:13.5px;">${escapeHtml(s.name)} <span class="entry-meta">${escapeHtml(s.email || 'no email on file')}</span></span>
+              <div style="display:flex; gap:6px;">
+                <button class="small-btn" onclick="openResetStudentPinModal('${s.id}')">Reset PIN</button>
+                <button class="small-btn danger" onclick="deleteStudentAccount('${s.id}')">Delete account</button>
+              </div>
+            </div>
+            <div class="entry-meta" style="margin-top:4px;">Joined: ${s.joiningDate ? fmtDate(s.joiningDate) : 'not set'} · Duration: ${escapeHtml(s.courseDuration || 'not set')}</div>
           </div>
         `).join('')}
       <div class="entry-actions">
@@ -1309,10 +1547,10 @@ function accessSection(){
 
 function coSupervisorAdminSection(){
   return `
-    <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Co-supervisors</h3>
+    <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Mentors</h3>
     <div class="entry-card">
-      <div class="entry-block" style="margin-bottom:14px;">Add a co-supervisor and assign them to specific students — they'll see and can review only those students' entries, nothing else in the group.</div>
-      ${state.coSupervisors.length===0 ? `<div class="entry-meta" style="margin-bottom:10px;">No co-supervisors added yet.</div>` :
+      <div class="entry-block" style="margin-bottom:14px;">Add a mentor and assign them to specific research scholars — they'll see and can review only those scholars' entries, nothing else in the group.</div>
+      ${state.coSupervisors.length===0 ? `<div class="entry-meta" style="margin-bottom:10px;">No mentors added yet.</div>` :
         state.coSupervisors.map(c=>`
           <div style="padding:10px 0; border-top:1px solid var(--border);">
             <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
@@ -1330,19 +1568,19 @@ function coSupervisorAdminSection(){
           </div>
         `).join('')}
       <div class="entry-actions" style="margin-top:10px;">
-        <button class="action-btn ghost" onclick="openAddCoSupervisorModal()">+ Add co-supervisor</button>
+        <button class="action-btn ghost" onclick="openAddCoSupervisorModal()">+ Add mentor</button>
       </div>
     </div>
   `;
 }
 function openAddCoSupervisorModal(){
-  if(state.students.length===0){ alert('Add at least one student before assigning a co-supervisor.'); return; }
-  showModal('Add co-supervisor', `
+  if(state.students.length===0){ alert('Add at least one research scholar before assigning a mentor.'); return; }
+  showModal('Add mentor', `
     <label class="field-label">Name</label>
     <input class="text-input" id="f_coSupName" placeholder="e.g. Dr. Sharma">
     <label class="field-label">Email</label>
     <input class="text-input" id="f_coSupEmail" type="email" placeholder="e.g. sharma@university.edu">
-    <label class="field-label">Assign to students</label>
+    <label class="field-label">Assign to research scholars</label>
     <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
       ${state.students.map(s=>`
         <label style="display:flex; align-items:center; gap:8px; font-size:13.5px;">
@@ -1364,7 +1602,7 @@ async function submitAddCoSupervisor(){
 }
 function openEditCoSupAssignmentModal(id){
   const c = state.coSupervisors.find(x=>x.id===id);
-  showModal(`Edit students assigned to ${c.name}`, `
+  showModal(`Edit research scholars assigned to ${c.name}`, `
     <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
       ${state.students.map(s=>`
         <label style="display:flex; align-items:center; gap:8px; font-size:13.5px;">
@@ -1382,7 +1620,7 @@ async function submitEditCoSupAssignment(id){
 }
 async function removeCoSupervisor(id){
   const c = state.coSupervisors.find(x=>x.id===id);
-  if(!confirm(`Remove ${c.name} as a co-supervisor? They will no longer be able to log in.`)) return;
+  if(!confirm(`Remove ${c.name} as a mentor? They will no longer be able to log in.`)) return;
   state.coSupervisors = state.coSupervisors.filter(x=>x.id!==id);
   await saveCollection('co-supervisors', state.coSupervisors);
   renderView();
@@ -1487,7 +1725,8 @@ function downloadBackup(){
     thesisPlans: scopedList(state.thesisPlans),
     racReviews: scopedList(state.racReviews),
     financialApps: scopedList(state.financialApps),
-    courses: scopedList(state.courses)
+    courses: scopedList(state.courses),
+    fabricationItems: scopedList(state.fabricationItems)
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
   const url = URL.createObjectURL(blob);
@@ -1526,6 +1765,7 @@ function handleRestoreFile(event){
     state.racReviews = Array.isArray(parsed.racReviews) ? parsed.racReviews : state.racReviews;
     state.financialApps = Array.isArray(parsed.financialApps) ? parsed.financialApps : state.financialApps;
     state.courses = Array.isArray(parsed.courses) ? parsed.courses : state.courses;
+    state.fabricationItems = Array.isArray(parsed.fabricationItems) ? parsed.fabricationItems : state.fabricationItems;
     await Promise.all([
       saveCollection('students', state.students),
       saveCollection('weekly-reports', state.weekly),
@@ -1537,7 +1777,8 @@ function handleRestoreFile(event){
       saveCollection('thesis-plans', state.thesisPlans),
       saveCollection('rac-reviews', state.racReviews),
       saveCollection('financial-applications', state.financialApps),
-      saveCollection('courses', state.courses)
+      saveCollection('courses', state.courses),
+      saveCollection('fabrication-items', state.fabricationItems)
     ]);
     event.target.value = '';
     alert('Restore complete.');
@@ -1623,6 +1864,67 @@ async function submitChangeStudentEmail(){
   me.email = email;
   await saveCollection('students', state.students);
   closeModal(); renderView();
+}
+function openEditProgramDetailsModal(){
+  const me = state.students.find(x=>x.id===state.identity.id);
+  showModal('Program details', `
+    <label class="field-label">Joining date</label>
+    <input type="date" class="text-input" id="f_joiningDate" value="${me?.joiningDate || ''}">
+    <label class="field-label">Duration of course</label>
+    <input class="text-input" id="f_courseDuration" value="${escapeHtml(me?.courseDuration || '')}" placeholder="e.g. 5 years, or Aug 2024 – Jul 2029">
+  `, submitProgramDetails);
+}
+async function submitProgramDetails(){
+  const me = state.students.find(x=>x.id===state.identity.id);
+  me.joiningDate = document.getElementById('f_joiningDate').value;
+  me.courseDuration = document.getElementById('f_courseDuration').value.trim();
+  await saveCollection('students', state.students);
+  closeModal(); renderView();
+}
+async function deleteStudentAccount(studentId){
+  const s = state.students.find(x=>x.id===studentId);
+  if(!s) return;
+  const first = confirm(`Permanently delete ${s.name}'s account? This also permanently deletes ALL of their data — weekly reports, samples, papers, proposals, thesis plan, RAC reviews, conferences, financial applications, courses, fabrication items, meetings, and instructions. This cannot be undone.`);
+  if(!first) return;
+  const second = confirm(`Are you completely sure? Type-check: this will erase everything on record for ${s.name}, permanently.`);
+  if(!second) return;
+
+  state.students = state.students.filter(x=>x.id!==studentId);
+  state.weekly = state.weekly.filter(x=>x.studentId!==studentId);
+  state.samples = state.samples.filter(x=>x.studentId!==studentId);
+  state.papers = state.papers.filter(x=>x.studentId!==studentId);
+  state.proposals = state.proposals.filter(x=>x.studentId!==studentId);
+  state.thesisPlans = state.thesisPlans.filter(x=>x.studentId!==studentId);
+  state.racReviews = state.racReviews.filter(x=>x.studentId!==studentId);
+  state.conferences = state.conferences.filter(x=>x.studentId!==studentId);
+  state.financialApps = state.financialApps.filter(x=>x.studentId!==studentId);
+  state.courses = state.courses.filter(x=>x.studentId!==studentId);
+  state.fabricationItems = state.fabricationItems.filter(x=>x.studentId!==studentId);
+  state.instructions = state.instructions.filter(x=>x.studentId!==studentId);
+  state.meetings = state.meetings.filter(x=>x.studentId!==studentId);
+  state.plannerTasks = state.plannerTasks.filter(x=>x.studentId!==studentId);
+  state.coSupervisors.forEach(c=>{ c.assignedStudentIds = (c.assignedStudentIds||[]).filter(id=>id!==studentId); });
+
+  await Promise.all([
+    saveCollection('students', state.students),
+    saveCollection('weekly-reports', state.weekly),
+    saveCollection('samples', state.samples),
+    saveCollection('papers', state.papers),
+    saveCollection('proposals', state.proposals),
+    saveCollection('thesis-plans', state.thesisPlans),
+    saveCollection('rac-reviews', state.racReviews),
+    saveCollection('conferences', state.conferences),
+    saveCollection('financial-applications', state.financialApps),
+    saveCollection('courses', state.courses),
+    saveCollection('fabrication-items', state.fabricationItems),
+    saveCollection('instructions', state.instructions),
+    saveCollection('meetings', state.meetings),
+    saveCollection('planner-tasks', state.plannerTasks),
+    saveCollection('co-supervisors', state.coSupervisors)
+  ]);
+  if(state.filterStudentId === studentId) state.filterStudentId = 'all';
+  alert(`${s.name}'s account and all associated data have been deleted.`);
+  renderView();
 }
 function openChangeSupervisorEmailModal(){
   showModal('Update supervisor email', `
@@ -1868,7 +2170,7 @@ function proposalCard(pr, i, total){
   const goals = pr.goals || [];
   const doneCount = goals.filter(g=>g.done).length;
   return `
-    <div class="entry-card">
+    <div class="entry-card cat-indigo" id="item-proposal-${pr.id}">
       <div class="entry-top">
         <div>
           <div class="entry-idx">PR${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(pr.studentId))}</div>
@@ -1920,7 +2222,7 @@ async function submitProposal(){
   const expectedOutcomes = document.getElementById('f_prOutcomes').value.trim();
   if(!title || !objective){ alert('Please add a title and objective.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
-  if(!studentId){ alert('Add a student first.'); return; }
+  if(!studentId){ alert('Add a research scholar first.'); return; }
   state.proposals.push({
     id: uid('pr'), studentId, title, objective, methodology, expectedOutcomes, goals: [],
     status: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:'', lastUpdate: todayStr()
@@ -2101,7 +2403,7 @@ function thesisCard(tp, i, total){
   const chapters = tp.chapters || [];
   const myPapers = state.papers.filter(p=>p.studentId===tp.studentId);
   return `
-    <div class="entry-card">
+    <div class="entry-card cat-purple" id="item-thesis-${tp.id}">
       <div class="entry-top">
         <div>
           <div class="entry-idx">TH${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(tp.studentId))}</div>
@@ -2166,7 +2468,7 @@ async function submitThesis(){
   const totalPlannedPapers = parseInt(document.getElementById('f_thPapers').value, 10) || 0;
   if(!title){ alert('Please add a thesis title.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
-  if(!studentId){ alert('Add a student first.'); return; }
+  if(!studentId){ alert('Add a research scholar first.'); return; }
   state.thesisPlans.push({
     id: uid('th'), studentId, title, totalPlannedPapers, chapters: [],
     status: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:'', lastUpdate: todayStr()
@@ -2303,7 +2605,7 @@ function racCard(r, i, total){
   const doneCount = items.filter(it=>it.done).length;
   const pct = items.length ? Math.round((doneCount/items.length)*100) : null;
   return `
-    <div class="entry-card">
+    <div class="entry-card cat-rose" id="item-rac-${r.id}">
       <div class="entry-top">
         <div>
           <div class="entry-idx">RAC${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(r.studentId))}</div>
@@ -2374,7 +2676,7 @@ async function submitRac(){
   const reviewDate = document.getElementById('f_racDate').value;
   if(!title || !reviewDate){ alert('Please add a title and review date.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
-  if(!studentId){ alert('Add a student first.'); return; }
+  if(!studentId){ alert('Add a research scholar first.'); return; }
   state.racReviews.push({
     id: uid('rac'), studentId, title, reviewDate,
     committeeMembers: document.getElementById('f_racMembers').value.trim(),
@@ -2503,7 +2805,7 @@ function financialCard(f, i, total){
   const st = financialStatusMap()[f.approvalStatus] || financialStatusMap().pending;
   const outcome = FINANCIAL_OUTCOMES[f.outcomeStatus] || FINANCIAL_OUTCOMES.awaiting_result;
   return `
-    <div class="entry-card">
+    <div class="entry-card cat-teal" id="item-financial-${f.id}">
       <div class="entry-top">
         <div>
           <div class="entry-idx">F${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(f.studentId))}</div>
@@ -2569,7 +2871,7 @@ async function submitFinancial(){
   const applicationDate = document.getElementById('f_finDate').value;
   if(!title || !applicationDate){ alert('Please add a title and application date.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
-  if(!studentId){ alert('Add a student first.'); return; }
+  if(!studentId){ alert('Add a research scholar first.'); return; }
   state.financialApps.push({
     id: uid('fin'), studentId,
     title, type: document.getElementById('f_finType').value,
@@ -2691,7 +2993,7 @@ function courseCard(c, i, total){
   const st = learningApprovalMap()[c.approvalStatus] || learningApprovalMap().pending;
   const cst = COURSE_STATUSES[c.status] || COURSE_STATUSES.not_started;
   return `
-    <div class="entry-card">
+    <div class="entry-card cat-blue" id="item-course-${c.id}">
       <div class="entry-top">
         <div>
           <div class="entry-idx">L${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(c.studentId))}</div>
@@ -2761,7 +3063,7 @@ async function submitCourse(){
   const startDate = document.getElementById('f_courseStart').value;
   if(!title || !startDate){ alert('Please add a title and start date.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
-  if(!studentId){ alert('Add a student first.'); return; }
+  if(!studentId){ alert('Add a research scholar first.'); return; }
   state.courses.push({
     id: uid('crs'), studentId, title,
     type: document.getElementById('f_courseType').value,
@@ -2833,6 +3135,172 @@ async function deleteCourse(id){
   renderView();
 }
 
+/* ============================ SAMPLE PREP & DEVICE FABRICATION ============================ */
+function fabricationApprovalMap(){
+  return {
+    pending: { label:'Pending Approval', cls:'warn' },
+    approved: { label:'Approved', cls:'good' },
+    changes_requested: { label:'Changes Requested', cls:'bad' }
+  };
+}
+function viewFabrication(){
+  let list = scopedList(state.fabricationItems).slice().sort((a,b)=> (b.lastUpdate||'').localeCompare(a.lastUpdate||''));
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Sample Prep &amp; Device Fabrication</div>
+        <div class="view-sub">Preparation, fabrication, and testing status for samples and devices — mapped to the paper they support.</div>
+      </div>
+      <button class="action-btn" onclick="openFabricationModal()">+ Log item</button>
+    </div>
+    ${supervisorFilterBar()}
+    ${list.length===0 ? emptyState('Nothing logged yet', 'Log a sample or device to track its status from preparation through testing.') : list.map((it,i)=>fabricationCard(it,i,list.length)).join('')}
+  `;
+}
+function fabricationCard(it, i, total){
+  const isOwner = state.identity.role==='student' && it.studentId===state.identity.id;
+  const canManage = isSupervisorLike();
+  const locked = it.approvalStatus === 'approved' && isOwner;
+  const canEdit = canManage || (isOwner && !locked);
+  const st = fabricationApprovalMap()[it.approvalStatus] || fabricationApprovalMap().pending;
+  const stg = FABRICATION_STAGES[it.stage] || FABRICATION_STAGES.prep;
+  const linkedPaper = it.linkedPaperId ? state.papers.find(p=>p.id===it.linkedPaperId) : null;
+  return `
+    <div class="entry-card cat-teal" id="item-fabrication-${it.id}">
+      <div class="entry-top">
+        <div>
+          <div class="entry-idx">FB${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(it.studentId))}</div>
+          <div class="entry-title">${escapeHtml(it.itemName)}</div>
+          <div class="entry-meta">
+            ${linkedPaper ? `Supports paper: <span class="task-link" onclick="goToItem('paper','${linkedPaper.id}','${it.studentId}')">${escapeHtml(linkedPaper.title)}</span> (${escapeHtml(linkedPaper.stage)})` : 'Not yet linked to a paper'}
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+          <span class="stamp ${st.cls}">${st.label}</span>
+          <span class="stamp ${stg.cls}">${stg.label}</span>
+        </div>
+      </div>
+      <div class="entry-grid">
+        <div class="entry-block"><span class="lbl">Started</span>${it.startDate ? fmtDate(it.startDate) : '—'}</div>
+        ${it.link ? `<div class="entry-block"><span class="lbl">Data / photos</span><a href="${escapeHtml(it.link)}" target="_blank" rel="noopener">Open ↗</a></div>` : ''}
+        ${it.notes ? `<div class="entry-block" style="grid-column:1/-1;"><span class="lbl">Notes</span>${nl2br(it.notes)}</div>` : ''}
+      </div>
+      ${it.supervisorNote ? `<div class="comment-box"><span class="lbl">Supervisor note</span><div class="comment-existing">${nl2br(it.supervisorNote)}</div></div>` : ''}
+      ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
+      <div class="entry-actions">
+        ${isSupervisorLike() ? `<button class="small-btn" onclick="openFabricationReviewBox('${it.id}')">Review</button>` : ''}
+        ${canEdit ? `<button class="small-btn" onclick="openEditFabricationModal('${it.id}')">Edit</button>` : ''}
+        ${canEdit ? `<button class="small-btn danger" onclick="deleteFabrication('${it.id}')">Delete</button>` : ''}
+      </div>
+      <div id="fabricationReviewSlot-${it.id}"></div>
+    </div>
+  `;
+}
+function fabricationFormFields(it){
+  it = it || {};
+  const studentIdForPapers = it.studentId || (state.identity.role==='student' ? state.identity.id : state.filterStudentId);
+  const myPapers = state.papers.filter(p=>p.studentId===studentIdForPapers);
+  return `
+    <label class="field-label">Sample / device name</label>
+    <input class="text-input" id="f_fabName" value="${escapeHtml(it.itemName||'')}" placeholder="e.g. Cathode electrode batch 5 / Coin cell device A">
+    <label class="field-label">Stage</label>
+    <select class="text-input" id="f_fabStage">
+      <option value="prep" ${it.stage==='prep'?'selected':''}>Sample Preparation</option>
+      <option value="fabrication" ${it.stage==='fabrication'?'selected':''}>Device Fabrication</option>
+      <option value="testing" ${it.stage==='testing'?'selected':''}>Testing</option>
+      <option value="completed" ${it.stage==='completed'?'selected':''}>Completed</option>
+      <option value="on_hold" ${it.stage==='on_hold'?'selected':''}>On Hold</option>
+    </select>
+    <label class="field-label">Link to a paper (optional)</label>
+    <select class="text-input" id="f_fabPaper">
+      <option value="">No paper linked</option>
+      ${myPapers.map(p=>`<option value="${p.id}" ${it.linkedPaperId===p.id?'selected':''}>${escapeHtml(p.title)} (${escapeHtml(p.stage)})</option>`).join('')}
+    </select>
+    <label class="field-label">Start date</label>
+    <input type="date" class="text-input" id="f_fabStart" value="${it.startDate||todayStr()}">
+    <label class="field-label">Data / photos link (optional)</label>
+    <input class="text-input" id="f_fabLink" value="${escapeHtml(it.link||'')}" placeholder="Drive link to raw data, images, or notes">
+    <label class="field-label">Notes (optional)</label>
+    <textarea class="text-input" id="f_fabNotes" rows="2">${escapeHtml(it.notes||'')}</textarea>
+  `;
+}
+function openFabricationModal(){
+  showModal('Log sample / device', fabricationFormFields(), submitFabrication);
+}
+async function submitFabrication(){
+  const itemName = document.getElementById('f_fabName').value.trim();
+  const startDate = document.getElementById('f_fabStart').value;
+  if(!itemName || !startDate){ alert('Please add a name and start date.'); return; }
+  const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
+  if(!studentId){ alert('Add a research scholar first.'); return; }
+  state.fabricationItems.push({
+    id: uid('fab'), studentId, itemName,
+    stage: document.getElementById('f_fabStage').value,
+    linkedPaperId: document.getElementById('f_fabPaper').value || null,
+    startDate, link: document.getElementById('f_fabLink').value.trim(),
+    notes: document.getElementById('f_fabNotes').value.trim(),
+    approvalStatus: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:'', lastUpdate: todayStr()
+  });
+  await saveCollection('fabrication-items', state.fabricationItems);
+  if(!isSupervisorLike()){
+    apiNotify('fabricationSubmitted', { studentId, itemName });
+  }
+  closeModal(); renderView();
+}
+function openEditFabricationModal(id){
+  const it = state.fabricationItems.find(x=>x.id===id);
+  showModal('Edit sample / device', fabricationFormFields(it) + (!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''), ()=>submitEditFabrication(id));
+}
+async function submitEditFabrication(id){
+  const it = state.fabricationItems.find(x=>x.id===id);
+  const itemName = document.getElementById('f_fabName').value.trim();
+  const startDate = document.getElementById('f_fabStart').value;
+  if(!itemName || !startDate){ alert('Please add a name and start date.'); return; }
+  it.itemName = itemName;
+  it.stage = document.getElementById('f_fabStage').value;
+  it.linkedPaperId = document.getElementById('f_fabPaper').value || null;
+  it.startDate = startDate;
+  it.link = document.getElementById('f_fabLink').value.trim();
+  it.notes = document.getElementById('f_fabNotes').value.trim();
+  it.lastUpdate = todayStr();
+  if(!isSupervisorLike()){
+    it.approvalStatus = 'pending';
+    await saveCollection('fabrication-items', state.fabricationItems);
+    apiNotify('fabricationSubmitted', { studentId: it.studentId, itemName: it.itemName });
+  } else {
+    await saveCollection('fabrication-items', state.fabricationItems);
+  }
+  closeModal(); renderView();
+}
+function openFabricationReviewBox(id){
+  const it = state.fabricationItems.find(x=>x.id===id);
+  document.getElementById('fabricationReviewSlot-'+id).innerHTML = `
+    <div class="comment-box">
+      <span class="lbl">Note (required to request changes)</span>
+      <textarea id="fabricationReviewInput-${id}">${escapeHtml(it.supervisorNote || '')}</textarea>
+      <div class="entry-actions">
+        <button class="small-btn" onclick="reviewFabrication('${id}','approved')">Approve</button>
+        <button class="small-btn danger" onclick="reviewFabrication('${id}','changes_requested')">Request changes</button>
+      </div>
+    </div>`;
+}
+async function reviewFabrication(id, decision){
+  const it = state.fabricationItems.find(x=>x.id===id);
+  const val = document.getElementById('fabricationReviewInput-'+id).value.trim();
+  if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
+  it.supervisorNote = val;
+  it.approvalStatus = decision;
+  await saveCollection('fabrication-items', state.fabricationItems);
+  apiNotify('fabricationReviewed', { studentId: it.studentId, itemName: it.itemName, decision, note: val });
+  renderView();
+}
+async function deleteFabrication(id){
+  if(!confirm('Delete this entry?')) return;
+  state.fabricationItems = state.fabricationItems.filter(x=>x.id!==id);
+  await saveCollection('fabrication-items', state.fabricationItems);
+  renderView();
+}
+
 /* ============================ WEEKLY PROGRESS ============================ */
 function viewWeekly(){
   let list = scopedList(state.weekly).slice().sort((a,b)=> b.weekStart.localeCompare(a.weekStart));
@@ -2886,7 +3354,7 @@ function weeklyCard(w, i, total){
   };
   const st = statusMap[w.status] || statusMap.pending;
   return `
-    <div class="entry-card">
+    <div class="entry-card cat-blue" id="item-weekly-${w.id}">
       <div class="entry-top">
         <div>
           <div class="entry-idx">W${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(w.studentId))}</div>
@@ -3051,7 +3519,7 @@ function sampleCard(s, i, total){
   };
   const ap = approvalMap[s.approvalStatus] || approvalMap.pending;
   return `
-    <div class="entry-card">
+    <div class="entry-card cat-cyan" id="item-sample-${s.id}">
       <div class="entry-top">
         <div>
           <div class="entry-idx">S${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(s.studentId))}</div>
@@ -3116,7 +3584,7 @@ async function submitSample(){
   const notes = document.getElementById('f_sampleNotes').value.trim();
   if(!sampleName || !submittedDate){ alert('Please add a sample name and submission date.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
-  if(!studentId){ alert('Add a student first.'); return; }
+  if(!studentId){ alert('Add a research scholar first.'); return; }
   state.samples.push({
     id: uid('smp'), studentId, sampleName, technique, facility, submittedDate, expectedDate, resultsReceivedDate:'', notes, dataLink:'',
     approvalStatus: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:''
@@ -3255,7 +3723,7 @@ function paperCard(p, i, total){
   const hasPending = !!p.pendingStage;
   const refLinks = p.referenceLinks || [];
   return `
-    <div class="entry-card">
+    <div class="entry-card cat-purple" id="item-paper-${p.id}">
       <div class="entry-top">
         <div>
           <div class="entry-idx">P${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(p.studentId))}</div>
@@ -3325,7 +3793,7 @@ async function submitPaper(){
   const notes = document.getElementById('f_paperNotes').value.trim();
   if(!title){ alert('Please add a title.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
-  if(!studentId){ alert('Add a student first.'); return; }
+  if(!studentId){ alert('Add a research scholar first.'); return; }
   state.papers.push({
     id: uid('pap'), studentId, title, targetJournal, manuscriptLink, referenceLinks: [], stage: 'Planning', pendingStage: null,
     notes, supervisorNote:'', lastUpdate: todayStr()
@@ -3337,7 +3805,7 @@ async function requestStageChange(id, newStage){
   const p = state.papers.find(x=>x.id===id);
   if(newStage === p.stage) return;
   if(isSupervisorLike()){
-    // Supervisor/co-supervisor changes are final immediately — no approval needed on their own call.
+    // Supervisor/mentor changes are final immediately — no approval needed on their own call.
     p.stage = newStage;
     p.pendingStage = null;
     p.lastUpdate = todayStr();
@@ -3450,7 +3918,7 @@ function conferenceCard(c, i, total){
   const canEdit = canManage || (isOwner && !locked);
   const st = conferenceStatusMap()[c.approvalStatus] || conferenceStatusMap().pending;
   return `
-    <div class="entry-card">
+    <div class="entry-card cat-rose" id="item-conference-${c.id}">
       <div class="entry-top">
         <div>
           <div class="entry-idx">C${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(c.studentId))}</div>
@@ -3515,7 +3983,7 @@ async function submitConference(){
   const startDate = document.getElementById('f_confStart').value;
   if(!eventName || !startDate){ alert('Please add an event name and start date.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
-  if(!studentId){ alert('Add a student first.'); return; }
+  if(!studentId){ alert('Add a research scholar first.'); return; }
   state.conferences.push({
     id: uid('conf'), studentId, eventName,
     eventType: document.getElementById('f_confType').value,
@@ -3629,7 +4097,7 @@ function meetingCard(m, i, total){
   const st = MEETING_STATUS[m.status] || MEETING_STATUS.proposed;
   const isPast = m.plannedDate < todayStr();
   return `
-    <div class="entry-card">
+    <div class="entry-card cat-indigo" id="item-meeting-${m.id}">
       <div class="entry-top">
         <div>
           <div class="entry-idx">M${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(m.studentId))}</div>
@@ -3669,7 +4137,7 @@ async function submitMeeting(){
   const agenda = document.getElementById('f_meetAgenda').value.trim();
   if(!title || !plannedDate){ alert('Please add a title and planned date.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
-  if(!studentId){ alert('Add a student first.'); return; }
+  if(!studentId){ alert('Add a research scholar first.'); return; }
   state.meetings.push({
     id: uid('mtg'), studentId, type, title, plannedDate, agenda, outcomeNotes:'',
     status: isSupervisorLike() ? 'confirmed' : 'proposed',
@@ -3728,7 +4196,7 @@ function viewReports(){
     state.reportStudentId = (isSupervisor || isCoSup) ? 'all' : state.identity.id;
   }
   const studentOptions = (isSupervisor || isCoSup)
-    ? `<option value="all" ${state.reportStudentId==='all'?'selected':''}>${isSupervisor ? 'All students' : 'All my students'}</option>` +
+    ? `<option value="all" ${state.reportStudentId==='all'?'selected':''}>${isSupervisor ? 'All research scholars' : 'All my research scholars'}</option>` +
       visible.map(s=>`<option value="${s.id}" ${state.reportStudentId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')
     : `<option value="${state.identity.id}" selected>${escapeHtml(state.identity.name)}</option>`;
 
@@ -3741,7 +4209,7 @@ function viewReports(){
     </div>
     <div class="entry-card" style="margin-bottom:20px;">
       <div class="two-col">
-        <div><label class="field-label">Student</label>
+        <div><label class="field-label">Research Scholar</label>
           <select class="text-input" id="r_student" ${(isSupervisor||isCoSup)?'':'disabled'} onchange="state.reportStudentId=this.value">
             ${studentOptions}
           </select>
