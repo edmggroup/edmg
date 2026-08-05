@@ -158,7 +158,7 @@
 
   /* ---------- Dashboard cards ---------- */
   .stat-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(168px,1fr)); gap:14px; margin-bottom:30px; }
-  .stat-grid.compact{ grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:12px; margin-bottom:22px; }
+  .stat-grid.compact{ grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:14px; margin-bottom:24px; }
   .stat-card{ background:var(--surface); border:1px solid var(--border); border-top:3px solid var(--border-strong); border-radius:var(--radius); padding:17px 19px; box-shadow:var(--shadow-sm); transition:box-shadow .15s, transform .15s; }
   .stat-card:hover{ box-shadow:var(--shadow-md); transform:translateY(-2px); }
   .stat-card.compact{ padding:14px 16px; }
@@ -191,7 +191,7 @@
   .panel-title{ font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); font-weight:600; margin:0 0 8px; display:flex; align-items:center; gap:7px; }
   .panel-title .dot{ width:7px; height:7px; border-radius:50%; }
   .two-col-panels{ display:grid; grid-template-columns:1.3fr 1fr; gap:18px; align-items:start; }
-  .compact-card{ padding:8px 16px; margin-bottom:0; }
+  .compact-card{ padding:10px 20px; margin-bottom:0; }
 
   /* ---------- Calendar & Planner ---------- */
   .cal-header{ display:flex; align-items:center; justify-content:space-between; margin:18px 0 10px; }
@@ -237,8 +237,8 @@
   }
 
   .feed-item{ display:flex; gap:12px; padding:13px 0; border-bottom:1px solid var(--border); }
-  .feed-item.compact{ padding:8px 0; gap:10px; }
-  .feed-item.compact .feed-body{ font-size:12.5px; line-height:1.45; }
+  .feed-item.compact{ padding:12px 0; gap:12px; }
+  .feed-item.compact .feed-body{ font-size:13px; line-height:1.55; }
   .feed-item:last-child{ border-bottom:none; }
   .feed-idx{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-faint); width:26px; flex-shrink:0; padding-top:2px; }
   .feed-idx.mono{ width:64px; font-size:11px; }
@@ -381,7 +381,6 @@ const state = {
   instructions: [],
   meetings: [],
   coSupervisors: [],
-  readings: [],
   proposals: [],
   conferences: [],
   plannerTasks: [],
@@ -396,6 +395,15 @@ const state = {
   filterStudentId: 'all',
   filterMeetingType: 'all',
   filterWeeklyStatus: 'all',
+  filterSampleStatus: 'all',
+  filterFabricationStatus: 'all',
+  filterPaperStatus: 'all',
+  filterProposalStatus: 'all',
+  filterThesisStatus: 'all',
+  filterRacStatus: 'all',
+  filterConferenceStatus: 'all',
+  filterFinancialStatus: 'all',
+  filterCourseStatus: 'all',
   loginRole: null,
   loginPickId: null,
   supervisorPinHash: null, // null = no supervisor passcode set yet
@@ -517,7 +525,7 @@ async function saveSupervisorProfile(profile){
 
 /* ============================ INIT ============================ */
 // Every collection key the app needs at startup, fetched in one batched request.
-const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','readings','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','supervisor-pin'];
+const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','supervisor-pin'];
 
 async function init(){
   if(!backendConfigured()){
@@ -559,7 +567,6 @@ function applyDataValues(values){
   state.instructions = arr('instructions');
   state.meetings = arr('meetings');
   state.coSupervisors = arr('co-supervisors');
-  state.readings = arr('readings');
   state.proposals = arr('proposals');
   state.conferences = arr('conferences');
   state.plannerTasks = arr('planner-tasks');
@@ -1284,7 +1291,7 @@ function viewApprovals(){
     ${items.length===0 ? emptyState('Nothing waiting on you', 'When students submit something, it will show up here for review — nothing to do right now.') : `
       <div class="entry-card" style="padding:0;">
         ${items.map((it,idx)=>`
-          <div style="display:flex; align-items:center; gap:12px; padding:13px 18px; ${idx>0?'border-top:1px solid var(--border);':''}">
+          <div style="display:flex; align-items:center; gap:14px; padding:15px 20px; ${idx>0?'border-top:1px solid var(--border);':''}">
             <span style="width:8px; height:8px; border-radius:50%; background:${it.color}; flex-shrink:0;"></span>
             <div style="flex:1; min-width:0;">
               <span class="task-link" style="font-weight:600; font-size:13.5px;" onclick="goToItem('${it.type}','${it.id}','${it.studentId}')">${escapeHtml(it.title)}</span>
@@ -1419,7 +1426,9 @@ function viewOverview(){
   `;
 }
 
-function renderStatusPie(counts){
+function renderStatusPie(counts, size){
+  size = size || 130;
+  const inset = Math.round(size * 0.14);
   const total = counts.approved + counts.pending + counts.changes_requested;
   if(total === 0){
     return `<div class="empty-state"><div class="em-title">Nothing to show yet</div><div class="em-sub">Once items are submitted, their approval status will appear here.</div></div>`;
@@ -1438,14 +1447,14 @@ function renderStatusPie(counts){
   }).join(', ');
   return `
     <div style="display:flex; align-items:center; gap:22px; flex-wrap:wrap;">
-      <div style="position:relative; width:130px; height:130px; flex-shrink:0;">
+      <div style="position:relative; width:${size}px; height:${size}px; flex-shrink:0;">
         <div style="width:100%; height:100%; border-radius:50%; background:conic-gradient(${stops});"></div>
-        <div style="position:absolute; inset:18px; border-radius:50%; background:var(--surface); display:flex; flex-direction:column; align-items:center; justify-content:center;">
-          <div style="font-size:22px; font-weight:700; color:var(--ink); line-height:1;">${total}</div>
-          <div style="font-size:10px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.04em; margin-top:2px;">Total items</div>
+        <div style="position:absolute; inset:${inset}px; border-radius:50%; background:var(--surface); display:flex; flex-direction:column; align-items:center; justify-content:center;">
+          <div style="font-size:${Math.round(size*0.17)}px; font-weight:700; color:var(--ink); line-height:1;">${total}</div>
+          <div style="font-size:${Math.max(9,Math.round(size*0.077))}px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.04em; margin-top:2px;">Total</div>
         </div>
       </div>
-      <div style="display:flex; flex-direction:column; gap:8px; flex:1; min-width:160px;">
+      <div style="display:flex; flex-direction:column; gap:8px; flex:1; min-width:150px;">
         ${segments.map(seg=>`
           <div style="display:flex; align-items:center; gap:8px; font-size:13px;">
             <span style="width:9px; height:9px; border-radius:50%; background:${seg.color}; flex-shrink:0;"></span>
@@ -1455,6 +1464,30 @@ function renderStatusPie(counts){
           </div>
         `).join('')}
       </div>
+    </div>
+  `;
+}
+function approvalCounts(list, statusField){
+  const counts = { approved:0, pending:0, changes_requested:0 };
+  list.forEach(item => { const s = item[statusField]; if(counts[s]!==undefined) counts[s]++; });
+  return counts;
+}
+function statusFilterOptions(currentValue, setterFnName){
+  return `
+    <select onchange="${setterFnName}(this.value)">
+      <option value="all" ${currentValue==='all'?'selected':''}>All statuses</option>
+      <option value="pending" ${currentValue==='pending'?'selected':''}>Pending Approval</option>
+      <option value="approved" ${currentValue==='approved'?'selected':''}>Approved</option>
+      <option value="changes_requested" ${currentValue==='changes_requested'?'selected':''}>Changes Requested</option>
+    </select>
+  `;
+}
+function sectionPieAndFilter(fullList, statusField, currentFilterValue, setterFnName){
+  const counts = approvalCounts(fullList, statusField);
+  return `
+    <div class="two-col-panels" style="margin-bottom:20px; align-items:center;">
+      <div class="entry-card compact-card" style="padding:16px 20px;">${renderStatusPie(counts, 86)}</div>
+      <div class="filter-row" style="margin-bottom:0;">${statusFilterOptions(currentFilterValue, setterFnName)}</div>
     </div>
   `;
 }
@@ -1584,7 +1617,7 @@ function accessSection(){
       <div class="entry-block" style="margin-bottom:10px;">Update emails go to: <b>${escapeHtml(state.supervisorEmail || 'not set')}</b></div>
       ${state.students.length===0 ? `<div class="entry-meta">No research scholars have signed up yet.</div>` :
         state.students.map(s=>`
-          <div style="padding:9px 0; border-top:1px solid var(--border);">
+          <div style="padding:12px 2px; border-top:1px solid var(--border);">
             <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
               <span style="font-size:13.5px;">${escapeHtml(s.name)} <span class="entry-meta">${escapeHtml(s.email || 'no email on file')}</span></span>
               <div style="display:flex; gap:6px;">
@@ -1787,7 +1820,10 @@ function downloadBackup(){
     racReviews: scopedList(state.racReviews),
     financialApps: scopedList(state.financialApps),
     courses: scopedList(state.courses),
-    fabricationItems: scopedList(state.fabricationItems)
+    fabricationItems: scopedList(state.fabricationItems),
+    instructions: scopedList(state.instructions),
+    meetings: scopedList(state.meetings),
+    coSupervisors: isSupervisor ? state.coSupervisors.map(c=>({id:c.id, name:c.name, email:c.email||'', assignedStudentIds:c.assignedStudentIds||[]})) : undefined
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
   const url = URL.createObjectURL(blob);
@@ -1827,6 +1863,14 @@ function handleRestoreFile(event){
     state.financialApps = Array.isArray(parsed.financialApps) ? parsed.financialApps : state.financialApps;
     state.courses = Array.isArray(parsed.courses) ? parsed.courses : state.courses;
     state.fabricationItems = Array.isArray(parsed.fabricationItems) ? parsed.fabricationItems : state.fabricationItems;
+    state.instructions = Array.isArray(parsed.instructions) ? parsed.instructions : state.instructions;
+    state.meetings = Array.isArray(parsed.meetings) ? parsed.meetings : state.meetings;
+    if(Array.isArray(parsed.coSupervisors)){
+      state.coSupervisors = parsed.coSupervisors.map(c => {
+        const existing = state.coSupervisors.find(x=>x.id===c.id);
+        return { ...c, pinHash: existing?.pinHash || null };
+      });
+    }
     await Promise.all([
       saveCollection('students', state.students),
       saveCollection('weekly-reports', state.weekly),
@@ -1839,7 +1883,10 @@ function handleRestoreFile(event){
       saveCollection('rac-reviews', state.racReviews),
       saveCollection('financial-applications', state.financialApps),
       saveCollection('courses', state.courses),
-      saveCollection('fabrication-items', state.fabricationItems)
+      saveCollection('fabrication-items', state.fabricationItems),
+      saveCollection('instructions', state.instructions),
+      saveCollection('meetings', state.meetings),
+      saveCollection('co-supervisors', state.coSupervisors)
     ]);
     event.target.value = '';
     alert('Restore complete.');
@@ -2002,7 +2049,6 @@ async function submitChangeSupervisorEmail(){
 }
 
 /* ============================ CALENDAR & WEEKLY PLANNER ============================ */
-function ymOf(dateStr){ return dateStr.slice(0,7); }
 function shiftMonth(ymStr, delta){
   const [y,m] = ymStr.split('-').map(Number);
   const d = new Date(y, m-1+delta, 1);
@@ -2169,7 +2215,11 @@ async function deletePlannerTask(id){
 
 /* ============================ PROPOSAL & WORK PLAN ============================ */
 function viewProposal(){
-  let list = scopedList(state.proposals).slice().sort((a,b)=> (b.lastUpdate||'').localeCompare(a.lastUpdate||''));
+  const fullList = scopedList(state.proposals);
+  let list = fullList.slice().sort((a,b)=> (b.lastUpdate||'').localeCompare(a.lastUpdate||''));
+  if(state.filterProposalStatus && state.filterProposalStatus !== 'all'){
+    list = list.filter(pr => pr.status === state.filterProposalStatus);
+  }
   return `
     <div class="view-header">
       <div>
@@ -2179,9 +2229,11 @@ function viewProposal(){
       ${state.identity.role==='student' ? `<button class="action-btn" onclick="openProposalModal()">+ New proposal / work plan</button>` : ''}
     </div>
     ${supervisorFilterBar()}
+    ${sectionPieAndFilter(fullList, 'status', state.filterProposalStatus, 'setFilterProposalStatus')}
     ${list.length===0 ? emptyState('No proposal or work plan yet', state.identity.role==='student' ? 'Add your research objective, goals, and methodology to start the record.' : 'A work plan will appear here once the student adds one.') : list.map((pr,i)=>proposalCard(pr,i,list.length)).join('')}
   `;
 }
+function setFilterProposalStatus(v){ state.filterProposalStatus = v; renderView(); }
 function proposalStatusMap(){
   return {
     pending: { label:'Pending Approval', cls:'warn' },
@@ -2201,7 +2253,7 @@ function goalRow(pr, g, canEdit, canManage, isOwner){
   }
   const barColor = g.done ? 'var(--success)' : overdue ? 'var(--danger)' : 'var(--stat-blue)';
   return `
-    <div style="border:1px solid var(--border); border-radius:7px; padding:9px 12px;">
+    <div style="border:1px solid var(--border); border-radius:7px; padding:11px 14px;">
       <div style="display:flex; align-items:center; gap:8px;">
         <input type="checkbox" ${g.done?'checked':''} ${canManage || isOwner ? '' : 'disabled'} onchange="toggleProposalGoal('${pr.id}','${g.id}')">
         <span style="flex:1; font-size:13.5px; ${g.done?'text-decoration:line-through; color:var(--ink-faint);':''}">${escapeHtml(g.text)}</span>
@@ -2441,7 +2493,11 @@ function progressBarRow(label, done, total, pct, color){
   `;
 }
 function viewThesis(){
-  let list = scopedList(state.thesisPlans).slice().sort((a,b)=> (b.lastUpdate||'').localeCompare(a.lastUpdate||''));
+  const fullList = scopedList(state.thesisPlans);
+  let list = fullList.slice().sort((a,b)=> (b.lastUpdate||'').localeCompare(a.lastUpdate||''));
+  if(state.filterThesisStatus && state.filterThesisStatus !== 'all'){
+    list = list.filter(tp => tp.status === state.filterThesisStatus);
+  }
   return `
     <div class="view-header">
       <div>
@@ -2451,9 +2507,11 @@ function viewThesis(){
       ${state.identity.role==='student' ? `<button class="action-btn" onclick="openThesisModal()">+ New thesis plan</button>` : ''}
     </div>
     ${supervisorFilterBar()}
+    ${sectionPieAndFilter(fullList, 'status', state.filterThesisStatus, 'setFilterThesisStatus')}
     ${list.length===0 ? emptyState('No thesis plan yet', state.identity.role==='student' ? 'Add your planned number of papers and chapters to start tracking overall progress.' : 'A thesis plan will appear here once the student adds one.') : list.map((tp,i)=>thesisCard(tp,i,list.length)).join('')}
   `;
 }
+function setFilterThesisStatus(v){ state.filterThesisStatus = v; renderView(); }
 function thesisCard(tp, i, total){
   const isOwner = state.identity.role==='student' && tp.studentId===state.identity.id;
   const canManage = isSupervisorLike();
@@ -2492,7 +2550,7 @@ function thesisCard(tp, i, total){
               const chSt = chStatusMap[c.status] || chStatusMap.not_started;
               const chOverdue = c.targetDate && c.status!=='done' && c.targetDate < todayStr();
               return `
-                <div style="border:1px solid var(--border); border-radius:7px; padding:8px 12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <div style="border:1px solid var(--border); border-radius:7px; padding:10px 14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
                   <span style="flex:1; min-width:140px; font-size:13.5px;">${escapeHtml(c.title)}</span>
                   ${linkedPaper ? `<span class="entry-meta">→ ${escapeHtml(linkedPaper.title)} (${escapeHtml(linkedPaper.stage)})</span>` : `<span class="entry-meta">No paper linked</span>`}
                   ${c.targetDate ? `<span class="entry-meta mono">Target: ${fmtDate(c.targetDate)}</span>` : ''}
@@ -2649,7 +2707,11 @@ function racStatusMap(){
   };
 }
 function viewRac(){
-  let list = scopedList(state.racReviews).slice().sort((a,b)=> (b.reviewDate||'').localeCompare(a.reviewDate||''));
+  const fullList = scopedList(state.racReviews);
+  let list = fullList.slice().sort((a,b)=> (b.reviewDate||'').localeCompare(a.reviewDate||''));
+  if(state.filterRacStatus && state.filterRacStatus !== 'all'){
+    list = list.filter(r => r.status === state.filterRacStatus);
+  }
   return `
     <div class="view-header">
       <div>
@@ -2659,9 +2721,11 @@ function viewRac(){
       ${state.identity.role==='student' ? `<button class="action-btn" onclick="openRacModal()">+ Log RAC review</button>` : ''}
     </div>
     ${supervisorFilterBar()}
+    ${sectionPieAndFilter(fullList, 'status', state.filterRacStatus, 'setFilterRacStatus')}
     ${list.length===0 ? emptyState('No RAC review logged yet', state.identity.role==='student' ? "Log your committee's comments and the action plan that follows." : 'A RAC review will appear here once the student logs one.') : list.map((r,i)=>racCard(r,i,list.length)).join('')}
   `;
 }
+function setFilterRacStatus(v){ state.filterRacStatus = v; renderView(); }
 function racCard(r, i, total){
   const isOwner = state.identity.role==='student' && r.studentId===state.identity.id;
   const canManage = isSupervisorLike();
@@ -2707,7 +2771,7 @@ function racActionItemRow(r, it, canEdit, canManage, isOwner){
   const today = todayStr();
   const overdue = !it.done && it.targetDate && it.targetDate < today;
   return `
-    <div style="border:1px solid var(--border); border-radius:7px; padding:9px 12px;">
+    <div style="border:1px solid var(--border); border-radius:7px; padding:11px 14px;">
       <div style="display:flex; align-items:center; gap:8px;">
         <input type="checkbox" ${it.done?'checked':''} ${canManage || isOwner ? '' : 'disabled'} onchange="toggleRacActionItem('${r.id}','${it.id}')">
         <span style="flex:1; font-size:13.5px; ${it.done?'text-decoration:line-through; color:var(--ink-faint);':''}">${escapeHtml(it.text)}</span>
@@ -2850,7 +2914,11 @@ function financialStatusMap(){
   };
 }
 function viewFinancial(){
-  let list = scopedList(state.financialApps).slice().sort((a,b)=> (b.applicationDate||'').localeCompare(a.applicationDate||''));
+  const fullList = scopedList(state.financialApps);
+  let list = fullList.slice().sort((a,b)=> (b.applicationDate||'').localeCompare(a.applicationDate||''));
+  if(state.filterFinancialStatus && state.filterFinancialStatus !== 'all'){
+    list = list.filter(f => f.approvalStatus === state.filterFinancialStatus);
+  }
   return `
     <div class="view-header">
       <div>
@@ -2860,9 +2928,11 @@ function viewFinancial(){
       <button class="action-btn" onclick="openFinancialModal()">+ Log application</button>
     </div>
     ${supervisorFilterBar()}
+    ${sectionPieAndFilter(fullList, 'approvalStatus', state.filterFinancialStatus, 'setFilterFinancialStatus')}
     ${list.length===0 ? emptyState('Nothing logged yet', 'Log a visiting position or financial support application to start tracking it.') : list.map((f,i)=>financialCard(f,i,list.length)).join('')}
   `;
 }
+function setFilterFinancialStatus(v){ state.filterFinancialStatus = v; renderView(); }
 function financialCard(f, i, total){
   const isOwner = state.identity.role==='student' && f.studentId===state.identity.id;
   const canManage = isSupervisorLike();
@@ -3038,20 +3108,26 @@ function learningApprovalMap(){
   };
 }
 function viewLearning(){
-  let list = scopedList(state.courses).slice().sort((a,b)=> (b.startDate||'').localeCompare(a.startDate||''));
-  const completed = list.filter(c=>c.status==='completed').length;
+  const fullList = scopedList(state.courses);
+  let list = fullList.slice().sort((a,b)=> (b.startDate||'').localeCompare(a.startDate||''));
+  if(state.filterCourseStatus && state.filterCourseStatus !== 'all'){
+    list = list.filter(c => c.approvalStatus === state.filterCourseStatus);
+  }
+  const completed = fullList.filter(c=>c.status==='completed').length;
   return `
     <div class="view-header">
       <div>
         <div class="view-title">Learning &amp; Courses</div>
-        <div class="view-sub">Courses, certifications, workshops, and training taken alongside the research.${list.length>0 ? ` ${completed} of ${list.length} completed.` : ''}</div>
+        <div class="view-sub">Courses, certifications, workshops, and training taken alongside the research.${fullList.length>0 ? ` ${completed} of ${fullList.length} completed.` : ''}</div>
       </div>
       <button class="action-btn" onclick="openCourseModal()">+ Log course</button>
     </div>
     ${supervisorFilterBar()}
+    ${sectionPieAndFilter(fullList, 'approvalStatus', state.filterCourseStatus, 'setFilterCourseStatus')}
     ${list.length===0 ? emptyState('Nothing logged yet', 'Log a course, certification, or training program to start tracking it.') : list.map((c,i)=>courseCard(c,i,list.length)).join('')}
   `;
 }
+function setFilterCourseStatus(v){ state.filterCourseStatus = v; renderView(); }
 function courseCard(c, i, total){
   const isOwner = state.identity.role==='student' && c.studentId===state.identity.id;
   const canManage = isSupervisorLike();
@@ -3211,7 +3287,11 @@ function fabricationApprovalMap(){
   };
 }
 function viewFabrication(){
-  let list = scopedList(state.fabricationItems).slice().sort((a,b)=> (b.lastUpdate||'').localeCompare(a.lastUpdate||''));
+  const fullList = scopedList(state.fabricationItems);
+  let list = fullList.slice().sort((a,b)=> (b.lastUpdate||'').localeCompare(a.lastUpdate||''));
+  if(state.filterFabricationStatus && state.filterFabricationStatus !== 'all'){
+    list = list.filter(it => it.approvalStatus === state.filterFabricationStatus);
+  }
   return `
     <div class="view-header">
       <div>
@@ -3221,9 +3301,11 @@ function viewFabrication(){
       <button class="action-btn" onclick="openFabricationModal()">+ Log item</button>
     </div>
     ${supervisorFilterBar()}
+    ${sectionPieAndFilter(fullList, 'approvalStatus', state.filterFabricationStatus, 'setFilterFabricationStatus')}
     ${list.length===0 ? emptyState('Nothing logged yet', 'Log a sample or device to track its status from preparation through testing.') : list.map((it,i)=>fabricationCard(it,i,list.length)).join('')}
   `;
 }
+function setFilterFabricationStatus(v){ state.filterFabricationStatus = v; renderView(); }
 function fabricationCard(it, i, total){
   const isOwner = state.identity.role==='student' && it.studentId===state.identity.id;
   const canManage = isSupervisorLike();
@@ -3262,7 +3344,7 @@ function fabricationCard(it, i, total){
         ${steps.length===0 ? `<span class="entry-meta">No steps added yet.</span>` : `
           <div style="display:flex; flex-direction:column; gap:5px; margin-top:6px;">
             ${steps.map(s=>`
-              <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; padding:5px 0; border-top:1px solid var(--border);">
+              <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; padding:7px 2px; border-top:1px solid var(--border);">
                 <input type="checkbox" ${s.done?'checked':''} ${canManage||isOwner?'':'disabled'} onchange="toggleFabricationStep('${it.id}','${s.id}')">
                 <span style="flex:1; ${s.done?'text-decoration:line-through; color:var(--ink-faint);':''}">${escapeHtml(s.text)}</span>
                 ${canEdit ? `<button class="small-btn" style="padding:1px 7px; font-size:11px;" onclick="deleteFabricationStep('${it.id}','${s.id}')">Remove</button>` : ''}
@@ -3429,7 +3511,8 @@ async function deleteFabrication(id){
 
 /* ============================ WEEKLY PROGRESS ============================ */
 function viewWeekly(){
-  let list = scopedList(state.weekly).slice().sort((a,b)=> b.weekStart.localeCompare(a.weekStart));
+  const fullList = scopedList(state.weekly);
+  let list = fullList.slice().sort((a,b)=> b.weekStart.localeCompare(a.weekStart));
   if(state.filterWeeklyStatus && state.filterWeeklyStatus !== 'all'){
     list = list.filter(w => w.status === state.filterWeeklyStatus);
   }
@@ -3451,14 +3534,7 @@ function viewWeekly(){
       ${state.identity.role==='student' ? `<button class="action-btn" onclick="openWeeklyModal()">+ Log this week</button>` : ''}
     </div>
     ${supervisorFilterBar()}
-    <div class="filter-row">
-      <select onchange="setFilterWeeklyStatus(this.value)">
-        <option value="all" ${(!state.filterWeeklyStatus||state.filterWeeklyStatus==='all')?'selected':''}>All statuses</option>
-        <option value="pending" ${state.filterWeeklyStatus==='pending'?'selected':''}>Pending Approval</option>
-        <option value="approved" ${state.filterWeeklyStatus==='approved'?'selected':''}>Approved</option>
-        <option value="changes_requested" ${state.filterWeeklyStatus==='changes_requested'?'selected':''}>Changes Requested</option>
-      </select>
-    </div>
+    ${sectionPieAndFilter(fullList, 'status', state.filterWeeklyStatus, 'setFilterWeeklyStatus')}
     ${total===0 ? emptyState('No progress logged yet', isSupervisorLike() ? 'Weekly logs from students will appear here once submitted.' : 'Log your first week to start the record.') :
       groups.map(g => `
         <h3 class="panel-title" style="margin-top:18px;"><span class="dot" style="background:var(--stat-blue);"></span>${escapeHtml(g.label)}</h3>
@@ -3617,7 +3693,11 @@ function sampleStatus(s){
   return {label:'Awaiting Results', cls:'warn'};
 }
 function viewSamples(){
-  let list = scopedList(state.samples).slice().sort((a,b)=> b.submittedDate.localeCompare(a.submittedDate));
+  const fullList = scopedList(state.samples);
+  let list = fullList.slice().sort((a,b)=> b.submittedDate.localeCompare(a.submittedDate));
+  if(state.filterSampleStatus && state.filterSampleStatus !== 'all'){
+    list = list.filter(s => s.approvalStatus === state.filterSampleStatus);
+  }
   return `
     <div class="view-header">
       <div>
@@ -3627,9 +3707,11 @@ function viewSamples(){
       <button class="action-btn" onclick="openSampleModal()">+ Log new sample</button>
     </div>
     ${supervisorFilterBar()}
+    ${sectionPieAndFilter(fullList, 'approvalStatus', state.filterSampleStatus, 'setFilterSampleStatus')}
     ${list.length===0 ? emptyState('No samples logged yet', 'Log a sample submission to start tracking turnaround time.') : list.map((s,i)=>sampleCard(s,i,list.length)).join('')}
   `;
 }
+function setFilterSampleStatus(v){ state.filterSampleStatus = v; renderView(); }
 function sampleCard(s, i, total){
   const st = sampleStatus(s);
   const isOwner = state.identity.role==='student' && s.studentId===state.identity.id;
@@ -3828,7 +3910,13 @@ function stageStampClass(stage){
   return 'neutral';
 }
 function viewPapers(){
-  let list = scopedList(state.papers).slice().sort((a,b)=> (b.lastUpdate||'').localeCompare(a.lastUpdate||''));
+  const fullList = scopedList(state.papers);
+  let list = fullList.slice().sort((a,b)=> (b.lastUpdate||'').localeCompare(a.lastUpdate||''));
+  if(state.filterPaperStatus && state.filterPaperStatus !== 'all'){
+    list = list.filter(p => (state.filterPaperStatus==='pending' ? !!p.pendingStage : !p.pendingStage));
+  }
+  const paperCounts = { approved:0, pending:0, changes_requested:0 };
+  fullList.forEach(p=>{ if(p.pendingStage) paperCounts.pending++; else paperCounts.approved++; });
   return `
     <div class="view-header">
       <div>
@@ -3838,9 +3926,20 @@ function viewPapers(){
       <button class="action-btn" onclick="openPaperModal()">+ Add paper</button>
     </div>
     ${supervisorFilterBar()}
+    <div class="two-col-panels" style="margin-bottom:20px; align-items:center;">
+      <div class="entry-card compact-card" style="padding:16px 20px;">${renderStatusPie(paperCounts, 86)}</div>
+      <div class="filter-row" style="margin-bottom:0;">
+        <select onchange="setFilterPaperStatus(this.value)">
+          <option value="all" ${state.filterPaperStatus==='all'?'selected':''}>All papers</option>
+          <option value="approved" ${state.filterPaperStatus==='approved'?'selected':''}>Confirmed stage</option>
+          <option value="pending" ${state.filterPaperStatus==='pending'?'selected':''}>Stage change pending</option>
+        </select>
+      </div>
+    </div>
     ${list.length===0 ? emptyState('No papers tracked yet', 'Add a paper to start tracking its progress toward publication.') : list.map((p,i)=>paperCard(p,i,list.length)).join('')}
   `;
 }
+function setFilterPaperStatus(v){ state.filterPaperStatus = v; renderView(); }
 function paperCard(p, i, total){
   const isOwner = state.identity.role==='student' && p.studentId===state.identity.id;
   const canManage = isSupervisorLike();
@@ -4032,7 +4131,11 @@ function conferenceStatusMap(){
   };
 }
 function viewConferences(){
-  let list = scopedList(state.conferences).slice().sort((a,b)=> (b.startDate||'').localeCompare(a.startDate||''));
+  const fullList = scopedList(state.conferences);
+  let list = fullList.slice().sort((a,b)=> (b.startDate||'').localeCompare(a.startDate||''));
+  if(state.filterConferenceStatus && state.filterConferenceStatus !== 'all'){
+    list = list.filter(c => c.approvalStatus === state.filterConferenceStatus);
+  }
   return `
     <div class="view-header">
       <div>
@@ -4042,9 +4145,11 @@ function viewConferences(){
       <button class="action-btn" onclick="openConferenceModal()">+ Log participation</button>
     </div>
     ${supervisorFilterBar()}
+    ${sectionPieAndFilter(fullList, 'approvalStatus', state.filterConferenceStatus, 'setFilterConferenceStatus')}
     ${list.length===0 ? emptyState('Nothing logged yet', 'Log a conference, workshop, or presentation to start the record.') : list.map((c,i)=>conferenceCard(c,i,list.length)).join('')}
   `;
 }
+function setFilterConferenceStatus(v){ state.filterConferenceStatus = v; renderView(); }
 function conferenceCard(c, i, total){
   const isOwner = state.identity.role==='student' && c.studentId===state.identity.id;
   const canManage = isSupervisorLike();
