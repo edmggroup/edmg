@@ -1,0 +1,1768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Research Group Management System</title>
+<meta name="description" content="Weekly progress, characterization tracking, and paper pipeline management for research groups.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F5F7;
+    --surface:#FFFFFF;
+    --border:#E1E4EA;
+    --border-strong:#CBD1DB;
+    --ink:#151B29;
+    --ink-soft:#5C6478;
+    --ink-faint:#8A90A2;
+    --navy:#1F3A5F;
+    --navy-dark:#152A46;
+    --navy-wash:#E9EEF5;
+    --success:#166A4C;
+    --success-wash:#E4F4EC;
+    --warning:#8A5A0B;
+    --warning-wash:#FBF0DD;
+    --danger:#A32A24;
+    --danger-wash:#FBEAE9;
+    --neutral-wash:#EEF0F3;
+    --shadow-sm: 0 1px 2px rgba(21,27,41,0.05);
+    --shadow-md: 0 2px 6px rgba(21,27,41,0.06), 0 8px 24px rgba(21,27,41,0.05);
+    --radius:8px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter', sans-serif;
+    color:var(--ink);
+    background:var(--bg);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{ font-family:'Inter', sans-serif; letter-spacing:-0.01em; }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+  button{ font-family:'Inter', sans-serif; cursor:pointer; }
+  input,select,textarea{ font-family:'Inter', sans-serif; }
+  ::selection{ background:var(--navy-wash); }
+  a{ color:var(--navy); }
+
+  /* ---------- Login ---------- */
+  #loginScreen{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; background:
+    radial-gradient(circle at 15% 10%, rgba(31,58,95,0.05), transparent 45%),
+    radial-gradient(circle at 85% 90%, rgba(31,58,95,0.04), transparent 45%),
+    var(--bg);
+  }
+  .login-card{
+    width:100%; max-width:440px; background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; box-shadow:var(--shadow-md); padding:40px 36px;
+  }
+  .login-mark{ width:38px; height:38px; border-radius:8px; background:var(--navy); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; letter-spacing:0.02em; margin-bottom:18px; }
+  .login-eyebrow{ font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; }
+  .login-title{ font-size:24px; font-weight:700; margin:6px 0 6px; letter-spacing:-0.015em; }
+  .login-sub{ color:var(--ink-soft); font-size:14px; margin-bottom:28px; line-height:1.55; }
+  .role-row{ display:flex; gap:10px; margin-bottom:16px; }
+  .role-btn{
+    flex:1; padding:14px 14px; border-radius:8px; border:1px solid var(--border); background:var(--surface);
+    font-weight:600; font-size:14px; color:var(--ink-soft); transition:all .12s ease; text-align:left;
+  }
+  .role-btn small{ display:block; font-weight:400; font-size:12px; color:var(--ink-faint); margin-top:3px; }
+  .role-btn.active{ border-color:var(--navy); background:var(--navy-wash); color:var(--navy-dark); box-shadow:inset 0 0 0 1px var(--navy); }
+  .field-label{ font-size:12px; font-weight:600; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin:16px 0 6px; display:block; }
+  .text-input, select.text-input, textarea.text-input{
+    width:100%; padding:10px 12px; border:1px solid var(--border-strong); border-radius:7px; font-size:14px; color:var(--ink); background:var(--surface);
+  }
+  .text-input:focus, select:focus, textarea:focus{ outline:2px solid var(--navy); outline-offset:1px; border-color:var(--navy); }
+  .student-pick-list{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  .pick-chip{ padding:7px 13px; border-radius:20px; border:1px solid var(--border-strong); background:var(--surface); font-size:13px; font-weight:500; color:var(--ink-soft); }
+  .pick-chip.active{ border-color:var(--navy); background:var(--navy); color:#fff; }
+  .primary-btn{
+    width:100%; margin-top:24px; padding:13px; background:var(--navy); color:#fff; border:none; border-radius:7px;
+    font-weight:600; font-size:14.5px; letter-spacing:.01em; transition:background .12s;
+  }
+  .primary-btn:hover{ background:var(--navy-dark); }
+  .primary-btn:disabled{ background:var(--border-strong); cursor:not-allowed; }
+
+  /* ---------- App shell ---------- */
+  #appShell{ display:none; min-height:100vh; }
+  .topbar{
+    position:sticky; top:0; z-index:20; display:flex; align-items:center; justify-content:space-between;
+    padding:14px 28px; background:var(--navy-dark); border-bottom:1px solid var(--navy-dark);
+  }
+  .brand{ display:flex; align-items:center; gap:11px; }
+  .brand-mark{ width:30px; height:30px; border-radius:7px; background:#fff; color:var(--navy-dark); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; }
+  .brand-name{ font-weight:600; font-size:15px; letter-spacing:-0.005em; color:#fff; }
+  .identity-pill{ display:flex; align-items:center; gap:14px; }
+  .identity-badge{ font-size:13px; padding:6px 13px; border-radius:20px; background:rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(255,255,255,0.14); }
+  .identity-badge b{ font-weight:600; }
+  .switch-link{ font-size:12.5px; color:rgba(255,255,255,0.65); background:none; border:none; text-decoration:none; padding:4px; font-weight:500; }
+  .switch-link:hover{ color:#fff; text-decoration:underline; }
+
+  .layout{ display:flex; align-items:flex-start; }
+  .sidebar{ width:210px; flex-shrink:0; padding:20px 14px; position:sticky; top:57px; height:calc(100vh - 57px); background:var(--surface); border-right:1px solid var(--border); }
+  .nav-item{
+    display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:10px 12px; border-radius:7px;
+    border:none; background:none; font-size:13.5px; font-weight:500; color:var(--ink-soft); margin-bottom:2px;
+  }
+  .nav-item .dot{ width:6px; height:6px; border-radius:50%; background:var(--border-strong); }
+  .nav-item.active{ background:var(--navy-wash); color:var(--navy-dark); font-weight:600; }
+  .nav-item.active .dot{ background:var(--navy); }
+  .nav-item:hover:not(.active){ background:var(--neutral-wash); }
+
+  main#main{ flex:1; padding:28px 34px 64px; min-width:0; }
+  .view-header{ display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:22px; padding-bottom:18px; border-bottom:1px solid var(--border); }
+  .view-title{ font-size:20px; font-weight:700; letter-spacing:-0.015em; }
+  .view-sub{ color:var(--ink-soft); font-size:13.5px; margin-top:4px; }
+  .action-btn{
+    padding:9px 16px; background:var(--navy); color:#fff; border:none; border-radius:7px; font-weight:600; font-size:13.5px;
+    display:inline-flex; align-items:center; gap:6px; transition:background .12s;
+  }
+  .action-btn:hover{ background:var(--navy-dark); }
+  .action-btn.ghost{ background:var(--surface); color:var(--ink); border:1px solid var(--border-strong); }
+  .action-btn.ghost:hover{ background:var(--neutral-wash); }
+
+  .filter-row{ display:flex; gap:8px; align-items:center; margin-bottom:18px; flex-wrap:wrap; }
+  .filter-row select{ padding:8px 11px; border-radius:7px; border:1px solid var(--border-strong); font-size:13px; background:var(--surface); color:var(--ink); }
+
+  /* ---------- Dashboard cards ---------- */
+  .stat-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(168px,1fr)); gap:14px; margin-bottom:30px; }
+  .stat-grid.compact{ grid-template-columns:repeat(auto-fit, minmax(128px,1fr)); gap:10px; margin-bottom:20px; }
+  .stat-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:17px 19px; box-shadow:var(--shadow-sm); }
+  .stat-card.compact{ padding:11px 13px; }
+  .stat-card.compact .stat-num{ font-size:20px; }
+  .stat-card.compact .stat-label{ font-size:11px; margin-top:1px; }
+  .stat-num{ font-size:27px; font-weight:700; letter-spacing:-0.02em; color:var(--ink); }
+  .stat-label{ font-size:12px; color:var(--ink-soft); margin-top:3px; font-weight:500; }
+  .stat-card.warn .stat-num{ color:var(--danger); }
+  .stat-card.ok .stat-num{ color:var(--success); }
+
+  .panel-title{ font-size:12.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); font-weight:600; margin:0 0 8px; }
+  .two-col-panels{ display:grid; grid-template-columns:1.3fr 1fr; gap:18px; align-items:start; }
+  .compact-card{ padding:8px 16px; margin-bottom:0; }
+
+  .feed-item{ display:flex; gap:12px; padding:13px 0; border-bottom:1px solid var(--border); }
+  .feed-item.compact{ padding:8px 0; gap:10px; }
+  .feed-item.compact .feed-body{ font-size:12.5px; line-height:1.45; }
+  .feed-item:last-child{ border-bottom:none; }
+  .feed-idx{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-faint); width:26px; flex-shrink:0; padding-top:2px; }
+  .feed-idx.mono{ width:64px; font-size:11px; }
+  .feed-body{ flex:1; font-size:13.5px; line-height:1.55; color:var(--ink); }
+  .feed-body b{ font-weight:600; }
+  .feed-date{ color:var(--ink-faint); font-size:12px; }
+
+  @media (max-width: 900px){
+    .two-col-panels{ grid-template-columns:1fr; }
+  }
+
+
+  /* ---------- Entry cards ---------- */
+  .entry-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm);
+    padding:20px 22px; margin-bottom:14px;
+  }
+  .entry-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--border); }
+  .entry-idx{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-faint); letter-spacing:.03em; text-transform:uppercase; }
+  .entry-title{ font-size:15px; font-weight:600; margin-top:3px; color:var(--ink); }
+  .entry-meta{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
+  .stamp{
+    font-size:11px; font-weight:600; letter-spacing:.02em;
+    padding:5px 11px; border-radius:20px; white-space:nowrap;
+  }
+  .stamp.good{ color:var(--success); background:var(--success-wash); }
+  .stamp.warn{ color:var(--warning); background:var(--warning-wash); }
+  .stamp.bad{ color:var(--danger); background:var(--danger-wash); }
+  .stamp.neutral{ color:var(--ink-soft); background:var(--neutral-wash); }
+
+  .entry-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:4px; }
+  .entry-block{ font-size:13.5px; line-height:1.6; color:var(--ink); }
+  .entry-block .lbl{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-faint); display:block; margin-bottom:4px; }
+  .entry-actions{ display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
+  .small-btn{ padding:7px 13px; font-size:12.5px; font-weight:600; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface); color:var(--ink); }
+  .small-btn:hover{ border-color:var(--navy); color:var(--navy-dark); background:var(--navy-wash); }
+  .small-btn.danger:hover{ border-color:var(--danger); color:var(--danger); background:var(--danger-wash); }
+  .comment-box{ margin-top:14px; background:var(--navy-wash); border-radius:7px; padding:14px 16px; }
+  .comment-box .lbl{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--navy-dark); display:block; margin-bottom:7px;}
+  .comment-box textarea{ width:100%; border:1px solid var(--border-strong); border-radius:6px; padding:9px 10px; font-size:13px; min-height:64px; resize:vertical; }
+  .comment-existing{ font-size:13.5px; line-height:1.55; color:var(--ink); }
+
+  .empty-state{ text-align:center; padding:60px 20px; color:var(--ink-soft); }
+  .empty-state .em-title{ font-weight:600; color:var(--ink); font-size:15px; margin-bottom:6px; }
+  .empty-state .em-sub{ font-size:13.5px; max-width:360px; margin:0 auto; }
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{ position:fixed; inset:0; background:rgba(15,20,32,0.5); display:flex; align-items:center; justify-content:center; padding:20px; z-index:100; }
+  .modal-box{ background:var(--surface); border-radius:10px; width:100%; max-width:520px; max-height:88vh; overflow-y:auto; box-shadow:0 24px 60px rgba(0,0,0,0.28); }
+  .modal-head{ padding:20px 24px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .modal-head h3{ font-size:16px; font-weight:600; }
+  .modal-close{ background:none; border:none; font-size:20px; color:var(--ink-faint); line-height:1; padding:4px; }
+  .modal-body{ padding:20px 24px 24px; }
+  .modal-foot{ display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+  .two-col{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+  /* ---------- Report document ---------- */
+  .report-doc{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:32px 36px; }
+  .report-head{ border-bottom:2px solid var(--ink); padding-bottom:14px; margin-bottom:24px; }
+  .report-eyebrow{ font-size:18px; font-weight:700; letter-spacing:-0.01em; }
+  .report-meta{ font-size:12.5px; color:var(--ink-soft); margin-top:4px; }
+  .report-divider{ border-top:1px dashed var(--border-strong); margin:30px 0; }
+  .report-student-name{ font-size:19px; font-weight:700; margin:0 0 14px; }
+  .report-section-title{ font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--navy); margin:22px 0 10px; padding-top:14px; border-top:1px solid var(--border); }
+  .report-section-title:first-of-type{ border-top:none; padding-top:0; }
+  .report-empty{ font-size:13px; color:var(--ink-faint); font-style:italic; }
+  .report-entry{ font-size:13.5px; line-height:1.6; padding:12px 0; border-bottom:1px solid var(--border); }
+  .report-entry:last-child{ border-bottom:none; }
+  .report-entry-head{ display:flex; justify-content:space-between; font-size:13px; color:var(--ink-soft); margin-bottom:6px; }
+  .report-entry p{ margin:4px 0; }
+  .report-table{ width:100%; border-collapse:collapse; font-size:12.5px; margin-bottom:8px; }
+  .report-table th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); border-bottom:1.5px solid var(--border-strong); padding:6px 8px; }
+  .report-table td{ padding:7px 8px; border-bottom:1px solid var(--border); vertical-align:top; }
+
+  @media print {
+    body * { visibility:hidden; }
+    #reportPrintArea, #reportPrintArea * { visibility:visible; }
+    #reportPrintArea{ position:absolute; left:0; top:0; width:100%; margin:0; padding:0; }
+    .report-doc{ box-shadow:none; border:none; padding:0; }
+  }
+
+  @media (max-width: 760px){
+    .layout{ flex-direction:column; }
+    .sidebar{ position:static; width:100%; height:auto; display:flex; gap:6px; overflow-x:auto; padding:12px 16px; border-right:none; border-bottom:1px solid var(--border); }
+    .nav-item{ white-space:nowrap; }
+    main#main{ padding:20px 16px 48px; }
+    .entry-grid{ grid-template-columns:1fr; }
+    .two-col{ grid-template-columns:1fr; }
+    .topbar{ padding:12px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loginScreen"></div>
+
+<div id="appShell">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">RG</div>
+      <div class="brand-name">Research Group Management System</div>
+      <span style="font-size:10.5px; color:rgba(255,255,255,0.45); font-weight:600; letter-spacing:.04em; border:1px solid rgba(255,255,255,0.2); border-radius:4px; padding:1px 6px;">v1.0</span>
+    </div>
+    <div class="identity-pill">
+      <span class="identity-badge" id="identityBadge"></span>
+      <button class="switch-link" onclick="switchUser()">switch user</button>
+    </div>
+  </div>
+  <div class="layout">
+    <nav class="sidebar" id="sidebar"></nav>
+    <main id="main"></main>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+/* ============================ STATE ============================ */
+const state = {
+  identity: null,        // {role:'supervisor'|'student', id, name}
+  students: [],
+  weekly: [],
+  samples: [],
+  papers: [],
+  instructions: [],
+  meetings: [],
+  view: 'overview',
+  filterStudentId: 'all',
+  filterMeetingType: 'all',
+  loginRole: null,
+  loginPickId: null,
+  supervisorPinHash: null, // null = no supervisor passcode set yet
+  loginError: '',
+  reportStudentId: null,
+  reportFrom: '',
+  reportTo: '',
+  reportData: null
+};
+
+const MEETING_TYPES = ['Weekly Review','Monthly Presentation','Topic Discussion','Other'];
+
+const TECHNIQUES = ['CV (Cyclic Voltammetry)','GCD (Galvanostatic Charge-Discharge)','Battery Testing','Cycling Test','EIS (Impedance Spectroscopy)','XRD','SEM','TEM','TGA/DSC','NMR','UV-Vis','FTIR','BET (Surface Area)','XPS','Raman','GC-MS','Other'];
+const PAPER_STAGES = ['Planning','Drafting','Internal Review','Submitted','Under Review','Revisions Requested','Accepted','Published'];
+
+/* ============================ HELPERS ============================ */
+function uid(prefix){ return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function fmtDate(d){
+  if(!d) return '—';
+  const dt = new Date(d + 'T00:00:00');
+  if(isNaN(dt)) return d;
+  return dt.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+}
+function escapeHtml(str){
+  if(str === undefined || str === null) return '';
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function nl2br(str){ return escapeHtml(str).replace(/\n/g,'<br>'); }
+function studentName(id){ const s = state.students.find(x=>x.id===id); return s ? s.name : 'Unknown'; }
+async function hashPin(pin){
+  const enc = new TextEncoder().encode('logbook-salt::' + pin);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+/* ============================ DATA BACKEND (Google Sheet via Apps Script) ============================ */
+// Paste the "Web app URL" you get after deploying the companion Apps Script
+// (logbook-backend-Code.gs) here. Until this is set, the app shows a setup screen.
+const DATA_API_URL = 'https://script.google.com/macros/s/AKfycbyxhygXRw3Dx_u48TXyXdQc7l7YFqjBFeq65BSi7wMLlSwzgk8bW5SSeKVPzP9Rme4KMA/exec';
+
+function backendConfigured(){
+  return typeof DATA_API_URL === 'string' && DATA_API_URL.startsWith('http');
+}
+async function apiGetRaw(key){
+  const res = await fetch(DATA_API_URL + '?action=get&key=' + encodeURIComponent(key));
+  if(!res.ok) throw new Error('Backend returned ' + res.status);
+  const json = await res.json();
+  return (json && json.value !== undefined && json.value !== null && json.value !== '') ? json.value : null;
+}
+async function apiSetRaw(key, value){
+  const res = await fetch(DATA_API_URL, {
+    method: 'POST',
+    body: JSON.stringify({ key, value }) // no custom Content-Type — keeps this a "simple" request, avoiding CORS preflight issues with Apps Script
+  });
+  if(!res.ok) throw new Error('Backend returned ' + res.status);
+  return true;
+}
+
+/* ============================ STORAGE ============================ */
+async function loadCollection(key){
+  try{
+    const raw = await apiGetRaw(key);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ console.error('Load failed', key, e); return []; }
+}
+async function saveCollection(key, arr){
+  try{
+    await apiSetRaw(key, JSON.stringify(arr));
+  }catch(e){ console.error('Storage save failed', key, e); alert('Could not save your change — check your internet connection and try again. If this keeps happening, the Drive backend link may need to be reconnected.'); }
+}
+async function loadSupervisorPinHash(){
+  try{
+    const raw = await apiGetRaw('supervisor-pin');
+    return raw ? JSON.parse(raw).hash : null;
+  }catch(e){ console.error('Load supervisor pin failed', e); return null; }
+}
+async function saveSupervisorPinHash(hash){
+  try{ await apiSetRaw('supervisor-pin', JSON.stringify({hash})); }catch(e){ console.error('Save supervisor pin failed', e); }
+}
+
+/* ============================ INIT ============================ */
+async function init(){
+  if(!backendConfigured()){
+    renderSetupNeeded();
+    return;
+  }
+  renderLoginLoading();
+  try{
+    const [students, weekly, samples, papers, instructions, meetings, supervisorPinHash] = await Promise.all([
+      loadCollection('students'),
+      loadCollection('weekly-reports'),
+      loadCollection('samples'),
+      loadCollection('papers'),
+      loadCollection('instructions'),
+      loadCollection('meetings'),
+      loadSupervisorPinHash()
+    ]);
+    state.students = students;
+    state.weekly = weekly;
+    state.samples = samples;
+    state.papers = papers;
+    state.instructions = instructions;
+    state.meetings = meetings;
+    state.supervisorPinHash = supervisorPinHash;
+    renderLogin();
+  }catch(e){
+    console.error('Failed to load from backend', e);
+    renderBackendError();
+  }
+}
+function renderSetupNeeded(){
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('appShell').style.display='none';
+  document.getElementById('loginScreen').innerHTML = `
+    <div class="login-card">
+      <div class="login-mark">RG</div>
+      <div class="login-eyebrow">Setup needed</div>
+      <div class="login-title">Connect your Drive backend</div>
+      <div class="login-sub">
+        This app stores its data in a Google Sheet in your Drive. Before it can be used, deploy the companion
+        Apps Script (logbook-backend-Code.gs) as a Web App, then paste the Web app URL into the
+        <code class="mono">DATA_API_URL</code> constant near the top of this file's &lt;script&gt; section, save, and reopen it.
+      </div>
+    </div>`;
+}
+function renderBackendError(){
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('appShell').style.display='none';
+  document.getElementById('loginScreen').innerHTML = `
+    <div class="login-card">
+      <div class="login-mark">RG</div>
+      <div class="login-eyebrow">Connection problem</div>
+      <div class="login-title">Couldn't reach the Drive backend</div>
+      <div class="login-sub">Check your internet connection, and confirm the Apps Script Web App is still deployed with "Anyone" access. Then reload this page.</div>
+      <button class="primary-btn" onclick="init()">Try again</button>
+    </div>`;
+}
+
+/* ============================ LOGIN ============================ */
+function renderLoginLoading(){
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('appShell').style.display='none';
+  document.getElementById('loginScreen').innerHTML = `<div class="login-card"><div class="login-eyebrow">Research Group Management System</div><div class="login-title">Loading group data…</div></div>`;
+}
+
+function renderLogin(){
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('appShell').style.display='none';
+  const role = state.loginRole;
+  let studentPickerHtml = '';
+  if(role === 'student'){
+    const picked = state.loginPickId && state.loginPickId!=='__new__' ? state.students.find(x=>x.id===state.loginPickId) : null;
+    studentPickerHtml = `
+      <label class="field-label">Who are you?</label>
+      <div class="student-pick-list" id="studentPickList">
+        ${state.students.map(s => `<button type="button" class="pick-chip ${state.loginPickId===s.id?'active':''}" onclick="pickStudent('${s.id}')">${escapeHtml(s.name)}</button>`).join('')}
+        <button type="button" class="pick-chip ${state.loginPickId==='__new__'?'active':''}" onclick="pickStudent('__new__')">+ New student</button>
+      </div>
+      ${state.loginPickId==='__new__' ? `
+        <label class="field-label">Your name</label>
+        <input class="text-input" id="newStudentName" placeholder="e.g. Priya Nair" />
+        <label class="field-label">Create a PIN</label>
+        <input class="text-input" id="newStudentPin" type="password" inputmode="numeric" placeholder="4+ digits — you'll use this to log in next time">
+        <label class="field-label">Confirm PIN</label>
+        <input class="text-input" id="newStudentPinConfirm" type="password" inputmode="numeric" placeholder="Re-enter your PIN">
+        <div class="view-sub" style="margin-top:8px;">This PIN keeps other students out of your own progress log. Don't share it.</div>
+      ` : ''}
+      ${picked && picked.pinHash ? `
+        <label class="field-label">Enter your PIN</label>
+        <input class="text-input" id="existingStudentPin" type="password" inputmode="numeric" placeholder="Your PIN" autofocus>
+      ` : ''}
+      ${picked && !picked.pinHash ? `
+        <label class="field-label">Set a PIN for ${escapeHtml(picked.name)}'s account</label>
+        <div class="view-sub" style="margin:0 0 6px;">No PIN has been set yet for this name — create one now so only ${escapeHtml(picked.name)} can log in as themself going forward.</div>
+        <input class="text-input" id="firstTimeStudentPin" type="password" inputmode="numeric" placeholder="4+ digits">
+        <label class="field-label">Confirm PIN</label>
+        <input class="text-input" id="firstTimeStudentPinConfirm" type="password" inputmode="numeric" placeholder="Re-enter PIN">
+      ` : ''}
+    `;
+  }
+  let supervisorPinHtml = '';
+  if(role === 'supervisor'){
+    if(state.supervisorPinHash){
+      supervisorPinHtml = `
+        <label class="field-label">Supervisor passcode</label>
+        <input class="text-input" id="supervisorPin" type="password" placeholder="Enter passcode">
+      `;
+    } else {
+      supervisorPinHtml = `
+        <label class="field-label">Create a supervisor passcode</label>
+        <input class="text-input" id="supervisorPin" type="password" placeholder="This will be required for supervisor access">
+        <label class="field-label">Confirm passcode</label>
+        <input class="text-input" id="supervisorPinConfirm" type="password" placeholder="Re-enter passcode">
+        <div class="view-sub" style="margin-top:8px;">This is the first supervisor login for this group — the passcode you set here will protect supervisor access from now on.</div>
+      `;
+    }
+  }
+  document.getElementById('loginScreen').innerHTML = `
+    <div class="login-card">
+      <div class="login-mark">RG</div>
+      <div class="login-eyebrow">Internal Tool</div>
+      <div class="login-title">Research Group Management System</div>
+      <div class="login-sub">Weekly progress, characterization samples, and paper pipeline — tracked in one shared logbook. Each account is PIN-protected so students can only see their own work.</div>
+      <label class="field-label">I am logging in as</label>
+      <div class="role-row">
+        <button class="role-btn ${role==='supervisor'?'active':''}" onclick="chooseRole('supervisor')">Supervisor <small>Review reports, track the group</small></button>
+        <button class="role-btn ${role==='student'?'active':''}" onclick="chooseRole('student')">Student <small>Log progress, samples, papers</small></button>
+      </div>
+      ${role==='supervisor' ? `
+        <label class="field-label">Your name</label>
+        <input class="text-input" id="supervisorName" placeholder="e.g. Dr. Rao">
+        ${supervisorPinHtml}
+      ` : ''}
+      ${studentPickerHtml}
+      ${state.loginError ? `<div class="view-sub" style="color:var(--danger); margin-top:10px;">${escapeHtml(state.loginError)}</div>` : ''}
+      <button class="primary-btn" onclick="doLogin()">Enter logbook</button>
+    </div>
+  `;
+}
+function chooseRole(r){ state.loginRole = r; state.loginPickId = null; state.loginError=''; renderLogin(); }
+function pickStudent(id){ state.loginPickId = id; state.loginError=''; renderLogin(); setTimeout(()=>{ const el=document.getElementById('newStudentName') || document.getElementById('existingStudentPin') || document.getElementById('firstTimeStudentPin'); if(el) el.focus(); },0); }
+
+async function doLogin(){
+  state.loginError = '';
+  if(state.loginRole === 'supervisor'){
+    const name = (document.getElementById('supervisorName')?.value || '').trim() || 'Supervisor';
+    const pin = document.getElementById('supervisorPin')?.value || '';
+    if(!pin){ state.loginError = 'Please enter the supervisor passcode.'; renderLogin(); return; }
+    if(state.supervisorPinHash){
+      const hash = await hashPin(pin);
+      if(hash !== state.supervisorPinHash){ state.loginError = 'Incorrect passcode.'; renderLogin(); return; }
+    } else {
+      const confirmPin = document.getElementById('supervisorPinConfirm')?.value || '';
+      if(pin.length < 4){ state.loginError = 'Passcode must be at least 4 characters.'; renderLogin(); return; }
+      if(pin !== confirmPin){ state.loginError = 'Passcodes do not match.'; renderLogin(); return; }
+      const hash = await hashPin(pin);
+      state.supervisorPinHash = hash;
+      await saveSupervisorPinHash(hash);
+    }
+    state.identity = { role:'supervisor', id:'supervisor', name };
+    showApp();
+  } else if(state.loginRole === 'student'){
+    if(state.loginPickId === '__new__'){
+      const name = (document.getElementById('newStudentName')?.value || '').trim();
+      const pin = document.getElementById('newStudentPin')?.value || '';
+      const pinConfirm = document.getElementById('newStudentPinConfirm')?.value || '';
+      if(!name){ state.loginError = 'Please enter your name.'; renderLogin(); return; }
+      if(state.students.some(s=>s.name.toLowerCase()===name.toLowerCase())){ state.loginError = 'That name already exists — select it from the list above instead.'; renderLogin(); return; }
+      if(pin.length < 4){ state.loginError = 'PIN must be at least 4 characters.'; renderLogin(); return; }
+      if(pin !== pinConfirm){ state.loginError = 'PINs do not match.'; renderLogin(); return; }
+      const pinHash = await hashPin(pin);
+      const newS = { id: uid('stu'), name, pinHash };
+      state.students.push(newS);
+      await saveCollection('students', state.students);
+      state.identity = { role:'student', id:newS.id, name:newS.name };
+      showApp();
+    } else if(state.loginPickId){
+      const s = state.students.find(x=>x.id===state.loginPickId);
+      if(s.pinHash){
+        const pin = document.getElementById('existingStudentPin')?.value || '';
+        if(!pin){ state.loginError = 'Please enter your PIN.'; renderLogin(); return; }
+        const hash = await hashPin(pin);
+        if(hash !== s.pinHash){ state.loginError = 'Incorrect PIN.'; renderLogin(); return; }
+      } else {
+        const pin = document.getElementById('firstTimeStudentPin')?.value || '';
+        const pinConfirm = document.getElementById('firstTimeStudentPinConfirm')?.value || '';
+        if(pin.length < 4){ state.loginError = 'PIN must be at least 4 characters.'; renderLogin(); return; }
+        if(pin !== pinConfirm){ state.loginError = 'PINs do not match.'; renderLogin(); return; }
+        s.pinHash = await hashPin(pin);
+        await saveCollection('students', state.students);
+      }
+      state.identity = { role:'student', id:s.id, name:s.name };
+      showApp();
+    } else {
+      state.loginError = 'Please select who you are, or add yourself as a new student.';
+      renderLogin();
+    }
+  } else {
+    state.loginError = 'Please choose whether you are the supervisor or a student.';
+    renderLogin();
+  }
+}
+function switchUser(){
+  state.identity = null;
+  state.loginRole = null;
+  state.loginPickId = null;
+  state.loginError = '';
+  renderLogin();
+}
+
+/* ============================ APP SHELL ============================ */
+function showApp(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appShell').style.display='block';
+  document.getElementById('identityBadge').innerHTML = state.identity.role === 'supervisor'
+    ? `<b>${escapeHtml(state.identity.name)}</b> · Supervisor`
+    : `<b>${escapeHtml(state.identity.name)}</b> · Student`;
+  renderSidebar();
+  renderView();
+}
+
+const NAV_ITEMS = [
+  { key:'overview', label:'Overview' },
+  { key:'weekly', label:'Weekly Progress' },
+  { key:'samples', label:'Characterization' },
+  { key:'papers', label:'Paper Pipeline' },
+  { key:'meetings', label:'Meetings' },
+  { key:'instructions', label:'Instructions' },
+  { key:'reports', label:'Reports' },
+  { key:'account', label:'Account' },
+];
+function renderSidebar(){
+  document.getElementById('sidebar').innerHTML = NAV_ITEMS.map(item => `
+    <button class="nav-item ${state.view===item.key?'active':''}" onclick="goView('${item.key}')">
+      <span class="dot"></span>${item.label}
+    </button>
+  `).join('');
+}
+function goView(key){ state.view = key; renderSidebar(); renderView(); }
+
+function renderView(){
+  const main = document.getElementById('main');
+  if(state.view==='overview') main.innerHTML = viewOverview();
+  else if(state.view==='weekly') main.innerHTML = viewWeekly();
+  else if(state.view==='samples') main.innerHTML = viewSamples();
+  else if(state.view==='papers') main.innerHTML = viewPapers();
+  else if(state.view==='meetings') main.innerHTML = viewMeetings();
+  else if(state.view==='instructions') main.innerHTML = viewInstructions();
+  else if(state.view==='reports') main.innerHTML = viewReports();
+  else if(state.view==='account') main.innerHTML = viewAccount();
+}
+
+function supervisorFilterBar(){
+  if(state.identity.role !== 'supervisor') return '';
+  return `
+    <div class="filter-row">
+      <select onchange="setFilterStudent(this.value)">
+        <option value="all" ${state.filterStudentId==='all'?'selected':''}>All students</option>
+        ${state.students.map(s=>`<option value="${s.id}" ${state.filterStudentId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}
+      </select>
+    </div>`;
+}
+function setFilterStudent(v){ state.filterStudentId = v; renderView(); }
+
+function scopedList(arr){
+  if(state.identity.role === 'student') return arr.filter(x => x.studentId === state.identity.id);
+  if(state.filterStudentId === 'all') return arr;
+  return arr.filter(x => x.studentId === state.filterStudentId);
+}
+
+/* ============================ SUPERVISOR INSTRUCTIONS LOG ============================ */
+function viewInstructions(){
+  let list = scopedList(state.instructions).slice().sort((a,b)=> b.date.localeCompare(a.date));
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Supervisor Instructions</div>
+        <div class="view-sub">${state.identity.role==='supervisor' ? 'A dated log of instructions and directives given to each student.' : 'Instructions your supervisor has logged for you.'}</div>
+      </div>
+      ${state.identity.role==='supervisor' ? `<button class="action-btn" onclick="openInstructionModal()">+ Log instruction</button>` : ''}
+    </div>
+    ${supervisorFilterBar()}
+    ${list.length===0 ? emptyState('No instructions logged yet', state.identity.role==='supervisor' ? 'Log a directive or instruction here to keep a dated record for each student.' : "Your supervisor hasn't logged any instructions yet.") : list.map((ins,i)=>instructionCard(ins,i,list.length)).join('')}
+  `;
+}
+function instructionCard(ins, i, total){
+  return `
+    <div class="entry-card">
+      <div class="entry-top">
+        <div>
+          <div class="entry-idx">I${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(ins.studentId))}</div>
+          <div class="entry-title">${fmtDate(ins.date)}</div>
+        </div>
+        <span class="stamp neutral">Logged by ${escapeHtml(ins.addedByName)}</span>
+      </div>
+      <div class="entry-block">${nl2br(ins.text)}</div>
+      ${state.identity.role==='supervisor' ? `
+        <div class="entry-actions"><button class="small-btn danger" onclick="deleteInstruction('${ins.id}')">Delete</button></div>
+      ` : ''}
+    </div>
+  `;
+}
+function openInstructionModal(){
+  const targetId = state.filterStudentId!=='all' ? state.filterStudentId : (state.students[0]?.id || '');
+  if(!targetId){ alert('Add a student first.'); return; }
+  showModal('Log an instruction', `
+    <label class="field-label">For</label>
+    <select class="text-input" id="f_insStudent">
+      ${state.students.map(s=>`<option value="${s.id}" ${s.id===targetId?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}
+    </select>
+    <label class="field-label">Date</label>
+    <input type="date" class="text-input" id="f_insDate" value="${todayStr()}">
+    <label class="field-label">Instruction</label>
+    <textarea class="text-input" id="f_insText" rows="4" placeholder="e.g. Repeat the XRD scan at a slower step rate before submitting for Rietveld refinement."></textarea>
+  `, submitInstruction);
+}
+async function submitInstruction(){
+  const studentId = document.getElementById('f_insStudent').value;
+  const date = document.getElementById('f_insDate').value;
+  const text = document.getElementById('f_insText').value.trim();
+  if(!studentId || !date || !text){ alert('Please fill in the student, date, and instruction.'); return; }
+  state.instructions.push({ id: uid('ins'), studentId, date, text, addedByName: state.identity.name });
+  await saveCollection('instructions', state.instructions);
+  closeModal(); renderView();
+}
+async function deleteInstruction(id){
+  if(!confirm('Delete this instruction?')) return;
+  state.instructions = state.instructions.filter(x=>x.id!==id);
+  await saveCollection('instructions', state.instructions);
+  renderView();
+}
+
+/* ============================ OVERVIEW ============================ */
+function viewOverview(){
+  const weekly = scopedList(state.weekly);
+  const samples = scopedList(state.samples);
+  const papers = scopedList(state.papers);
+  const meetings = scopedList(state.meetings);
+
+  const pendingReports = weekly.filter(w=>w.status==='pending').length;
+  const pendingSamples = samples.filter(s=>s.approvalStatus==='pending').length;
+  const pendingPapers = papers.filter(p=>!!p.pendingStage).length;
+  const pendingMeetings = meetings.filter(m=>m.status==='proposed').length;
+  const totalPendingApproval = pendingReports + pendingSamples + pendingPapers + pendingMeetings;
+  const awaitingSamples = samples.filter(s=>!s.resultsReceivedDate).length;
+  const overdueSamples = samples.filter(s=> !s.resultsReceivedDate && s.expectedDate && s.expectedDate < todayStr()).length;
+  const activePapers = papers.filter(p=>p.stage!=='Published').length;
+  const publishedPapers = papers.filter(p=>p.stage==='Published').length;
+
+  const upcoming = meetings.filter(m=> (m.status==='proposed'||m.status==='confirmed') && m.plannedDate >= todayStr())
+    .sort((a,b)=> a.plannedDate.localeCompare(b.plannedDate)).slice(0,5);
+
+  const feed = [
+    ...weekly.map(w=>({ type:'Weekly', date:w.weekStart, text:`<b>${escapeHtml(studentName(w.studentId))}</b> logged progress — week of ${fmtDate(w.weekStart)}` , sortDate:w.weekStart})),
+    ...samples.map(s=>({ type:'Sample', date:s.submittedDate, text:`<b>${escapeHtml(studentName(s.studentId))}</b> submitted <b>${escapeHtml(s.sampleName)}</b> (${escapeHtml(s.technique)})${s.resultsReceivedDate? ' — results in':''}`, sortDate: s.resultsReceivedDate || s.submittedDate})),
+    ...papers.map(p=>({ type:'Paper', date:p.lastUpdate, text:`<b>${escapeHtml(studentName(p.studentId))}</b> — "${escapeHtml(p.title)}" is <b>${escapeHtml(p.stage)}</b>${p.pendingStage ? ` (proposed: ${escapeHtml(p.pendingStage)})` : ''}`, sortDate:p.lastUpdate })),
+    ...meetings.map(m=>({ type:'Meeting', date:m.lastUpdate, text:`<b>${escapeHtml(studentName(m.studentId))}</b> — ${escapeHtml(m.type)}: "${escapeHtml(m.title)}" (${m.status})`, sortDate:m.lastUpdate }))
+  ].filter(f=>f.sortDate).sort((a,b)=> b.sortDate.localeCompare(a.sortDate)).slice(0,8);
+
+  return `
+    ${supervisorFilterBar()}
+    <div class="view-header" style="margin-bottom:14px; padding-bottom:12px;">
+      <div>
+        <div class="view-title">${state.identity.role==='supervisor' ? 'Group Overview' : 'My Overview'}</div>
+        <div class="view-sub">${state.identity.role==='supervisor' ? 'Everything here is final only once you approve it.' : 'A snapshot of your progress, samples, and papers.'}</div>
+      </div>
+    </div>
+    <div class="stat-grid compact">
+      ${state.identity.role==='supervisor' ? `<div class="stat-card compact ${totalPendingApproval>0?'warn':'ok'}"><div class="stat-num">${totalPendingApproval}</div><div class="stat-label">Awaiting approval</div></div>` : `<div class="stat-card compact ${pendingReports>0?'warn':''}"><div class="stat-num">${pendingReports}</div><div class="stat-label">Reports pending</div></div>`}
+      <div class="stat-card compact ${overdueSamples>0?'warn':'ok'}"><div class="stat-num">${awaitingSamples}</div><div class="stat-label">Awaiting results</div></div>
+      <div class="stat-card compact ${overdueSamples>0?'warn':''}"><div class="stat-num">${overdueSamples}</div><div class="stat-label">Overdue</div></div>
+      <div class="stat-card compact"><div class="stat-num">${activePapers}</div><div class="stat-label">Papers active</div></div>
+      <div class="stat-card compact ok"><div class="stat-num">${publishedPapers}</div><div class="stat-label">Published</div></div>
+      <div class="stat-card compact ${upcoming.length>0?'':''}"><div class="stat-num">${upcoming.length}</div><div class="stat-label">Upcoming meetings</div></div>
+    </div>
+
+    ${state.identity.role==='supervisor' ? studentSummaryTable() : ''}
+
+    <div class="two-col-panels">
+      <div>
+        <h3 class="panel-title">Recent activity</h3>
+        <div class="entry-card compact-card">
+          ${feed.length===0 ? `<div class="empty-state"><div class="em-title">The logbook is empty</div><div class="em-sub">Once progress, samples, or papers are logged, they'll show up here.</div></div>` :
+            feed.map((f,i)=>`
+              <div class="feed-item compact">
+                <div class="feed-idx">${String(i+1).padStart(2,'0')}</div>
+                <div class="feed-body">${f.text} <span class="feed-date">· ${fmtDate(f.date)}</span></div>
+              </div>`).join('')}
+        </div>
+      </div>
+      <div>
+        <h3 class="panel-title">Upcoming meetings &amp; presentations</h3>
+        <div class="entry-card compact-card">
+          ${upcoming.length===0 ? `<div class="empty-state"><div class="em-title">Nothing scheduled</div><div class="em-sub">Planned reviews and presentations will show up here.</div></div>` :
+            upcoming.map(m=>`
+              <div class="feed-item compact">
+                <div class="feed-idx mono">${fmtDate(m.plannedDate)}</div>
+                <div class="feed-body"><b>${escapeHtml(studentName(m.studentId))}</b> — ${escapeHtml(m.type)}: ${escapeHtml(m.title)} <span class="feed-date">· ${m.status}</span></div>
+              </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function studentSummaryTable(){
+  if(state.students.length===0) return '';
+  return `
+    <h3 class="panel-title">By student</h3>
+    <div class="entry-card compact-card" style="margin-bottom:22px; padding:0;">
+      <table class="report-table" style="margin:0;">
+        <thead><tr><th style="padding-left:18px;">Student</th><th>Pending approval</th><th>Samples awaiting results</th><th>Active papers</th><th>Next meeting</th></tr></thead>
+        <tbody>
+          ${state.students.map(s=>{
+            const w = state.weekly.filter(x=>x.studentId===s.id);
+            const sm = state.samples.filter(x=>x.studentId===s.id);
+            const p = state.papers.filter(x=>x.studentId===s.id);
+            const m = state.meetings.filter(x=>x.studentId===s.id);
+            const pending = w.filter(x=>x.status==='pending').length + sm.filter(x=>x.approvalStatus==='pending').length + p.filter(x=>!!x.pendingStage).length + m.filter(x=>x.status==='proposed').length;
+            const awaiting = sm.filter(x=>!x.resultsReceivedDate).length;
+            const active = p.filter(x=>x.stage!=='Published').length;
+            const next = m.filter(x=>(x.status==='proposed'||x.status==='confirmed') && x.plannedDate>=todayStr()).sort((a,b)=>a.plannedDate.localeCompare(b.plannedDate))[0];
+            return `<tr>
+              <td style="padding-left:18px; font-weight:600;">${escapeHtml(s.name)}</td>
+              <td>${pending>0 ? `<span class="stamp warn" style="padding:3px 9px;">${pending}</span>` : '0'}</td>
+              <td>${awaiting}</td>
+              <td>${active}</td>
+              <td>${next ? fmtDate(next.plannedDate) : '—'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function viewAccount(){
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Account</div>
+        <div class="view-sub">${state.identity.role==='supervisor' ? 'Passcode, student access, and backups.' : 'Your PIN and a backup of your own data.'}</div>
+      </div>
+    </div>
+    ${accessSection()}
+  `;
+}
+
+function accessSection(){
+  if(state.identity.role === 'student'){
+    return `
+      <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin-bottom:6px;">Account</h3>
+      <div class="entry-card">
+        <div class="entry-block">Your entries are only visible to you and your supervisor. Other students can't see your reports, samples, or papers.</div>
+        <div class="entry-actions"><button class="small-btn" onclick="openChangePinModal()">Change my PIN</button></div>
+      </div>
+      ${backupSection()}
+    `;
+  }
+  return `
+    <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin-bottom:6px;">Access &amp; privacy</h3>
+    <div class="entry-card">
+      <div class="entry-block" style="margin-bottom:14px;">Each student's account is PIN-protected, so students can only view and enter data under their own name. As supervisor, you can see everyone's records and reset a student's PIN if they forget it.</div>
+      ${state.students.length===0 ? `<div class="entry-meta">No students have signed up yet.</div>` :
+        state.students.map(s=>`
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-top:1px solid var(--border);">
+            <span style="font-size:13.5px;">${escapeHtml(s.name)}</span>
+            <button class="small-btn" onclick="openResetStudentPinModal('${s.id}')">Reset PIN</button>
+          </div>
+        `).join('')}
+      <div class="entry-actions"><button class="small-btn" onclick="openChangeSupervisorPinModal()">Change supervisor passcode</button></div>
+    </div>
+    ${backupSection()}
+  `;
+}
+
+function backupSection(){
+  const isSupervisor = state.identity.role === 'supervisor';
+  return `
+    <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Backup &amp; Google Drive</h3>
+    <div class="entry-card">
+      <div class="entry-block" style="margin-bottom:14px;">
+        This logbook saves automatically as you go, but that storage lives with the app, not in your Drive. To keep a real copy in Google Drive:
+        <br>1. Download a backup file below.
+        <br>2. Drag it into a folder in Drive — or upload it in a chat with Claude and ask Claude to save it to your Drive for you.
+        ${isSupervisor ? `<br><br>As supervisor, your download includes every student's records. Student downloads only include their own.` : ''}
+      </div>
+      <div class="entry-actions">
+        <button class="action-btn ghost" onclick="downloadBackup()">Download backup (.json)</button>
+        ${isSupervisor ? `
+          <input type="file" id="restoreFileInput" accept="application/json" style="display:none" onchange="handleRestoreFile(event)">
+          <button class="action-btn ghost" onclick="document.getElementById('restoreFileInput').click()">Restore from backup file…</button>
+        ` : ''}
+      </div>
+      ${isSupervisor ? `<div class="entry-meta" style="margin-top:10px;">Restoring replaces the group's current data with what's in the file — use it to recover a backup, not to merge two copies.</div>` : ''}
+    </div>
+  `;
+}
+function downloadBackup(){
+  const isSupervisor = state.identity.role === 'supervisor';
+  const data = {
+    exportedAt: new Date().toISOString(),
+    exportedBy: state.identity.name,
+    scope: isSupervisor ? 'full-group' : 'own-records-only',
+    students: isSupervisor ? state.students.map(s=>({id:s.id, name:s.name})) : state.students.filter(s=>s.id===state.identity.id).map(s=>({id:s.id, name:s.name})),
+    weeklyReports: scopedList(state.weekly),
+    samples: scopedList(state.samples),
+    papers: scopedList(state.papers)
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `logbook-backup-${todayStr()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+function handleRestoreFile(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    let parsed;
+    try{ parsed = JSON.parse(reader.result); }
+    catch(e){ alert('That file is not valid JSON.'); return; }
+    if(!Array.isArray(parsed.weeklyReports) || !Array.isArray(parsed.samples) || !Array.isArray(parsed.papers) || !Array.isArray(parsed.students)){
+      alert("This file doesn't look like a logbook backup — missing expected fields.");
+      return;
+    }
+    if(!confirm(`This will replace the group's current data with the contents of "${file.name}". This cannot be undone. Continue?`)) return;
+    state.students = parsed.students.map(s => ({ ...s, pinHash: state.students.find(x=>x.id===s.id)?.pinHash || s.pinHash || null }));
+    state.weekly = parsed.weeklyReports;
+    state.samples = parsed.samples;
+    state.papers = parsed.papers;
+    await Promise.all([
+      saveCollection('students', state.students),
+      saveCollection('weekly-reports', state.weekly),
+      saveCollection('samples', state.samples),
+      saveCollection('papers', state.papers)
+    ]);
+    event.target.value = '';
+    alert('Restore complete.');
+    renderView();
+  };
+  reader.readAsText(file);
+}
+
+function openChangePinModal(){
+  showModal('Change my PIN', `
+    <label class="field-label">Current PIN</label>
+    <input class="text-input" id="f_curPin" type="password">
+    <label class="field-label">New PIN</label>
+    <input class="text-input" id="f_newPin" type="password" placeholder="4+ digits">
+    <label class="field-label">Confirm new PIN</label>
+    <input class="text-input" id="f_newPinConfirm" type="password">
+  `, submitChangePin);
+}
+async function submitChangePin(){
+  const s = state.students.find(x=>x.id===state.identity.id);
+  const cur = document.getElementById('f_curPin').value;
+  const next = document.getElementById('f_newPin').value;
+  const confirmNext = document.getElementById('f_newPinConfirm').value;
+  if(s.pinHash && (await hashPin(cur)) !== s.pinHash){ alert('Current PIN is incorrect.'); return; }
+  if(next.length < 4){ alert('New PIN must be at least 4 characters.'); return; }
+  if(next !== confirmNext){ alert('New PINs do not match.'); return; }
+  s.pinHash = await hashPin(next);
+  await saveCollection('students', state.students);
+  closeModal(); renderView();
+}
+function openResetStudentPinModal(id){
+  const s = state.students.find(x=>x.id===id);
+  showModal(`Reset PIN for ${s.name}`, `
+    <div class="view-sub" style="margin-bottom:6px;">This immediately replaces their current PIN. Share the new PIN with ${escapeHtml(s.name)} directly.</div>
+    <label class="field-label">New PIN</label>
+    <input class="text-input" id="f_resetPin" type="password" placeholder="4+ digits">
+    <label class="field-label">Confirm new PIN</label>
+    <input class="text-input" id="f_resetPinConfirm" type="password">
+  `, ()=>submitResetStudentPin(id));
+}
+async function submitResetStudentPin(id){
+  const next = document.getElementById('f_resetPin').value;
+  const confirmNext = document.getElementById('f_resetPinConfirm').value;
+  if(next.length < 4){ alert('New PIN must be at least 4 characters.'); return; }
+  if(next !== confirmNext){ alert('New PINs do not match.'); return; }
+  const s = state.students.find(x=>x.id===id);
+  s.pinHash = await hashPin(next);
+  await saveCollection('students', state.students);
+  closeModal(); renderView();
+}
+function openChangeSupervisorPinModal(){
+  showModal('Change supervisor passcode', `
+    <label class="field-label">Current passcode</label>
+    <input class="text-input" id="f_curSupPin" type="password">
+    <label class="field-label">New passcode</label>
+    <input class="text-input" id="f_newSupPin" type="password">
+    <label class="field-label">Confirm new passcode</label>
+    <input class="text-input" id="f_newSupPinConfirm" type="password">
+  `, submitChangeSupervisorPin);
+}
+async function submitChangeSupervisorPin(){
+  const cur = document.getElementById('f_curSupPin').value;
+  const next = document.getElementById('f_newSupPin').value;
+  const confirmNext = document.getElementById('f_newSupPinConfirm').value;
+  if((await hashPin(cur)) !== state.supervisorPinHash){ alert('Current passcode is incorrect.'); return; }
+  if(next.length < 4){ alert('New passcode must be at least 4 characters.'); return; }
+  if(next !== confirmNext){ alert('New passcodes do not match.'); return; }
+  state.supervisorPinHash = await hashPin(next);
+  await saveSupervisorPinHash(state.supervisorPinHash);
+  closeModal(); renderView();
+}
+
+/* ============================ WEEKLY PROGRESS ============================ */
+function viewWeekly(){
+  let list = scopedList(state.weekly).slice().sort((a,b)=> b.weekStart.localeCompare(a.weekStart));
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Weekly Progress</div>
+        <div class="view-sub">${state.identity.role==='supervisor' ? 'Review weekly logs and leave feedback.' : "Log what you did this week and what's next."}</div>
+      </div>
+      ${state.identity.role==='student' ? `<button class="action-btn" onclick="openWeeklyModal()">+ Log this week</button>` : ''}
+    </div>
+    ${supervisorFilterBar()}
+    ${list.length===0 ? emptyState('No progress logged yet', state.identity.role==='supervisor' ? 'Weekly logs from students will appear here once submitted.' : 'Log your first week to start the record.') : list.map((w,i)=>weeklyCard(w,i,list.length)).join('')}
+  `;
+}
+function weeklyCard(w, i, total){
+  const isOwner = state.identity.role==='student' && w.studentId===state.identity.id;
+  const canDelete = isOwner || state.identity.role==='supervisor';
+  const statusMap = {
+    pending: { label:'Pending Approval', cls:'warn' },
+    approved: { label:'Approved', cls:'good' },
+    changes_requested: { label:'Changes Requested', cls:'bad' }
+  };
+  const st = statusMap[w.status] || statusMap.pending;
+  return `
+    <div class="entry-card">
+      <div class="entry-top">
+        <div>
+          <div class="entry-idx">W${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(w.studentId))}</div>
+          <div class="entry-title">Week of ${fmtDate(w.weekStart)}</div>
+        </div>
+        <span class="stamp ${st.cls}">${st.label}</span>
+      </div>
+      <div class="entry-grid">
+        <div class="entry-block"><span class="lbl">Work done</span>${nl2br(w.workDone) || '—'}</div>
+        <div class="entry-block"><span class="lbl">Plan for next week</span>${nl2br(w.planNext) || '—'}</div>
+        ${w.challenges ? `<div class="entry-block" style="grid-column:1/-1;"><span class="lbl">Challenges / blockers</span>${nl2br(w.challenges)}</div>` : ''}
+      </div>
+      ${w.supervisorComment ? `
+        <div class="comment-box"><span class="lbl">Supervisor feedback</span><div class="comment-existing">${nl2br(w.supervisorComment)}</div></div>
+      ` : ''}
+      <div class="entry-actions">
+        ${state.identity.role==='supervisor' ? `<button class="small-btn" onclick="openReviewBox('${w.id}')">Review</button>` : ''}
+        ${canDelete ? `<button class="small-btn danger" onclick="deleteWeekly('${w.id}')">Delete</button>` : ''}
+      </div>
+      <div id="commentSlot-${w.id}"></div>
+    </div>
+  `;
+}
+function emptyState(title, sub){
+  return `<div class="entry-card" style="padding-left:20px;"><div class="empty-state"><div class="em-title">${escapeHtml(title)}</div><div class="em-sub">${escapeHtml(sub)}</div></div></div>`;
+}
+
+function openWeeklyModal(){
+  const monday = getMondayStr();
+  showModal("Log this week's progress", `
+    <label class="field-label">Week starting</label>
+    <input type="date" id="f_weekStart" class="text-input" value="${monday}">
+    <label class="field-label">What did you do this week?</label>
+    <textarea id="f_workDone" class="text-input" rows="3" placeholder="e.g. Completed synthesis of batch 3, ran initial XRD scans..."></textarea>
+    <label class="field-label">Plan for next week</label>
+    <textarea id="f_planNext" class="text-input" rows="3" placeholder="e.g. Submit samples for SEM, start drafting methods section..."></textarea>
+    <label class="field-label">Challenges / blockers (optional)</label>
+    <textarea id="f_challenges" class="text-input" rows="2" placeholder="Anything blocking progress?"></textarea>
+  `, submitWeekly);
+}
+function getMondayStr(){
+  const d = new Date();
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day===0?-6:1);
+  const monday = new Date(d.setDate(diff));
+  return monday.toISOString().slice(0,10);
+}
+async function submitWeekly(){
+  const weekStart = document.getElementById('f_weekStart').value;
+  const workDone = document.getElementById('f_workDone').value.trim();
+  const planNext = document.getElementById('f_planNext').value.trim();
+  const challenges = document.getElementById('f_challenges').value.trim();
+  if(!weekStart || !workDone){ alert('Please add the week and what you worked on.'); return; }
+  state.weekly.push({
+    id: uid('wk'), studentId: state.identity.id, weekStart, workDone, planNext, challenges,
+    status:'pending', supervisorComment:''
+  });
+  await saveCollection('weekly-reports', state.weekly);
+  closeModal(); renderView();
+}
+function openReviewBox(id){
+  const w = state.weekly.find(x=>x.id===id);
+  document.getElementById('commentSlot-'+id).innerHTML = `
+    <div class="comment-box">
+      <span class="lbl">Feedback (required to request changes)</span>
+      <textarea id="reviewInput-${id}">${escapeHtml(w.supervisorComment || '')}</textarea>
+      <div class="entry-actions">
+        <button class="small-btn" onclick="reviewWeekly('${id}','approved')">Approve</button>
+        <button class="small-btn danger" onclick="reviewWeekly('${id}','changes_requested')">Request changes</button>
+      </div>
+    </div>`;
+}
+async function reviewWeekly(id, decision){
+  const w = state.weekly.find(x=>x.id===id);
+  const val = document.getElementById('reviewInput-'+id).value.trim();
+  if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
+  w.supervisorComment = val;
+  w.status = decision;
+  await saveCollection('weekly-reports', state.weekly);
+  renderView();
+}
+async function deleteWeekly(id){
+  if(!confirm('Delete this weekly log?')) return;
+  state.weekly = state.weekly.filter(x=>x.id!==id);
+  await saveCollection('weekly-reports', state.weekly);
+  renderView();
+}
+
+/* ============================ SAMPLES / CHARACTERIZATION ============================ */
+function sampleStatus(s){
+  if(s.resultsReceivedDate) return {label:'Completed', cls:'good'};
+  if(s.expectedDate && s.expectedDate < todayStr()) return {label:'Overdue', cls:'bad'};
+  return {label:'Awaiting Results', cls:'warn'};
+}
+function viewSamples(){
+  let list = scopedList(state.samples).slice().sort((a,b)=> b.submittedDate.localeCompare(a.submittedDate));
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Characterization Samples</div>
+        <div class="view-sub">CV, GCD, EIS, cycling, and other characterizations — track submissions, results, and data links.</div>
+      </div>
+      <button class="action-btn" onclick="openSampleModal()">+ Log new sample</button>
+    </div>
+    ${supervisorFilterBar()}
+    ${list.length===0 ? emptyState('No samples logged yet', 'Log a sample submission to start tracking turnaround time.') : list.map((s,i)=>sampleCard(s,i,list.length)).join('')}
+  `;
+}
+function sampleCard(s, i, total){
+  const st = sampleStatus(s);
+  const isOwner = state.identity.role==='student' && s.studentId===state.identity.id;
+  const canEdit = isOwner || state.identity.role==='supervisor';
+  const approvalMap = {
+    pending: { label:'Pending Approval', cls:'warn' },
+    approved: { label:'Approved', cls:'good' },
+    changes_requested: { label:'Changes Requested', cls:'bad' }
+  };
+  const ap = approvalMap[s.approvalStatus] || approvalMap.pending;
+  return `
+    <div class="entry-card">
+      <div class="entry-top">
+        <div>
+          <div class="entry-idx">S${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(s.studentId))}</div>
+          <div class="entry-title">${escapeHtml(s.sampleName)} — ${escapeHtml(s.technique)}</div>
+          <div class="entry-meta">${escapeHtml(s.facility || 'Facility not specified')}</div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+          <span class="stamp ${st.cls}">${st.label}</span>
+          <span class="stamp ${ap.cls}">${ap.label}</span>
+        </div>
+      </div>
+      <div class="entry-grid">
+        <div class="entry-block"><span class="lbl">Submitted</span>${fmtDate(s.submittedDate)}</div>
+        <div class="entry-block"><span class="lbl">Expected by</span>${s.expectedDate ? fmtDate(s.expectedDate) : '—'}</div>
+        <div class="entry-block"><span class="lbl">Results received</span>${s.resultsReceivedDate ? fmtDate(s.resultsReceivedDate) : '—'}</div>
+        ${s.dataLink ? `<div class="entry-block"><span class="lbl">Data</span><a href="${escapeHtml(s.dataLink)}" target="_blank" rel="noopener">Open data file ↗</a></div>` : ''}
+        ${s.notes ? `<div class="entry-block" style="grid-column:1/-1;"><span class="lbl">Notes</span>${nl2br(s.notes)}</div>` : ''}
+      </div>
+      ${s.supervisorNote ? `<div class="comment-box"><span class="lbl">Supervisor note</span><div class="comment-existing">${nl2br(s.supervisorNote)}</div></div>` : ''}
+      <div class="entry-actions">
+        ${canEdit && !s.resultsReceivedDate ? `<button class="small-btn" onclick="openReceiveModal('${s.id}')">Mark results received</button>` : ''}
+        ${canEdit && s.resultsReceivedDate ? `<button class="small-btn" onclick="openReceiveModal('${s.id}')">${s.dataLink ? 'Edit data entry' : 'Add data entry'}</button>` : ''}
+        ${state.identity.role==='supervisor' ? `<button class="small-btn" onclick="openSampleReviewBox('${s.id}')">Review</button>` : ''}
+        ${canEdit ? `<button class="small-btn danger" onclick="deleteSample('${s.id}')">Delete</button>` : ''}
+      </div>
+      <div id="sampleReviewSlot-${s.id}"></div>
+    </div>
+  `;
+}
+function openSampleModal(){
+  showModal('Log new sample submission', `
+    <label class="field-label">Sample name / ID</label>
+    <input class="text-input" id="f_sampleName" placeholder="e.g. Batch-3-Annealed">
+    <div class="two-col">
+      <div><label class="field-label">Technique</label>
+        <select class="text-input" id="f_technique">${TECHNIQUES.map(t=>`<option value="${t}">${t}</option>`).join('')}</select>
+      </div>
+      <div><label class="field-label">Facility (optional)</label>
+        <input class="text-input" id="f_facility" placeholder="e.g. Central Instruments Lab">
+      </div>
+    </div>
+    <div class="two-col">
+      <div><label class="field-label">Submitted on</label>
+        <input type="date" class="text-input" id="f_submittedDate" value="${todayStr()}">
+      </div>
+      <div><label class="field-label">Expected by (optional)</label>
+        <input type="date" class="text-input" id="f_expectedDate">
+      </div>
+    </div>
+    <label class="field-label">Notes (optional)</label>
+    <textarea class="text-input" id="f_sampleNotes" rows="2" placeholder="Any special conditions or instructions"></textarea>
+  `, submitSample);
+}
+async function submitSample(){
+  const sampleName = document.getElementById('f_sampleName').value.trim();
+  const technique = document.getElementById('f_technique').value;
+  const facility = document.getElementById('f_facility').value.trim();
+  const submittedDate = document.getElementById('f_submittedDate').value;
+  const expectedDate = document.getElementById('f_expectedDate').value;
+  const notes = document.getElementById('f_sampleNotes').value.trim();
+  if(!sampleName || !submittedDate){ alert('Please add a sample name and submission date.'); return; }
+  const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : state.students[0]?.id);
+  if(!studentId){ alert('Add a student first.'); return; }
+  state.samples.push({
+    id: uid('smp'), studentId, sampleName, technique, facility, submittedDate, expectedDate, resultsReceivedDate:'', notes, dataLink:'',
+    approvalStatus: state.identity.role==='supervisor' ? 'approved' : 'pending', supervisorNote:''
+  });
+  await saveCollection('samples', state.samples);
+  closeModal(); renderView();
+}
+function openReceiveModal(id){
+  const s = state.samples.find(x=>x.id===id);
+  showModal(s.resultsReceivedDate ? 'Edit data entry' : 'Mark results received', `
+    <label class="field-label">Date results received</label>
+    <input type="date" class="text-input" id="f_resultsDate" value="${s.resultsReceivedDate || todayStr()}">
+    <label class="field-label">Data file link (optional)</label>
+    <input class="text-input" id="f_dataLink" placeholder="Google Drive / Sheets link to raw data, plots, etc." value="${escapeHtml(s.dataLink || '')}">
+    <label class="field-label">Notes (optional)</label>
+    <textarea class="text-input" id="f_resultsNotes" rows="3" placeholder="Summary of results, key values (capacity, efficiency, etc.), follow-up needed...">${escapeHtml(s.notes || '')}</textarea>
+  `, ()=>submitReceive(id));
+}
+async function submitReceive(id){
+  const date = document.getElementById('f_resultsDate').value;
+  const dataLink = document.getElementById('f_dataLink').value.trim();
+  const notes = document.getElementById('f_resultsNotes').value.trim();
+  if(!date){ alert('Please add a date.'); return; }
+  const s = state.samples.find(x=>x.id===id);
+  s.resultsReceivedDate = date;
+  s.dataLink = dataLink;
+  s.notes = notes;
+  await saveCollection('samples', state.samples);
+  closeModal(); renderView();
+}
+function openSampleReviewBox(id){
+  const s = state.samples.find(x=>x.id===id);
+  document.getElementById('sampleReviewSlot-'+id).innerHTML = `
+    <div class="comment-box">
+      <span class="lbl">Note (required to request changes)</span>
+      <textarea id="sampleReviewInput-${id}">${escapeHtml(s.supervisorNote || '')}</textarea>
+      <div class="entry-actions">
+        <button class="small-btn" onclick="reviewSample('${id}','approved')">Approve</button>
+        <button class="small-btn danger" onclick="reviewSample('${id}','changes_requested')">Request changes</button>
+      </div>
+    </div>`;
+}
+async function reviewSample(id, decision){
+  const s = state.samples.find(x=>x.id===id);
+  const val = document.getElementById('sampleReviewInput-'+id).value.trim();
+  if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
+  s.supervisorNote = val;
+  s.approvalStatus = decision;
+  await saveCollection('samples', state.samples);
+  renderView();
+}
+async function deleteSample(id){
+  if(!confirm('Delete this sample record?')) return;
+  state.samples = state.samples.filter(x=>x.id!==id);
+  await saveCollection('samples', state.samples);
+  renderView();
+}
+
+/* ============================ PAPERS ============================ */
+function stageStampClass(stage){
+  if(stage==='Published') return 'good';
+  if(stage==='Accepted') return 'good';
+  if(stage==='Revisions Requested') return 'warn';
+  if(stage==='Under Review' || stage==='Submitted') return 'neutral';
+  return 'neutral';
+}
+function viewPapers(){
+  let list = scopedList(state.papers).slice().sort((a,b)=> (b.lastUpdate||'').localeCompare(a.lastUpdate||''));
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Paper Pipeline</div>
+        <div class="view-sub">Track manuscripts from planning through to publication, with draft and reference links.</div>
+      </div>
+      <button class="action-btn" onclick="openPaperModal()">+ Add paper</button>
+    </div>
+    ${supervisorFilterBar()}
+    ${list.length===0 ? emptyState('No papers tracked yet', 'Add a paper to start tracking its progress toward publication.') : list.map((p,i)=>paperCard(p,i,list.length)).join('')}
+  `;
+}
+function paperCard(p, i, total){
+  const isOwner = state.identity.role==='student' && p.studentId===state.identity.id;
+  const canEdit = isOwner || state.identity.role==='supervisor';
+  const hasPending = !!p.pendingStage;
+  const refLinks = p.referenceLinks || [];
+  return `
+    <div class="entry-card">
+      <div class="entry-top">
+        <div>
+          <div class="entry-idx">P${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(p.studentId))}</div>
+          <div class="entry-title">${escapeHtml(p.title)}</div>
+          <div class="entry-meta">${escapeHtml(p.targetJournal || 'Target journal not set')}</div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+          <span class="stamp ${stageStampClass(p.stage)}">${escapeHtml(p.stage)}</span>
+          ${hasPending ? `<span class="stamp warn">Proposed: ${escapeHtml(p.pendingStage)}</span>` : ''}
+        </div>
+      </div>
+      ${p.notes ? `<div class="entry-block"><span class="lbl">Notes</span>${nl2br(p.notes)}</div>` : ''}
+      ${p.manuscriptLink ? `<div class="entry-block" style="margin-top:8px;"><span class="lbl">Manuscript / draft</span><a href="${escapeHtml(p.manuscriptLink)}" target="_blank" rel="noopener">Open draft ↗</a></div>` : ''}
+      <div class="entry-block" style="margin-top:8px;">
+        <span class="lbl">Reference links <span style="text-transform:none; font-weight:400;">(reading, citations, related work)</span></span>
+        ${refLinks.length===0 ? `<span class="entry-meta">No reference links added yet.</span>` : `
+          <ul style="margin:4px 0 0; padding-left:18px;">
+            ${refLinks.map(l=>`
+              <li style="margin-bottom:3px; font-size:13.5px;">
+                <a href="${escapeHtml(l.url)}" target="_blank" rel="noopener">${escapeHtml(l.label || l.url)}</a>
+                ${canEdit ? `<button class="small-btn" style="padding:1px 7px; font-size:11px; margin-left:6px;" onclick="deleteReferenceLink('${p.id}','${l.id}')">Remove</button>` : ''}
+              </li>
+            `).join('')}
+          </ul>
+        `}
+      </div>
+      ${p.supervisorNote ? `<div class="comment-box"><span class="lbl">Supervisor note</span><div class="comment-existing">${nl2br(p.supervisorNote)}</div></div>` : ''}
+      <div class="entry-meta" style="margin-top:8px;">Last updated ${fmtDate(p.lastUpdate)}</div>
+      ${hasPending ? `
+        <div class="entry-actions">
+          ${state.identity.role==='supervisor' ? `
+            <button class="small-btn" onclick="approvePendingStage('${p.id}')">Approve → ${escapeHtml(p.pendingStage)}</button>
+            <button class="small-btn danger" onclick="rejectPendingStage('${p.id}')">Reject</button>
+          ` : `<div class="entry-meta">Waiting on supervisor approval to move to <b>${escapeHtml(p.pendingStage)}</b>.</div>`}
+        </div>
+      ` : ''}
+      <div class="entry-actions">
+        ${canEdit && !hasPending ? `
+          <select class="small-btn" style="padding-right:6px;" onchange="requestStageChange('${p.id}', this.value)">
+            ${PAPER_STAGES.map(s=>`<option value="${s}" ${p.stage===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        ` : ''}
+        ${canEdit ? `<button class="small-btn" onclick="openEditPaperDetails('${p.id}')">Edit details</button>` : ''}
+        ${canEdit ? `<button class="small-btn" onclick="openAddReferenceLinkModal('${p.id}')">+ Add reference link</button>` : ''}
+        ${canEdit ? `<button class="small-btn danger" onclick="deletePaper('${p.id}')">Delete</button>` : ''}
+      </div>
+    </div>
+  `;
+}
+function openPaperModal(){
+  showModal('Add paper to pipeline', `
+    <label class="field-label">Working title</label>
+    <input class="text-input" id="f_title" placeholder="e.g. Effect of annealing temperature on...">
+    <label class="field-label">Target journal (optional)</label>
+    <input class="text-input" id="f_journal" placeholder="e.g. Journal of Materials Chemistry">
+    <label class="field-label">Manuscript / draft link (optional)</label>
+    <input class="text-input" id="f_manuscriptLink" placeholder="Google Docs / Overleaf link for the paper being written">
+    <label class="field-label">Notes (optional)</label>
+    <textarea class="text-input" id="f_paperNotes" rows="2" placeholder="Co-authors, key figures needed, etc."></textarea>
+  `, submitPaper);
+}
+async function submitPaper(){
+  const title = document.getElementById('f_title').value.trim();
+  const targetJournal = document.getElementById('f_journal').value.trim();
+  const manuscriptLink = document.getElementById('f_manuscriptLink').value.trim();
+  const notes = document.getElementById('f_paperNotes').value.trim();
+  if(!title){ alert('Please add a title.'); return; }
+  const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : state.students[0]?.id);
+  if(!studentId){ alert('Add a student first.'); return; }
+  state.papers.push({
+    id: uid('pap'), studentId, title, targetJournal, manuscriptLink, referenceLinks: [], stage: 'Planning', pendingStage: null,
+    notes, supervisorNote:'', lastUpdate: todayStr()
+  });
+  await saveCollection('papers', state.papers);
+  closeModal(); renderView();
+}
+async function requestStageChange(id, newStage){
+  const p = state.papers.find(x=>x.id===id);
+  if(newStage === p.stage) return;
+  if(state.identity.role==='supervisor'){
+    // Supervisor changes are final immediately — no approval needed on their own call.
+    p.stage = newStage;
+    p.pendingStage = null;
+    p.lastUpdate = todayStr();
+  } else {
+    // Student proposals wait for supervisor approval before they become official.
+    p.pendingStage = newStage;
+    p.lastUpdate = todayStr();
+  }
+  await saveCollection('papers', state.papers);
+  renderView();
+}
+async function approvePendingStage(id){
+  const p = state.papers.find(x=>x.id===id);
+  p.stage = p.pendingStage;
+  p.pendingStage = null;
+  p.lastUpdate = todayStr();
+  await saveCollection('papers', state.papers);
+  renderView();
+}
+async function rejectPendingStage(id){
+  const p = state.papers.find(x=>x.id===id);
+  const note = prompt(`Optional note to ${studentName(p.studentId)} on why this stage change was rejected:`, '');
+  if(note === null) return;
+  p.supervisorNote = note.trim();
+  p.pendingStage = null;
+  await saveCollection('papers', state.papers);
+  renderView();
+}
+function openEditPaperDetails(id){
+  const p = state.papers.find(x=>x.id===id);
+  showModal('Edit paper details', `
+    <label class="field-label">Target journal</label>
+    <input class="text-input" id="f_editJournal" value="${escapeHtml(p.targetJournal || '')}">
+    <label class="field-label">Manuscript / draft link</label>
+    <input class="text-input" id="f_editManuscriptLink" value="${escapeHtml(p.manuscriptLink || '')}" placeholder="Google Docs / Overleaf link">
+    <label class="field-label">Notes</label>
+    <textarea class="text-input" id="f_editNotes" rows="4">${escapeHtml(p.notes || '')}</textarea>
+  `, ()=>saveEditPaperDetails(id));
+}
+async function saveEditPaperDetails(id){
+  const p = state.papers.find(x=>x.id===id);
+  p.targetJournal = document.getElementById('f_editJournal').value.trim();
+  p.manuscriptLink = document.getElementById('f_editManuscriptLink').value.trim();
+  p.notes = document.getElementById('f_editNotes').value.trim();
+  p.lastUpdate = todayStr();
+  await saveCollection('papers', state.papers);
+  closeModal(); renderView();
+}
+function openAddReferenceLinkModal(paperId){
+  showModal('Add reference link', `
+    <label class="field-label">Title / description</label>
+    <input class="text-input" id="f_refLabel" placeholder="e.g. Wang et al. 2023 — EIS on Li-ion cathodes">
+    <label class="field-label">Link</label>
+    <input class="text-input" id="f_refUrl" placeholder="https://doi.org/... or a Drive/Zotero link">
+  `, ()=>submitReferenceLink(paperId));
+}
+async function submitReferenceLink(paperId){
+  const label = document.getElementById('f_refLabel').value.trim();
+  const url = document.getElementById('f_refUrl').value.trim();
+  if(!url){ alert('Please add a link.'); return; }
+  const p = state.papers.find(x=>x.id===paperId);
+  if(!p.referenceLinks) p.referenceLinks = [];
+  p.referenceLinks.push({ id: uid('ref'), label, url });
+  await saveCollection('papers', state.papers);
+  closeModal(); renderView();
+}
+async function deleteReferenceLink(paperId, linkId){
+  const p = state.papers.find(x=>x.id===paperId);
+  p.referenceLinks = (p.referenceLinks || []).filter(l=>l.id!==linkId);
+  await saveCollection('papers', state.papers);
+  renderView();
+}
+async function deletePaper(id){
+  if(!confirm('Delete this paper record?')) return;
+  state.papers = state.papers.filter(x=>x.id!==id);
+  await saveCollection('papers', state.papers);
+  renderView();
+}
+
+/* ============================ MEETINGS & PRESENTATIONS ============================ */
+const MEETING_STATUS = {
+  proposed: { label:'Proposed', cls:'warn' },
+  confirmed: { label:'Confirmed', cls:'neutral' },
+  completed: { label:'Completed', cls:'good' },
+  cancelled: { label:'Cancelled', cls:'bad' }
+};
+function meetingTypeFilterBar(){
+  return `
+    <select onchange="setFilterMeetingType(this.value)" style="margin-left:8px;">
+      <option value="all" ${state.filterMeetingType==='all'?'selected':''}>All types</option>
+      ${MEETING_TYPES.map(t=>`<option value="${t}" ${state.filterMeetingType===t?'selected':''}>${t}</option>`).join('')}
+    </select>
+  `;
+}
+function setFilterMeetingType(v){ state.filterMeetingType = v; renderView(); }
+
+function viewMeetings(){
+  let list = scopedList(state.meetings);
+  if(state.filterMeetingType !== 'all') list = list.filter(m=>m.type===state.filterMeetingType);
+  list = list.slice().sort((a,b)=> b.plannedDate.localeCompare(a.plannedDate));
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Meetings &amp; Presentations</div>
+        <div class="view-sub">Weekly reviews, monthly presentations, and topic discussions — planned and tracked in one place.</div>
+      </div>
+      <button class="action-btn" onclick="openMeetingModal()">+ Schedule</button>
+    </div>
+    <div class="filter-row">${supervisorFilterBar()}${meetingTypeFilterBar()}</div>
+    ${list.length===0 ? emptyState('Nothing scheduled yet', 'Schedule a weekly review, monthly presentation, or topic discussion to start tracking it.') : list.map((m,i)=>meetingCard(m,i,list.length)).join('')}
+  `;
+}
+function meetingCard(m, i, total){
+  const isOwner = state.identity.role==='student' && m.studentId===state.identity.id;
+  const canDelete = isOwner || state.identity.role==='supervisor';
+  const st = MEETING_STATUS[m.status] || MEETING_STATUS.proposed;
+  const isPast = m.plannedDate < todayStr();
+  return `
+    <div class="entry-card">
+      <div class="entry-top">
+        <div>
+          <div class="entry-idx">M${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(m.studentId))}</div>
+          <div class="entry-title">${escapeHtml(m.title)}</div>
+          <div class="entry-meta">${escapeHtml(m.type)} · ${fmtDate(m.plannedDate)}${isPast && (m.status==='proposed'||m.status==='confirmed') ? ' · past due' : ''}</div>
+        </div>
+        <span class="stamp ${st.cls}">${st.label}</span>
+      </div>
+      ${m.agenda ? `<div class="entry-block"><span class="lbl">Agenda / discussion points</span>${nl2br(m.agenda)}</div>` : ''}
+      ${m.outcomeNotes ? `<div class="comment-box"><span class="lbl">${m.status==='cancelled'?'Reason':'Outcome notes'}</span><div class="comment-existing">${nl2br(m.outcomeNotes)}</div></div>` : ''}
+      <div class="entry-actions">
+        ${state.identity.role==='supervisor' && m.status==='proposed' ? `<button class="small-btn" onclick="confirmMeeting('${m.id}')">Confirm</button>` : ''}
+        ${state.identity.role==='supervisor' && (m.status==='proposed'||m.status==='confirmed') ? `<button class="small-btn" onclick="openCompleteMeetingModal('${m.id}')">Mark completed</button>` : ''}
+        ${state.identity.role==='supervisor' && (m.status==='proposed'||m.status==='confirmed') ? `<button class="small-btn danger" onclick="openCancelMeetingModal('${m.id}')">Cancel</button>` : ''}
+        ${canDelete ? `<button class="small-btn danger" onclick="deleteMeeting('${m.id}')">Delete</button>` : ''}
+      </div>
+    </div>
+  `;
+}
+function openMeetingModal(){
+  showModal('Schedule a meeting or presentation', `
+    <label class="field-label">Type</label>
+    <select class="text-input" id="f_meetType">${MEETING_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('')}</select>
+    <label class="field-label">Title / topic</label>
+    <input class="text-input" id="f_meetTitle" placeholder="e.g. March group meeting presentation">
+    <label class="field-label">Planned date</label>
+    <input type="date" class="text-input" id="f_meetDate" value="${todayStr()}">
+    <label class="field-label">Agenda / discussion points (optional)</label>
+    <textarea class="text-input" id="f_meetAgenda" rows="3" placeholder="What do you want to cover or discuss?"></textarea>
+  `, submitMeeting);
+}
+async function submitMeeting(){
+  const type = document.getElementById('f_meetType').value;
+  const title = document.getElementById('f_meetTitle').value.trim();
+  const plannedDate = document.getElementById('f_meetDate').value;
+  const agenda = document.getElementById('f_meetAgenda').value.trim();
+  if(!title || !plannedDate){ alert('Please add a title and planned date.'); return; }
+  const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : state.students[0]?.id);
+  if(!studentId){ alert('Add a student first.'); return; }
+  state.meetings.push({
+    id: uid('mtg'), studentId, type, title, plannedDate, agenda, outcomeNotes:'',
+    status: state.identity.role==='supervisor' ? 'confirmed' : 'proposed',
+    lastUpdate: todayStr()
+  });
+  await saveCollection('meetings', state.meetings);
+  closeModal(); renderView();
+}
+async function confirmMeeting(id){
+  const m = state.meetings.find(x=>x.id===id);
+  m.status = 'confirmed'; m.lastUpdate = todayStr();
+  await saveCollection('meetings', state.meetings);
+  renderView();
+}
+function openCompleteMeetingModal(id){
+  showModal('Mark as completed', `
+    <label class="field-label">Outcome notes (optional)</label>
+    <textarea class="text-input" id="f_meetOutcome" rows="3" placeholder="What was covered, decided, or needs follow-up?"></textarea>
+  `, ()=>submitCompleteMeeting(id));
+}
+async function submitCompleteMeeting(id){
+  const m = state.meetings.find(x=>x.id===id);
+  m.status = 'completed';
+  m.outcomeNotes = document.getElementById('f_meetOutcome').value.trim();
+  m.lastUpdate = todayStr();
+  await saveCollection('meetings', state.meetings);
+  closeModal(); renderView();
+}
+function openCancelMeetingModal(id){
+  showModal('Cancel this item', `
+    <label class="field-label">Reason (optional)</label>
+    <textarea class="text-input" id="f_meetCancelReason" rows="2" placeholder="Why is this being cancelled?"></textarea>
+  `, ()=>submitCancelMeeting(id));
+}
+async function submitCancelMeeting(id){
+  const m = state.meetings.find(x=>x.id===id);
+  m.status = 'cancelled';
+  m.outcomeNotes = document.getElementById('f_meetCancelReason').value.trim();
+  m.lastUpdate = todayStr();
+  await saveCollection('meetings', state.meetings);
+  closeModal(); renderView();
+}
+async function deleteMeeting(id){
+  if(!confirm('Delete this scheduled item?')) return;
+  state.meetings = state.meetings.filter(x=>x.id!==id);
+  await saveCollection('meetings', state.meetings);
+  renderView();
+}
+
+/* ============================ REPORTS ============================ */
+function viewReports(){
+  const isSupervisor = state.identity.role==='supervisor';
+  if(!state.reportStudentId){
+    state.reportStudentId = isSupervisor ? 'all' : state.identity.id;
+  }
+  const studentOptions = isSupervisor
+    ? `<option value="all" ${state.reportStudentId==='all'?'selected':''}>All students</option>` +
+      state.students.map(s=>`<option value="${s.id}" ${state.reportStudentId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')
+    : `<option value="${state.identity.id}" selected>${escapeHtml(state.identity.name)}</option>`;
+
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Reports</div>
+        <div class="view-sub">Combines the supervisor instructions log with the student's progress, sample, and paper logs into one report.</div>
+      </div>
+    </div>
+    <div class="entry-card" style="margin-bottom:20px;">
+      <div class="two-col">
+        <div><label class="field-label">Student</label>
+          <select class="text-input" id="r_student" ${isSupervisor?'':'disabled'} onchange="state.reportStudentId=this.value">
+            ${studentOptions}
+          </select>
+        </div>
+        <div></div>
+        <div><label class="field-label">From (optional)</label>
+          <input type="date" class="text-input" id="r_from" value="${state.reportFrom}" onchange="state.reportFrom=this.value">
+        </div>
+        <div><label class="field-label">To (optional)</label>
+          <input type="date" class="text-input" id="r_to" value="${state.reportTo}" onchange="state.reportTo=this.value">
+        </div>
+      </div>
+      <div class="entry-actions">
+        <button class="action-btn" onclick="generateReport()">Generate report</button>
+        ${state.reportData ? `<button class="action-btn ghost" onclick="window.print()">Print / Save as PDF</button><button class="action-btn ghost" onclick="downloadReportText()">Download as text</button>` : ''}
+      </div>
+    </div>
+    <div id="reportPrintArea">${state.reportData ? renderReportHtml(state.reportData) : ''}</div>
+  `;
+}
+
+function inRange(dateStr, from, to){
+  if(!dateStr) return !from && !to ? true : false;
+  if(from && dateStr < from) return false;
+  if(to && dateStr > to) return false;
+  return true;
+}
+
+function buildReportForStudent(studentId, from, to){
+  const instructions = state.instructions.filter(x=>x.studentId===studentId && inRange(x.date, from, to)).sort((a,b)=>a.date.localeCompare(b.date));
+  const weekly = state.weekly.filter(x=>x.studentId===studentId && inRange(x.weekStart, from, to)).sort((a,b)=>a.weekStart.localeCompare(b.weekStart));
+  const samples = state.samples.filter(x=>x.studentId===studentId && inRange(x.submittedDate, from, to)).sort((a,b)=>a.submittedDate.localeCompare(b.submittedDate));
+  const papers = state.papers.filter(x=>x.studentId===studentId && inRange(x.lastUpdate, from, to)).sort((a,b)=>(a.lastUpdate||'').localeCompare(b.lastUpdate||''));
+  const meetings = state.meetings.filter(x=>x.studentId===studentId && inRange(x.plannedDate, from, to)).sort((a,b)=>(a.plannedDate||'').localeCompare(b.plannedDate||''));
+  return { studentId, name: studentName(studentId), instructions, weekly, samples, papers, meetings };
+}
+
+function generateReport(){
+  const from = state.reportFrom, to = state.reportTo;
+  const studentIds = state.reportStudentId==='all' ? state.students.map(s=>s.id) : [state.reportStudentId];
+  if(studentIds.length===0){ alert('No students to report on yet.'); return; }
+  state.reportData = {
+    generatedAt: todayStr(), from, to,
+    students: studentIds.map(id=>buildReportForStudent(id, from, to))
+  };
+  renderView();
+  setTimeout(()=>{ document.getElementById('reportPrintArea')?.scrollIntoView({behavior:'smooth'}); }, 50);
+}
+
+function renderReportHtml(data){
+  const periodLabel = (data.from || data.to) ? `${data.from ? fmtDate(data.from) : 'Start'} — ${data.to ? fmtDate(data.to) : 'Present'}` : 'All time';
+  return `
+    <div class="report-doc">
+      <div class="report-head">
+        <div class="report-eyebrow">Research Group Management System — Progress Report</div>
+        <div class="report-meta">Generated ${fmtDate(data.generatedAt)} · Period: ${escapeHtml(periodLabel)}</div>
+      </div>
+      ${data.students.map(s=>renderStudentReportSection(s)).join('<div class="report-divider"></div>')}
+    </div>
+  `;
+}
+function renderStudentReportSection(s){
+  const weeklyStatusLabel = { pending:'Pending Approval', approved:'Approved', changes_requested:'Changes Requested' };
+  return `
+    <div class="report-student">
+      <h2 class="report-student-name">${escapeHtml(s.name)}</h2>
+
+      <h3 class="report-section-title">Supervisor Instructions Log</h3>
+      ${s.instructions.length===0 ? `<p class="report-empty">No instructions logged for this period.</p>` : `
+        <table class="report-table">
+          <thead><tr><th>Date</th><th>Instruction</th><th>Logged by</th></tr></thead>
+          <tbody>
+            ${s.instructions.map(ins=>`<tr><td>${fmtDate(ins.date)}</td><td>${nl2br(ins.text)}</td><td>${escapeHtml(ins.addedByName)}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      `}
+
+      <h3 class="report-section-title">Weekly Progress Log</h3>
+      ${s.weekly.length===0 ? `<p class="report-empty">No weekly progress logged for this period.</p>` : s.weekly.map(w=>`
+        <div class="report-entry">
+          <div class="report-entry-head"><b>Week of ${fmtDate(w.weekStart)}</b><span>${weeklyStatusLabel[w.status]||w.status}</span></div>
+          <p><b>Work done:</b> ${nl2br(w.workDone) || '—'}</p>
+          <p><b>Plan for next week:</b> ${nl2br(w.planNext) || '—'}</p>
+          ${w.challenges ? `<p><b>Challenges:</b> ${nl2br(w.challenges)}</p>` : ''}
+          ${w.supervisorComment ? `<p><b>Supervisor feedback:</b> ${nl2br(w.supervisorComment)}</p>` : ''}
+        </div>
+      `).join('')}
+
+      <h3 class="report-section-title">Characterization Samples Log</h3>
+      ${s.samples.length===0 ? `<p class="report-empty">No samples logged for this period.</p>` : `
+        <table class="report-table">
+          <thead><tr><th>Sample</th><th>Technique</th><th>Submitted</th><th>Results received</th><th>Status</th><th>Supervisor note</th></tr></thead>
+          <tbody>
+            ${s.samples.map(sm=>`<tr><td>${escapeHtml(sm.sampleName)}</td><td>${escapeHtml(sm.technique)}</td><td>${fmtDate(sm.submittedDate)}</td><td>${sm.resultsReceivedDate?fmtDate(sm.resultsReceivedDate):'—'}</td><td>${sm.approvalStatus==='approved'?'Approved':sm.approvalStatus==='changes_requested'?'Changes Requested':'Pending Approval'}</td><td>${nl2br(sm.supervisorNote)||'—'}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      `}
+
+      <h3 class="report-section-title">Paper Pipeline Log</h3>
+      ${s.papers.length===0 ? `<p class="report-empty">No papers logged for this period.</p>` : `
+        <table class="report-table">
+          <thead><tr><th>Title</th><th>Target journal</th><th>Stage</th><th>Last updated</th><th>Supervisor note</th></tr></thead>
+          <tbody>
+            ${s.papers.map(p=>`<tr><td>${escapeHtml(p.title)}</td><td>${escapeHtml(p.targetJournal)||'—'}</td><td>${escapeHtml(p.stage)}${p.pendingStage?` (proposed: ${escapeHtml(p.pendingStage)})`:''}</td><td>${fmtDate(p.lastUpdate)}</td><td>${nl2br(p.supervisorNote)||'—'}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      `}
+
+      <h3 class="report-section-title">Meetings &amp; Presentations Log</h3>
+      ${s.meetings.length===0 ? `<p class="report-empty">No meetings or presentations logged for this period.</p>` : `
+        <table class="report-table">
+          <thead><tr><th>Date</th><th>Type</th><th>Title</th><th>Status</th><th>Notes</th></tr></thead>
+          <tbody>
+            ${s.meetings.map(m=>`<tr><td>${fmtDate(m.plannedDate)}</td><td>${escapeHtml(m.type)}</td><td>${escapeHtml(m.title)}</td><td>${(MEETING_STATUS[m.status]||{label:m.status}).label}</td><td>${nl2br(m.outcomeNotes || m.agenda)||'—'}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      `}
+    </div>
+  `;
+}
+
+function downloadReportText(){
+  const data = state.reportData;
+  if(!data) return;
+  const periodLabel = (data.from || data.to) ? `${data.from ? fmtDate(data.from) : 'Start'} - ${data.to ? fmtDate(data.to) : 'Present'}` : 'All time';
+  let out = `RESEARCH GROUP LOGBOOK — PROGRESS REPORT\nGenerated ${fmtDate(data.generatedAt)}\nPeriod: ${periodLabel}\n`;
+  data.students.forEach(s=>{
+    out += `\n${'='.repeat(60)}\n${s.name}\n${'='.repeat(60)}\n`;
+    out += `\n-- Supervisor Instructions Log --\n`;
+    if(s.instructions.length===0) out += `(none logged for this period)\n`;
+    s.instructions.forEach(ins=>{ out += `[${fmtDate(ins.date)}] (logged by ${ins.addedByName})\n${ins.text}\n\n`; });
+    out += `\n-- Weekly Progress Log --\n`;
+    if(s.weekly.length===0) out += `(none logged for this period)\n`;
+    s.weekly.forEach(w=>{
+      out += `[Week of ${fmtDate(w.weekStart)}] Status: ${w.status}\nWork done: ${w.workDone}\nPlan for next week: ${w.planNext}\n`;
+      if(w.challenges) out += `Challenges: ${w.challenges}\n`;
+      if(w.supervisorComment) out += `Supervisor feedback: ${w.supervisorComment}\n`;
+      out += `\n`;
+    });
+    out += `\n-- Characterization Samples Log --\n`;
+    if(s.samples.length===0) out += `(none logged for this period)\n`;
+    s.samples.forEach(sm=>{
+      out += `${sm.sampleName} — ${sm.technique} | Submitted: ${fmtDate(sm.submittedDate)} | Results: ${sm.resultsReceivedDate?fmtDate(sm.resultsReceivedDate):'pending'} | ${sm.approvalStatus}\n`;
+      if(sm.supervisorNote) out += `  Supervisor note: ${sm.supervisorNote}\n`;
+    });
+    out += `\n-- Paper Pipeline Log --\n`;
+    if(s.papers.length===0) out += `(none logged for this period)\n`;
+    s.papers.forEach(p=>{
+      out += `${p.title} | Journal: ${p.targetJournal||'—'} | Stage: ${p.stage}${p.pendingStage?` (proposed: ${p.pendingStage})`:''} | Updated: ${fmtDate(p.lastUpdate)}\n`;
+      if(p.supervisorNote) out += `  Supervisor note: ${p.supervisorNote}\n`;
+    });
+    out += `\n-- Meetings & Presentations Log --\n`;
+    if(s.meetings.length===0) out += `(none logged for this period)\n`;
+    s.meetings.forEach(m=>{
+      out += `[${fmtDate(m.plannedDate)}] ${m.type}: ${m.title} | Status: ${(MEETING_STATUS[m.status]||{label:m.status}).label}\n`;
+      if(m.agenda) out += `  Agenda: ${m.agenda}\n`;
+      if(m.outcomeNotes) out += `  Notes: ${m.outcomeNotes}\n`;
+    });
+  });
+  const blob = new Blob([out], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `progress-report-${todayStr()}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ============================ MODAL ============================ */
+function showModal(title, bodyHtml, onSubmit){
+  document.getElementById('modalRoot').innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-box">
+        <div class="modal-head"><h3>${escapeHtml(title)}</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
+        <div class="modal-body">
+          ${bodyHtml}
+          <div class="modal-foot">
+            <button class="small-btn" onclick="closeModal()">Cancel</button>
+            <button class="action-btn" id="modalSubmitBtn">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('modalSubmitBtn').onclick = onSubmit;
+}
+function closeModal(){ document.getElementById('modalRoot').innerHTML = ''; }
+
+/* ============================ START ============================ */
+init();
+</script>
+</body>
+</html>
