@@ -470,6 +470,15 @@ const DATA_API_URL = 'https://script.google.com/macros/s/AKfycbwb5fe0S1lhAFnh-YT
 // Must exactly match the APP_KEY constant in backend/Code.gs.
 const APP_KEY = 'change-this-to-your-own-random-string-2026';
 
+// A one-time setup key that must be entered to claim the Supervisor role for
+// the FIRST time (before any passcode exists). Without this, whoever visits
+// the app first and picks "Supervisor" could set themselves up as supervisor —
+// this key ensures only the person given it by whoever deployed this app can
+// become the supervisor. Change this to your own value, and only share it
+// with the actual supervisor. Once the passcode is set, this key is no longer
+// needed for logging in — only the passcode is checked from then on.
+const SUPERVISOR_SETUP_KEY = 'change-this-setup-key-too';
+
 function backendConfigured(){
   return typeof DATA_API_URL === 'string' && DATA_API_URL.startsWith('http');
 }
@@ -738,6 +747,8 @@ function renderLogin(){
       `;
     } else {
       supervisorPinHtml = `
+        <label class="field-label">Setup key <span style="text-transform:none; font-weight:400;">(given to you by whoever deployed this app)</span></label>
+        <input class="text-input" id="supervisorSetupKey" type="password" placeholder="One-time setup key">
         <label class="field-label">Your name</label>
         <input class="text-input" id="supervisorName" placeholder="e.g. Dr. Rao">
         <label class="field-label">Create a supervisor passcode</label>
@@ -746,7 +757,7 @@ function renderLogin(){
         <input class="text-input" id="supervisorPinConfirm" type="password" placeholder="Re-enter passcode">
         <label class="field-label">Your email <span style="text-transform:none; font-weight:400;">(for update notifications)</span></label>
         <input class="text-input" id="supervisorEmailInput" type="email" placeholder="you@university.edu">
-        <div class="view-sub" style="margin-top:8px;">This is the first supervisor login for this group — the passcode you set here will protect supervisor access from now on. Your name and email are only asked once.</div>
+        <div class="view-sub" style="margin-top:8px;">This is the first supervisor login for this group — the setup key confirms you're meant to be the supervisor, and the passcode you set here will protect supervisor access from now on. Your name and email are only asked once.</div>
       `;
     }
   }
@@ -820,6 +831,8 @@ async function doLogin(){
         await saveSupervisorProfile({ hash: state.supervisorPinHash, email, name: state.supervisorName });
       }
     } else {
+      const setupKey = document.getElementById('supervisorSetupKey')?.value || '';
+      if(setupKey !== SUPERVISOR_SETUP_KEY){ state.loginError = 'Incorrect setup key. Ask whoever deployed this app for the correct key — only they can tell you the right one.'; renderLogin(); return; }
       const name = (document.getElementById('supervisorName')?.value || '').trim() || 'Supervisor';
       const confirmPin = document.getElementById('supervisorPinConfirm')?.value || '';
       const email = (document.getElementById('supervisorEmailInput')?.value || '').trim();
@@ -2612,13 +2625,14 @@ function viewThesis(){
   if(state.filterThesisStatus && state.filterThesisStatus !== 'all'){
     list = list.filter(tp => tp.status === state.filterThesisStatus);
   }
+  const alreadyHasOne = state.identity.role==='student' && state.thesisPlans.some(tp=>tp.studentId===state.identity.id);
   return `
     <div class="view-header">
       <div>
         <div class="view-title">Thesis Plan</div>
-        <div class="view-sub">Planned papers, chapters, and how it all maps to progress on the work plan.</div>
+        <div class="view-sub">Planned papers, chapters, and how it all maps to progress on the work plan.${alreadyHasOne ? ' Only one thesis plan is allowed per research scholar.' : ''}</div>
       </div>
-      ${state.identity.role==='student' ? `<button class="action-btn" onclick="openThesisModal()">+ New thesis plan</button>` : ''}
+      ${(state.identity.role==='student' && !alreadyHasOne) ? `<button class="action-btn" onclick="openThesisModal()">+ New thesis plan</button>` : ''}
     </div>
     ${supervisorFilterBar()}
     ${sectionPieAndFilter(fullList, 'status', state.filterThesisStatus, 'setFilterThesisStatus')}
@@ -2705,6 +2719,10 @@ async function submitThesis(){
   if(!title){ alert('Please add a thesis title.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
   if(!studentId){ alert('Add a research scholar first.'); return; }
+  if(state.thesisPlans.some(tp=>tp.studentId===studentId)){
+    alert('Only one thesis plan is allowed per research scholar. Edit the existing one instead of creating a new one.');
+    return;
+  }
   state.thesisPlans.push({
     id: uid('th'), studentId, title, totalPlannedPapers, chapters: [],
     status: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:'', lastUpdate: todayStr()
