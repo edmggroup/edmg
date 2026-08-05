@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Research Group Management System</title>
+<title>Research Group Management System - Energy Devices and Materials Group, Christ University, Bengaluru</title>
 <meta name="description" content="Weekly progress, characterization tracking, and paper pipeline management for research groups.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -397,6 +397,7 @@ const state = {
   financialApps: [],
   courses: [],
   fabricationItems: [],
+  events: [],
   calendarMonth: null,
   plannerWeekStart: null,
   view: 'overview',
@@ -434,6 +435,8 @@ const FINANCIAL_OUTCOMES = { awaiting_result:{label:'Awaiting Result', cls:'warn
 const COURSE_TYPES = ['Course','Certification','Workshop','Training Program','MOOC','Other'];
 const COURSE_STATUSES = { not_started:{label:'Not Started', cls:'neutral'}, in_progress:{label:'In Progress', cls:'warn'}, completed:{label:'Completed', cls:'good'} };
 const FABRICATION_STAGES = { prep:{label:'Sample Preparation', cls:'neutral'}, fabrication:{label:'Device Fabrication', cls:'warn'}, testing:{label:'Testing', cls:'warn'}, completed:{label:'Completed', cls:'good'}, on_hold:{label:'On Hold', cls:'bad'} };
+const EVENT_TYPES = ['Event', 'Proposal Submission', 'Task Assignment', 'Other'];
+const EVENT_STATUSES = { planned:{label:'Planned', cls:'neutral'}, in_progress:{label:'In Progress', cls:'warn'}, completed:{label:'Completed', cls:'good'} };
 
 const TECHNIQUES = ['CV (Cyclic Voltammetry)','GCD (Galvanostatic Charge-Discharge)','Battery Testing','Cycling Test','EIS (Impedance Spectroscopy)','XRD','SEM','TEM','TGA/DSC','NMR','UV-Vis','FTIR','BET (Surface Area)','XPS','Raman','GC-MS','Other'];
 const PAPER_STAGES = ['Planning','Drafting','Internal Review','Submitted','Under Review','Revisions Requested','Accepted','Published'];
@@ -545,7 +548,7 @@ async function saveSupervisorProfile(profile){
 
 /* ============================ INIT ============================ */
 // Every collection key the app needs at startup, fetched in one batched request.
-const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','supervisor-pin'];
+const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','supervisor-pin'];
 
 async function init(){
   if(!backendConfigured()){
@@ -595,6 +598,7 @@ function applyDataValues(values){
   state.financialApps = arr('financial-applications');
   state.courses = arr('courses');
   state.fabricationItems = arr('fabrication-items');
+  state.events = arr('events');
   let supervisorProfile = {};
   try{ supervisorProfile = values['supervisor-pin'] ? JSON.parse(values['supervisor-pin']) : {}; }catch(e){ supervisorProfile = {}; }
   state.supervisorPinHash = supervisorProfile.hash || null;
@@ -982,7 +986,7 @@ const NAV_ITEM_COLORS = {
   proposal:'var(--stat-indigo)', thesis:'var(--stat-purple)',
   weekly:'var(--stat-blue)', fabrication:'var(--stat-teal)', samples:'var(--stat-cyan)', papers:'var(--stat-purple)',
   rac:'var(--stat-rose)', learning:'var(--stat-blue)', financial:'var(--stat-teal)', conferences:'var(--stat-rose)',
-  meetings:'var(--stat-indigo)', instructions:'var(--navy)', reports:'var(--navy)', account:'var(--ink-faint)'
+  meetings:'var(--stat-indigo)', events:'var(--stat-purple)', instructions:'var(--navy)', reports:'var(--navy)', account:'var(--ink-faint)'
 };
 const NAV_GROUPS = [
   { items: [
@@ -1004,11 +1008,12 @@ const NAV_GROUPS = [
   { label:'Academic Activities', items: [
     { key:'rac', label:'RAC Reviews' },
     { key:'learning', label:'Learning & Courses' },
-    { key:'financial', label:'Visiting & Financial Support' },
+    { key:'financial', label:'Proposals' },
     { key:'conferences', label:'Conferences' },
   ]},
   { label:'Admin', items: [
     { key:'meetings', label:'Meetings' },
+    { key:'events', label:'Events' },
     { key:'instructions', label:'Instructions' },
     { key:'reports', label:'Reports' },
     { key:'account', label:'Account' },
@@ -1043,6 +1048,7 @@ function renderView(){
   else if(state.view==='financial') main.innerHTML = viewFinancial();
   else if(state.view==='learning') main.innerHTML = viewLearning();
   else if(state.view==='meetings') main.innerHTML = viewMeetings();
+  else if(state.view==='events') main.innerHTML = viewEvents();
   else if(state.view==='instructions') main.innerHTML = viewInstructions();
   else if(state.view==='reports') main.innerHTML = viewReports();
   else if(state.view==='account') main.innerHTML = viewAccount();
@@ -1051,7 +1057,7 @@ function renderView(){
 const ITEM_TYPE_VIEW = {
   instruction:'instructions', proposal:'proposal', thesis:'thesis', rac:'rac',
   financial:'financial', course:'learning', weekly:'weekly', sample:'samples',
-  paper:'papers', conference:'conferences', meeting:'meetings', fabrication:'fabrication'
+  paper:'papers', conference:'conferences', meeting:'meetings', fabrication:'fabrication', event:'events'
 };
 function goToItem(type, id, studentId){
   const view = ITEM_TYPE_VIEW[type];
@@ -1148,7 +1154,7 @@ function viewInstructions(){
   return `
     <div class="view-header">
       <div>
-        <div class="view-title">Supervisor Instructions</div>
+        <div class="view-title">Instructions</div>
         <div class="view-sub">${isSupervisorLike() ? 'A dated log of instructions and directives given to each student.' : 'Instructions your supervisor has logged for you.'}</div>
       </div>
       ${isSupervisorLike() ? `<button class="action-btn" onclick="openInstructionModal()">+ Log instruction</button>` : ''}
@@ -1187,7 +1193,7 @@ function openInstructionModal(){
   const visible = visibleStudentsForIdentity();
   const targetId = state.filterStudentId!=='all' ? state.filterStudentId : (visible[0]?.id || '');
   if(!targetId){ alert('Add a research scholar first.'); return; }
-  showModal('Log an instruction', `
+  showModal('Instructions', `
     <label class="field-label">For</label>
     <select class="text-input" id="f_insStudent">
       ${visible.map(s=>`<option value="${s.id}" ${s.id===targetId?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}
@@ -1849,6 +1855,7 @@ function downloadBackup(){
     financialApps: scopedList(state.financialApps),
     courses: scopedList(state.courses),
     fabricationItems: scopedList(state.fabricationItems),
+    events: visibleEvents(),
     instructions: scopedList(state.instructions),
     meetings: scopedList(state.meetings),
     coSupervisors: isSupervisor ? state.coSupervisors.map(c=>({id:c.id, name:c.name, email:c.email||'', assignedStudentIds:c.assignedStudentIds||[]})) : undefined
@@ -1893,6 +1900,7 @@ function handleRestoreFile(event){
     state.fabricationItems = Array.isArray(parsed.fabricationItems) ? parsed.fabricationItems : state.fabricationItems;
     state.instructions = Array.isArray(parsed.instructions) ? parsed.instructions : state.instructions;
     state.meetings = Array.isArray(parsed.meetings) ? parsed.meetings : state.meetings;
+    state.events = Array.isArray(parsed.events) ? parsed.events : state.events;
     if(Array.isArray(parsed.coSupervisors)){
       state.coSupervisors = parsed.coSupervisors.map(c => {
         const existing = state.coSupervisors.find(x=>x.id===c.id);
@@ -1914,6 +1922,7 @@ function handleRestoreFile(event){
       saveCollection('fabrication-items', state.fabricationItems),
       saveCollection('instructions', state.instructions),
       saveCollection('meetings', state.meetings),
+      saveCollection('events', state.events),
       saveCollection('co-supervisors', state.coSupervisors)
     ]);
     event.target.value = '';
@@ -2370,7 +2379,7 @@ function proposalCard(pr, i, total){
   `;
 }
 function openProposalModal(){
-  showModal('New proposal / work plan', `
+  showModal('Work Plan (Proposal)', `
     <label class="field-label">Title</label>
     <input class="text-input" id="f_prTitle" placeholder="e.g. PhD Work Plan — Year 1">
     <label class="field-label">Objective</label>
@@ -2404,7 +2413,7 @@ function openEditProposalModal(id){
   const pr = state.proposals.find(x=>x.id===id);
   const myPapers = state.papers.filter(p=>p.studentId===pr.studentId);
   const linked = pr.linkedPaperIds || [];
-  showModal('Edit proposal / work plan', `
+  showModal('Work Plan (Proposal)', `
     <label class="field-label">Title</label>
     <input class="text-input" id="f_editPrTitle" value="${escapeHtml(pr.title)}">
     <label class="field-label">Objective</label>
@@ -2643,7 +2652,7 @@ function thesisCard(tp, i, total){
   `;
 }
 function openThesisModal(){
-  showModal('New thesis plan', `
+  showModal('Thesis Plan', `
     <label class="field-label">Thesis title</label>
     <input class="text-input" id="f_thTitle" placeholder="e.g. Development of High-Capacity Cathode Materials for Li-ion Batteries">
     <label class="field-label">Planned number of papers for this thesis</label>
@@ -2673,7 +2682,7 @@ async function submitThesis(){
 }
 function openEditThesisModal(id){
   const tp = state.thesisPlans.find(x=>x.id===id);
-  showModal('Edit thesis plan', `
+  showModal('Thesis Plan', `
     <label class="field-label">Thesis title</label>
     <input class="text-input" id="f_editThTitle" value="${escapeHtml(tp.title)}">
     <label class="field-label">Planned number of papers for this thesis</label>
@@ -2870,7 +2879,7 @@ function racFormFields(r){
   `;
 }
 function openRacModal(){
-  showModal('Log RAC review', racFormFields(), submitRac);
+  showModal('RAC Reviews', racFormFields(), submitRac);
 }
 async function submitRac(){
   const title = document.getElementById('f_racTitle').value.trim();
@@ -2892,7 +2901,7 @@ async function submitRac(){
 }
 function openEditRacModal(id){
   const r = state.racReviews.find(x=>x.id===id);
-  showModal('Edit RAC review', racFormFields(r) + (!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''), ()=>submitEditRac(id));
+  showModal('RAC Reviews', racFormFields(r) + (!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''), ()=>submitEditRac(id));
 }
 async function submitEditRac(id){
   const r = state.racReviews.find(x=>x.id===id);
@@ -2992,7 +3001,7 @@ function viewFinancial(){
   return `
     <div class="view-header">
       <div>
-        <div class="view-title">Visiting &amp; Financial Support</div>
+        <div class="view-title">Proposals</div>
         <div class="view-sub">Visiting positions, travel grants, fellowships, and scholarship applications.</div>
       </div>
       <button class="action-btn" onclick="openFinancialModal()">+ Log application</button>
@@ -3071,7 +3080,7 @@ function financialFormFields(f){
   `;
 }
 function openFinancialModal(){
-  showModal('Log visiting / financial support application', financialFormFields(), submitFinancial);
+  showModal('Proposals', financialFormFields(), submitFinancial);
 }
 async function submitFinancial(){
   const title = document.getElementById('f_finTitle').value.trim();
@@ -3097,7 +3106,7 @@ async function submitFinancial(){
 }
 function openEditFinancialModal(id){
   const f = state.financialApps.find(x=>x.id===id);
-  showModal('Edit application', financialFormFields(f) + (!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''), ()=>submitEditFinancial(id));
+  showModal('Proposals', financialFormFields(f) + (!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''), ()=>submitEditFinancial(id));
 }
 async function submitEditFinancial(id){
   const f = state.financialApps.find(x=>x.id===id);
@@ -3269,7 +3278,7 @@ function courseFormFields(c){
   `;
 }
 function openCourseModal(){
-  showModal('Log course / certification', courseFormFields(), submitCourse);
+  showModal('Learning & Courses', courseFormFields(), submitCourse);
 }
 async function submitCourse(){
   const title = document.getElementById('f_courseTitle').value.trim();
@@ -3295,7 +3304,7 @@ async function submitCourse(){
 }
 function openEditCourseModal(id){
   const c = state.courses.find(x=>x.id===id);
-  showModal('Edit course / certification', courseFormFields(c) + (!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''), ()=>submitEditCourse(id));
+  showModal('Learning & Courses', courseFormFields(c) + (!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''), ()=>submitEditCourse(id));
 }
 async function submitEditCourse(id){
   const c = state.courses.find(x=>x.id===id);
@@ -3368,11 +3377,11 @@ function viewFabrication(){
         <div class="view-title">Lab Work</div>
         <div class="view-sub">Preparation, fabrication, and testing status for samples and devices — mapped to the paper they support.</div>
       </div>
-      <button class="action-btn" onclick="openFabricationModal()">+ Log item</button>
+      <button class="action-btn" onclick="openFabricationModal()">+ Log Lab Work</button>
     </div>
     ${supervisorFilterBar()}
     ${sectionPieAndFilter(fullList, 'approvalStatus', state.filterFabricationStatus, 'setFilterFabricationStatus')}
-    ${list.length===0 ? emptyState('Nothing logged yet', 'Log a sample or device to track its status from preparation through testing.') : list.map((it,i)=>fabricationCard(it,i,list.length)).join('')}
+    ${list.length===0 ? emptyState('Nothing logged yet', 'Log a Lab Work item to track its status from preparation through testing.') : list.map((it,i)=>fabricationCard(it,i,list.length)).join('')}
   `;
 }
 function setFilterFabricationStatus(v){ state.filterFabricationStatus = v; renderView(); }
@@ -3440,7 +3449,7 @@ function fabricationFormFields(it){
   const studentIdForPapers = it.studentId || (state.identity.role==='student' ? state.identity.id : state.filterStudentId);
   const myPapers = state.papers.filter(p=>p.studentId===studentIdForPapers);
   return `
-    <label class="field-label">Sample / device name</label>
+    <label class="field-label">Lab Work name</label>
     <input class="text-input" id="f_fabName" value="${escapeHtml(it.itemName||'')}" placeholder="e.g. Cathode electrode batch 5 / Coin cell device A">
     <label class="field-label">Stage</label>
     <select class="text-input" id="f_fabStage">
@@ -3470,7 +3479,7 @@ function fabricationFormFields(it){
   `;
 }
 function openFabricationModal(){
-  showModal('Log sample / device', fabricationFormFields(), submitFabrication);
+  showModal('Lab Work', fabricationFormFields(), submitFabrication);
 }
 async function submitFabrication(){
   const itemName = document.getElementById('f_fabName').value.trim();
@@ -3496,7 +3505,7 @@ async function submitFabrication(){
 }
 function openEditFabricationModal(id){
   const it = state.fabricationItems.find(x=>x.id===id);
-  showModal('Edit sample / device', fabricationFormFields(it) + (!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''), ()=>submitEditFabrication(id));
+  showModal('Lab Work', fabricationFormFields(it) + (!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''), ()=>submitEditFabrication(id));
 }
 async function submitEditFabrication(id){
   const it = state.fabricationItems.find(x=>x.id===id);
@@ -3684,7 +3693,7 @@ function openWeeklyModal(){
   const previous = mine.find(w=>w.weekStart < monday) || mine[0];
   const myPapers = state.papers.filter(p=>p.studentId===state.identity.id);
   const myApprovedProposals = state.proposals.filter(p=>p.studentId===state.identity.id && p.status==='approved');
-  showModal("Log this week's plan", `
+  showModal('Weekly Plan', `
     ${previous && previous.planNext ? `<div class="comment-box" style="margin-bottom:14px;"><span class="lbl">You planned last time (week of ${fmtDate(previous.weekStart)})</span><div class="comment-existing">${nl2br(previous.planNext)}</div></div>` : ''}
     <label class="field-label">Week starting</label>
     <input type="date" id="f_weekStart" class="text-input" value="${monday}">
@@ -3768,7 +3777,7 @@ function openEditWeeklyModal(id){
   const linked = w.linkedPaperIds || [];
   const myApprovedProposals = state.proposals.filter(p=>p.studentId===w.studentId && p.status==='approved');
   const linkedProposals = w.linkedProposalIds || [];
-  showModal('Edit weekly report', `
+  showModal('Weekly Plan', `
     <label class="field-label">Week starting</label>
     <input type="date" id="f_editWeekStart" class="text-input" value="${w.weekStart}">
     <label class="field-label">What did you do this week?</label>
@@ -3833,7 +3842,7 @@ function viewSamples(){
   return `
     <div class="view-header">
       <div>
-        <div class="view-title">Characterization Samples</div>
+        <div class="view-title">Characterization</div>
         <div class="view-sub">CV, GCD, EIS, cycling, and other characterizations — track submissions, results, and data links.</div>
       </div>
       <button class="action-btn" onclick="openSampleModal()">+ Log new sample</button>
@@ -3892,7 +3901,7 @@ function sampleCard(s, i, total){
   `;
 }
 function openSampleModal(){
-  showModal('Log new sample submission', `
+  showModal('Characterization', `
     <label class="field-label">Sample name / ID</label>
     <input class="text-input" id="f_sampleName" placeholder="e.g. Batch-3-Annealed">
     <div class="two-col">
@@ -3988,7 +3997,7 @@ async function deleteSample(id){
 }
 function openEditSampleModal(id){
   const s = state.samples.find(x=>x.id===id);
-  showModal('Edit sample submission', `
+  showModal('Characterization', `
     <label class="field-label">Sample name / ID</label>
     <input class="text-input" id="f_editSampleName" value="${escapeHtml(s.sampleName)}">
     <div class="two-col">
@@ -4181,7 +4190,7 @@ function copyConsolidatedText(btn){
   }).catch(()=>{ alert('Could not copy automatically — please select and copy the text manually.'); });
 }
 function openPaperModal(){
-  showModal('Add paper to pipeline', `
+  showModal('Paper Pipeline', `
     <label class="field-label">Working title</label>
     <input class="text-input" id="f_title" placeholder="e.g. Effect of annealing temperature on...">
     <label class="field-label">Target journal (optional)</label>
@@ -4249,7 +4258,7 @@ async function rejectPendingStage(id){
 }
 function openEditPaperDetails(id){
   const p = state.papers.find(x=>x.id===id);
-  showModal('Edit paper details', `
+  showModal('Paper Pipeline', `
     <label class="field-label">Target journal</label>
     <input class="text-input" id="f_editJournal" value="${escapeHtml(p.targetJournal || '')}">
     <label class="field-label">Target date for next milestone (optional)</label>
@@ -4318,7 +4327,7 @@ function viewConferences(){
   return `
     <div class="view-header">
       <div>
-        <div class="view-title">Conferences &amp; Presentations</div>
+        <div class="view-title">Conferences</div>
         <div class="view-sub">Conference and workshop participation, talks, and posters.</div>
       </div>
       <button class="action-btn" onclick="openConferenceModal()">+ Log participation</button>
@@ -4394,7 +4403,7 @@ function conferenceFormFields(c){
   `;
 }
 function openConferenceModal(){
-  showModal('Log conference / workshop participation', conferenceFormFields(), submitConference);
+  showModal('Conferences', conferenceFormFields(), submitConference);
 }
 async function submitConference(){
   const eventName = document.getElementById('f_confName').value.trim();
@@ -4421,7 +4430,7 @@ async function submitConference(){
 }
 function openEditConferenceModal(id){
   const c = state.conferences.find(x=>x.id===id);
-  showModal('Edit conference / workshop entry', conferenceFormFields(c) + (!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''), ()=>submitEditConference(id));
+  showModal('Conferences', conferenceFormFields(c) + (!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''), ()=>submitEditConference(id));
 }
 async function submitEditConference(id){
   const c = state.conferences.find(x=>x.id===id);
@@ -4537,7 +4546,7 @@ function meetingCard(m, i, total){
   `;
 }
 function openMeetingModal(){
-  showModal('Schedule a meeting or presentation', `
+  showModal('Meetings', `
     <label class="field-label">Type</label>
     <select class="text-input" id="f_meetType">${MEETING_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('')}</select>
     <label class="field-label">Title / topic</label>
@@ -4602,6 +4611,143 @@ async function deleteMeeting(id){
   if(!confirm('Delete this scheduled item?')) return;
   state.meetings = state.meetings.filter(x=>x.id!==id);
   await saveCollection('meetings', state.meetings);
+  renderView();
+}
+
+/* ============================ EVENTS ============================ */
+// Organized by the supervisor (or a mentor, for their assigned scholars):
+// group events, the supervisor's own proposal submissions, and research
+// tasks assigned to a specific scholar. Unlike most sections, there's no
+// approve/reject workflow here — the supervisor's word is already final,
+// so entries are simply logged and tracked.
+function visibleEvents(){
+  if(state.identity.role === 'student'){
+    return state.events.filter(e => !e.assignedStudentId || e.assignedStudentId === state.identity.id);
+  }
+  if(state.identity.role === 'cosupervisor'){
+    const ids = assignedStudentIds();
+    return state.events.filter(e => !e.assignedStudentId || ids.includes(e.assignedStudentId));
+  }
+  return state.events; // true supervisor sees everything
+}
+function viewEvents(){
+  const list = visibleEvents().slice().sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Events</div>
+        <div class="view-sub">Group events, proposal submissions, and research tasks organized or assigned by the supervisor.</div>
+      </div>
+      ${isSupervisorLike() ? `<button class="action-btn" onclick="openEventModal()">+ Log event / task</button>` : ''}
+    </div>
+    ${list.length===0 ? emptyState('Nothing logged yet', isSupervisorLike() ? 'Log a group event, a proposal submission, or assign a research task to a scholar.' : 'Anything the supervisor organizes or assigns to you will appear here.') : list.map((ev,i)=>eventCard(ev,i,list.length)).join('')}
+  `;
+}
+function eventCard(ev, i, total){
+  const canManage = isSupervisorLike();
+  const st = EVENT_STATUSES[ev.status] || EVENT_STATUSES.planned;
+  const isAssignedToMe = state.identity.role==='student' && ev.assignedStudentId === state.identity.id;
+  const overdue = ev.date && ev.status!=='completed' && ev.date < todayStr();
+  return `
+    <div class="entry-card cat-purple" id="item-event-${ev.id}">
+      <div class="entry-top">
+        <div>
+          <div class="entry-idx">EV${String(total-i).padStart(2,'0')} · ${escapeHtml(ev.type)}</div>
+          <div class="entry-title">${escapeHtml(ev.title)}</div>
+          <div class="entry-meta">${ev.assignedStudentId ? 'Assigned to: ' + escapeHtml(studentName(ev.assignedStudentId)) : 'Visible to all research scholars'}</div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+          <span class="stamp ${st.cls}">${st.label}</span>
+          ${overdue ? `<span class="stamp bad">Overdue</span>` : ''}
+        </div>
+      </div>
+      <div class="entry-grid">
+        <div class="entry-block"><span class="lbl">Date</span>${ev.date ? fmtDate(ev.date) : 'not set'}</div>
+        ${ev.link ? `<div class="entry-block"><span class="lbl">Link</span><a href="${escapeHtml(ev.link)}" target="_blank" rel="noopener">Open ↗</a></div>` : ''}
+        ${ev.description ? `<div class="entry-block" style="grid-column:1/-1;"><span class="lbl">Description</span>${nl2br(ev.description)}</div>` : ''}
+      </div>
+      <div class="entry-actions">
+        ${(canManage || isAssignedToMe) ? `
+          <select class="small-btn" style="padding-right:6px;" onchange="setEventStatus('${ev.id}', this.value)">
+            <option value="planned" ${ev.status==='planned'?'selected':''}>Planned</option>
+            <option value="in_progress" ${ev.status==='in_progress'?'selected':''}>In Progress</option>
+            <option value="completed" ${ev.status==='completed'?'selected':''}>Completed</option>
+          </select>
+        ` : ''}
+        ${canManage ? `<button class="small-btn" onclick="openEditEventModal('${ev.id}')">Edit</button>` : ''}
+        ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteEvent('${ev.id}')">Delete</button>` : ''}
+      </div>
+    </div>
+  `;
+}
+function eventFormFields(ev){
+  ev = ev || {};
+  const visible = visibleStudentsForIdentity();
+  return `
+    <label class="field-label">Type</label>
+    <select class="text-input" id="f_evType">${EVENT_TYPES.map(t=>`<option value="${t}" ${ev.type===t?'selected':''}>${t}</option>`).join('')}</select>
+    <label class="field-label">Title</label>
+    <input class="text-input" id="f_evTitle" value="${escapeHtml(ev.title||'')}" placeholder="e.g. Departmental Symposium / DST Proposal / Literature review on X">
+    <label class="field-label">Date</label>
+    <input type="date" class="text-input" id="f_evDate" value="${ev.date||todayStr()}">
+    <label class="field-label">Assign to a specific research scholar (optional)</label>
+    <select class="text-input" id="f_evStudent">
+      <option value="">Visible to all research scholars</option>
+      ${visible.map(s=>`<option value="${s.id}" ${ev.assignedStudentId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}
+    </select>
+    <label class="field-label">Link (optional)</label>
+    <input class="text-input" id="f_evLink" value="${escapeHtml(ev.link||'')}" placeholder="Event page, proposal document, or reference link">
+    <label class="field-label">Description (optional)</label>
+    <textarea class="text-input" id="f_evDesc" rows="3" placeholder="Details, instructions, or context">${escapeHtml(ev.description||'')}</textarea>
+  `;
+}
+function openEventModal(){
+  showModal('Events', eventFormFields(), submitEvent);
+}
+async function submitEvent(){
+  const title = document.getElementById('f_evTitle').value.trim();
+  const date = document.getElementById('f_evDate').value;
+  if(!title){ alert('Please add a title.'); return; }
+  state.events.push({
+    id: uid('ev'),
+    type: document.getElementById('f_evType').value,
+    title, date,
+    assignedStudentId: document.getElementById('f_evStudent').value || null,
+    link: document.getElementById('f_evLink').value.trim(),
+    description: document.getElementById('f_evDesc').value.trim(),
+    status: 'planned'
+  });
+  await saveCollection('events', state.events);
+  closeModal(); renderView();
+}
+function openEditEventModal(id){
+  const ev = state.events.find(x=>x.id===id);
+  showModal('Events', eventFormFields(ev), ()=>submitEditEvent(id));
+}
+async function submitEditEvent(id){
+  const ev = state.events.find(x=>x.id===id);
+  const title = document.getElementById('f_evTitle').value.trim();
+  const date = document.getElementById('f_evDate').value;
+  if(!title){ alert('Please add a title.'); return; }
+  ev.type = document.getElementById('f_evType').value;
+  ev.title = title;
+  ev.date = date;
+  ev.assignedStudentId = document.getElementById('f_evStudent').value || null;
+  ev.link = document.getElementById('f_evLink').value.trim();
+  ev.description = document.getElementById('f_evDesc').value.trim();
+  await saveCollection('events', state.events);
+  closeModal(); renderView();
+}
+async function setEventStatus(id, status){
+  const ev = state.events.find(x=>x.id===id);
+  ev.status = status;
+  await saveCollection('events', state.events);
+  renderView();
+}
+async function deleteEvent(id){
+  if(!confirm('Delete this event/task?')) return;
+  state.events = state.events.filter(x=>x.id!==id);
+  await saveCollection('events', state.events);
   renderView();
 }
 
@@ -4776,7 +4922,7 @@ function renderPaperReportHtml(data){
         `).join('')}
 
         <h3 class="report-section-title">Lab Work Linked to This Paper</h3>
-        ${data.fabrication.length===0 ? `<p class="report-empty">No sample prep or fabrication items linked to this paper.</p>` : `
+        ${data.fabrication.length===0 ? `<p class="report-empty">No Lab Work items linked to this paper.</p>` : `
           <table class="report-table">
             <thead><tr><th>Item</th><th>Stage</th><th>Started</th><th>Target completion</th></tr></thead>
             <tbody>${data.fabrication.map(it=>`<tr><td>${escapeHtml(it.itemName)}</td><td>${(FABRICATION_STAGES[it.stage]||{label:it.stage}).label}</td><td>${it.startDate?fmtDate(it.startDate):'—'}</td><td>${it.targetDate?fmtDate(it.targetDate):'—'}</td></tr>`).join('')}</tbody>
