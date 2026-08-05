@@ -141,14 +141,14 @@
   .switch-link:hover{ color:#fff; text-decoration:underline; }
 
   .layout{ display:flex; align-items:flex-start; }
-  .sidebar{ width:230px; flex-shrink:0; padding:20px 14px; position:sticky; top:57px; height:calc(100vh - 57px); overflow-y:auto; background:var(--surface); border-right:1px solid var(--border); }
-  .nav-group-label{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin:16px 10px 6px; }
-  .nav-group-label:first-child{ margin-top:2px; }
+  .sidebar{ width:212px; flex-shrink:0; padding:14px 10px; position:sticky; top:57px; align-self:flex-start; background:var(--surface); border-right:1px solid var(--border); }
+  .nav-group-label{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin:10px 8px 3px; }
+  .nav-group-label:first-child{ margin-top:0; }
   .nav-item{
-    display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:10px 12px; border-radius:7px;
-    border:none; background:none; font-size:14px; font-weight:500; color:var(--ink-soft); margin-bottom:2px;
+    display:flex; align-items:center; gap:9px; width:100%; text-align:left; padding:6px 9px; border-radius:6px;
+    border:none; background:none; font-size:13px; font-weight:500; color:var(--ink-soft); margin-bottom:1px;
   }
-  .nav-item .dot{ width:6px; height:6px; border-radius:50%; background:var(--border-strong); }
+  .nav-item .dot{ width:6px; height:6px; border-radius:50%; background:var(--border-strong); flex-shrink:0; }
   .nav-item.active{ background:var(--navy-wash); color:var(--navy-dark); font-weight:600; }
   .nav-item:hover:not(.active){ background:var(--neutral-wash); }
 
@@ -366,9 +366,6 @@
       <span style="font-size:10.5px; color:rgba(255,255,255,0.45); font-weight:600; letter-spacing:.04em; border:1px solid rgba(255,255,255,0.2); border-radius:4px; padding:1px 6px;">v1.0</span>
     </div>
     <div class="identity-pill">
-      <button class="switch-link" onclick="openSearchModal()" style="border:1px solid rgba(255,255,255,0.2); border-radius:20px; padding:5px 12px; display:flex; align-items:center; gap:6px;">
-        🔍 Search <span style="opacity:.55; font-size:10.5px;">Ctrl/⌘K</span>
-      </button>
       <span class="identity-badge" id="identityBadge"></span>
       <button class="switch-link" onclick="switchUser()">switch user</button>
     </div>
@@ -995,12 +992,12 @@ const NAV_GROUPS = [
     { key:'calendar', label:'Calendar & Planner' },
   ]},
   { label:'Planning', items: [
-    { key:'proposal', label:'Proposal & Work Plan' },
+    { key:'proposal', label:'Work Plan (Proposal)' },
     { key:'thesis', label:'Thesis Plan' },
   ]},
   { label:'Progress', items: [
     { key:'weekly', label:'Weekly Plan' },
-    { key:'fabrication', label:'Sample Prep & Fabrication' },
+    { key:'fabrication', label:'Lab Work' },
     { key:'samples', label:'Characterization' },
     { key:'papers', label:'Paper Pipeline' },
   ]},
@@ -1075,67 +1072,8 @@ function goToItem(type, id, studentId){
   }, 60);
 }
 
-/* ============================ GLOBAL SEARCH ============================ */
-function buildSearchIndex(){
-  const items = [];
-  scopedList(state.weekly).forEach(w=> items.push({ type:'weekly', id:w.id, studentId:w.studentId, title:`Weekly plan — week of ${fmtDate(w.weekStart)}`, category:'Weekly Plan' }));
-  scopedList(state.samples).forEach(s=> items.push({ type:'sample', id:s.id, studentId:s.studentId, title:s.sampleName, category:'Characterization' }));
-  scopedList(state.fabricationItems).forEach(it=> items.push({ type:'fabrication', id:it.id, studentId:it.studentId, title:it.itemName, category:'Sample Prep & Fabrication' }));
-  scopedList(state.papers).forEach(p=> items.push({ type:'paper', id:p.id, studentId:p.studentId, title:p.title, category:'Paper Pipeline' }));
-  scopedList(state.proposals).forEach(pr=> items.push({ type:'proposal', id:pr.id, studentId:pr.studentId, title:pr.title, category:'Proposal & Work Plan' }));
-  scopedList(state.thesisPlans).forEach(tp=> items.push({ type:'thesis', id:tp.id, studentId:tp.studentId, title:tp.title, category:'Thesis Plan' }));
-  scopedList(state.racReviews).forEach(r=> items.push({ type:'rac', id:r.id, studentId:r.studentId, title:r.title, category:'RAC Reviews' }));
-  scopedList(state.conferences).forEach(c=> items.push({ type:'conference', id:c.id, studentId:c.studentId, title:c.eventName, category:'Conferences' }));
-  scopedList(state.financialApps).forEach(f=> items.push({ type:'financial', id:f.id, studentId:f.studentId, title:f.title, category:'Visiting & Financial' }));
-  scopedList(state.courses).forEach(c=> items.push({ type:'course', id:c.id, studentId:c.studentId, title:c.title, category:'Learning & Courses' }));
-  scopedList(state.meetings).forEach(m=> items.push({ type:'meeting', id:m.id, studentId:m.studentId, title:m.title, category:'Meetings' }));
-  scopedList(state.instructions).forEach(ins=> items.push({ type:'instruction', id:ins.id, studentId:ins.studentId, title:(ins.text||'').slice(0,70), category:'Instructions' }));
-  return items;
-}
-function openSearchModal(){
-  if(!state.identity) return;
-  document.getElementById('modalRoot').innerHTML = `
-    <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
-      <div class="modal-box" style="max-width:560px;">
-        <div class="modal-head">
-          <h3>Search everything</h3>
-          <button class="modal-close" onclick="closeModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-          <input class="text-input" id="globalSearchInput" placeholder="Type to search titles across every section…" oninput="renderSearchResults()">
-          <div id="globalSearchResults" style="margin-top:10px; max-height:380px; overflow-y:auto;"></div>
-        </div>
-      </div>
-    </div>
-  `;
-  setTimeout(()=>{ document.getElementById('globalSearchInput')?.focus(); renderSearchResults(); }, 30);
-}
-function renderSearchResults(){
-  const input = document.getElementById('globalSearchInput');
-  if(!input) return;
-  const q = input.value.trim().toLowerCase();
-  const index = buildSearchIndex();
-  const results = q ? index.filter(it=> it.title.toLowerCase().includes(q)).slice(0,40) : index.slice(0,15);
-  const container = document.getElementById('globalSearchResults');
-  if(!container) return;
-  if(results.length===0){
-    container.innerHTML = `<div class="entry-meta" style="padding:14px 4px;">${q ? 'No matches for "'+escapeHtml(q)+'".' : 'Start typing to search across every section — or browse recent items below.'}</div>`;
-    return;
-  }
-  container.innerHTML = results.map(it=>`
-    <div class="task-link" style="display:flex; align-items:center; gap:10px; padding:10px 4px; border-top:1px solid var(--border);" onclick="closeModal(); goToItem('${it.type}','${it.id}','${it.studentId}');">
-      <div style="flex:1; min-width:0;">
-        <div style="font-weight:600; font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(it.title)}</div>
-        <div class="entry-meta">${escapeHtml(it.category)} · ${escapeHtml(studentName(it.studentId))}</div>
-      </div>
-    </div>
-  `).join('');
-}
 document.addEventListener('keydown', function(e){
-  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'){
-    e.preventDefault();
-    openSearchModal();
-  } else if(e.key === 'Escape'){
+  if(e.key === 'Escape'){
     const root = document.getElementById('modalRoot');
     if(root && root.innerHTML.trim()) closeModal();
   }
@@ -1300,7 +1238,7 @@ function pendingQueue(){
   scopedList(state.papers).filter(p=>!!p.pendingStage).forEach(p=>
     items.push({ type:'paper', id:p.id, studentId:p.studentId, title:`${p.title} → ${p.pendingStage}`, date:p.lastUpdate, category:'Paper Pipeline', color:'var(--stat-purple)' }));
   scopedList(state.proposals).filter(pr=>pr.status==='pending').forEach(pr=>
-    items.push({ type:'proposal', id:pr.id, studentId:pr.studentId, title:pr.title, date:pr.lastUpdate, category:'Proposal & Work Plan', color:'var(--stat-indigo)' }));
+    items.push({ type:'proposal', id:pr.id, studentId:pr.studentId, title:pr.title, date:pr.lastUpdate, category:'Work Plan (Proposal)', color:'var(--stat-indigo)' }));
   scopedList(state.thesisPlans).filter(tp=>tp.status==='pending').forEach(tp=>
     items.push({ type:'thesis', id:tp.id, studentId:tp.studentId, title:tp.title, date:tp.lastUpdate, category:'Thesis Plan', color:'var(--stat-purple)' }));
   scopedList(state.racReviews).filter(r=>r.status==='pending').forEach(r=>
@@ -1314,7 +1252,7 @@ function pendingQueue(){
   scopedList(state.meetings).filter(m=>m.status==='proposed').forEach(m=>
     items.push({ type:'meeting', id:m.id, studentId:m.studentId, title:m.title, date:m.plannedDate, category:'Meetings', color:'var(--stat-indigo)' }));
   scopedList(state.fabricationItems).filter(it=>it.approvalStatus==='pending').forEach(it=>
-    items.push({ type:'fabrication', id:it.id, studentId:it.studentId, title:it.itemName, date:it.startDate, category:'Sample Prep & Fabrication', color:'var(--stat-teal)' }));
+    items.push({ type:'fabrication', id:it.id, studentId:it.studentId, title:it.itemName, date:it.startDate, category:'Lab Work', color:'var(--stat-teal)' }));
   return items.sort((a,b)=> (a.date||'').localeCompare(b.date||''));
 }
 function changesRequestedQueue(){
@@ -1324,9 +1262,9 @@ function changesRequestedQueue(){
   scopedList(state.samples).filter(s=>s.approvalStatus==='changes_requested').forEach(s=>
     items.push({ type:'sample', id:s.id, studentId:s.studentId, title:s.sampleName, date:s.submittedDate, category:'Characterization', color:'var(--stat-cyan)', note:s.supervisorNote }));
   scopedList(state.fabricationItems).filter(it=>it.approvalStatus==='changes_requested').forEach(it=>
-    items.push({ type:'fabrication', id:it.id, studentId:it.studentId, title:it.itemName, date:it.startDate, category:'Sample Prep & Fabrication', color:'var(--stat-teal)', note:it.supervisorNote }));
+    items.push({ type:'fabrication', id:it.id, studentId:it.studentId, title:it.itemName, date:it.startDate, category:'Lab Work', color:'var(--stat-teal)', note:it.supervisorNote }));
   scopedList(state.proposals).filter(pr=>pr.status==='changes_requested').forEach(pr=>
-    items.push({ type:'proposal', id:pr.id, studentId:pr.studentId, title:pr.title, date:pr.lastUpdate, category:'Proposal & Work Plan', color:'var(--stat-indigo)', note:pr.supervisorNote }));
+    items.push({ type:'proposal', id:pr.id, studentId:pr.studentId, title:pr.title, date:pr.lastUpdate, category:'Work Plan (Proposal)', color:'var(--stat-indigo)', note:pr.supervisorNote }));
   scopedList(state.thesisPlans).filter(tp=>tp.status==='changes_requested').forEach(tp=>
     items.push({ type:'thesis', id:tp.id, studentId:tp.studentId, title:tp.title, date:tp.lastUpdate, category:'Thesis Plan', color:'var(--stat-purple)', note:tp.supervisorNote }));
   scopedList(state.racReviews).filter(r=>r.status==='changes_requested').forEach(r=>
@@ -2328,7 +2266,7 @@ function viewProposal(){
   return `
     <div class="view-header">
       <div>
-        <div class="view-title">Proposal &amp; Work Plan</div>
+        <div class="view-title">Work Plan (Proposal)</div>
         <div class="view-sub">Objectives, goals, and methodology for the research — approved by your supervisor.</div>
       </div>
       ${state.identity.role==='student' ? `<button class="action-btn" onclick="openProposalModal()">+ New proposal / work plan</button>` : ''}
@@ -3427,7 +3365,7 @@ function viewFabrication(){
   return `
     <div class="view-header">
       <div>
-        <div class="view-title">Sample Prep &amp; Device Fabrication</div>
+        <div class="view-title">Lab Work</div>
         <div class="view-sub">Preparation, fabrication, and testing status for samples and devices — mapped to the paper they support.</div>
       </div>
       <button class="action-btn" onclick="openFabricationModal()">+ Log item</button>
@@ -4837,7 +4775,7 @@ function renderPaperReportHtml(data){
           </div>
         `).join('')}
 
-        <h3 class="report-section-title">Sample Prep &amp; Fabrication Linked to This Paper</h3>
+        <h3 class="report-section-title">Lab Work Linked to This Paper</h3>
         ${data.fabrication.length===0 ? `<p class="report-empty">No sample prep or fabrication items linked to this paper.</p>` : `
           <table class="report-table">
             <thead><tr><th>Item</th><th>Stage</th><th>Started</th><th>Target completion</th></tr></thead>
@@ -4976,7 +4914,7 @@ function downloadPaperReportText(data){
   if(data.weekly.length===0) out += `(no weekly plans linked to this paper yet)\n`;
   data.weekly.forEach(w=>{ out += `[Week of ${fmtDate(w.weekStart)}]\n${w.workDone}\n\n`; });
 
-  out += `\n-- Sample Prep & Fabrication Linked to This Paper --\n`;
+  out += `\n-- Lab Work Linked to This Paper --\n`;
   if(data.fabrication.length===0) out += `(none linked)\n`;
   data.fabrication.forEach(it=>{ out += `${it.itemName} | Stage: ${(FABRICATION_STAGES[it.stage]||{label:it.stage}).label} | Started: ${it.startDate?fmtDate(it.startDate):'—'} | Target: ${it.targetDate?fmtDate(it.targetDate):'—'}\n`; });
 
