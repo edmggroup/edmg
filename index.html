@@ -796,7 +796,7 @@ function renderLogin(){
       <label class="field-label">I am logging in as</label>
       <div class="role-row">
         <button class="role-btn ${role==='supervisor'?'active':''}" onclick="chooseRole('supervisor')">Supervisor <small>Review reports, track the group</small></button>
-        <button class="role-btn ${role==='cosupervisor'?'active':''}" onclick="chooseRole('cosupervisor')">Mentor / Co-Supervisor / Advisor <small>Review your assigned scholars</small></button>
+        <button class="role-btn ${role==='cosupervisor'?'active':''}" onclick="chooseRole('cosupervisor')">Mentor / Advisor<br>Co-Supervisor <small>Review your assigned scholars</small></button>
         <button class="role-btn ${role==='student'?'active':''}" onclick="chooseRole('student')">Research Scholar <small>Log progress, samples, papers</small></button>
       </div>
       ${role==='supervisor' ? `
