@@ -7,7 +7,7 @@
 <meta name="description" content="Weekly progress, characterization tracking, and paper pipeline management for research groups.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#F4F5F7;
@@ -47,12 +47,14 @@
   html,body{margin:0;padding:0;}
   body{
     font-family:'Inter', sans-serif;
+    font-size:15.5px;
     color:var(--ink);
     background:var(--bg);
     min-height:100vh;
     -webkit-font-smoothing:antialiased;
   }
-  h1,h2,h3{ font-family:'Inter', sans-serif; letter-spacing:-0.01em; }
+  h1,h2,h3{ font-family:'Source Serif 4', serif; letter-spacing:-0.005em; }
+  .heading{ font-family:'Source Serif 4', serif; letter-spacing:-0.005em; }
   .mono{ font-family:'IBM Plex Mono', monospace; }
   button{ font-family:'Inter', sans-serif; cursor:pointer; }
   input,select,textarea{ font-family:'Inter', sans-serif; }
@@ -68,7 +70,7 @@
   .login-hero:before{ content:""; position:absolute; width:340px; height:340px; border-radius:50%; background:rgba(255,255,255,0.05); top:-120px; right:-120px; }
   .login-hero:after{ content:""; position:absolute; width:220px; height:220px; border-radius:50%; background:rgba(255,255,255,0.04); bottom:-90px; left:-70px; }
   .login-hero-mark{ width:44px; height:44px; border-radius:10px; background:#fff; color:var(--navy-dark); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; margin-bottom:24px; position:relative; z-index:1; }
-  .login-hero-title{ font-size:27px; font-weight:700; line-height:1.28; letter-spacing:-0.015em; margin-bottom:14px; position:relative; z-index:1; }
+  .login-hero-title{ font-family:'Source Serif 4', serif; font-size:31px; font-weight:600; line-height:1.25; letter-spacing:-0.01em; margin-bottom:14px; position:relative; z-index:1; }
   .login-hero-tag{ font-size:14px; line-height:1.65; color:rgba(255,255,255,0.72); max-width:360px; margin-bottom:28px; position:relative; z-index:1; }
   .login-hero-list{ list-style:none; padding:0; margin:0 0 32px; display:flex; flex-direction:column; gap:11px; position:relative; z-index:1; }
   .login-hero-list li{ font-size:13.5px; color:rgba(255,255,255,0.92); padding-left:24px; position:relative; }
@@ -87,8 +89,8 @@
   }
   .login-mark{ width:38px; height:38px; border-radius:8px; background:var(--navy); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; letter-spacing:0.02em; margin-bottom:18px; }
   .login-eyebrow{ font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; }
-  .login-title{ font-size:24px; font-weight:700; margin:6px 0 6px; letter-spacing:-0.015em; }
-  .login-sub{ color:var(--ink-soft); font-size:14px; margin-bottom:28px; line-height:1.55; }
+  .login-title{ font-family:'Source Serif 4', serif; font-size:27px; font-weight:600; margin:6px 0 6px; letter-spacing:-0.01em; }
+  .login-sub{ color:var(--ink-soft); font-size:15px; margin-bottom:28px; line-height:1.6; }
   .role-row{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
   .role-row .role-btn{ flex:1 1 140px; }
   .role-btn{
@@ -99,7 +101,7 @@
   .role-btn.active{ border-color:var(--navy); background:var(--navy-wash); color:var(--navy-dark); box-shadow:inset 0 0 0 1px var(--navy); }
   .field-label{ font-size:12px; font-weight:600; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin:16px 0 6px; display:block; }
   .text-input, select.text-input, textarea.text-input{
-    width:100%; padding:10px 12px; border:1px solid var(--border-strong); border-radius:7px; font-size:14px; color:var(--ink); background:var(--surface);
+    width:100%; padding:11px 13px; border:1px solid var(--border-strong); border-radius:7px; font-size:14.5px; color:var(--ink); background:var(--surface);
   }
   .text-input:focus, select:focus, textarea:focus{ outline:2px solid var(--navy); outline-offset:1px; border-color:var(--navy); }
   .student-pick-list{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
@@ -120,9 +122,9 @@
   }
   .brand{ display:flex; align-items:center; gap:11px; }
   .brand-mark{ width:30px; height:30px; border-radius:7px; background:#fff; color:var(--navy-dark); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; }
-  .brand-name{ font-weight:600; font-size:15px; letter-spacing:-0.005em; color:#fff; }
+  .brand-name{ font-family:'Source Serif 4', serif; font-weight:600; font-size:17px; letter-spacing:-0.005em; color:#fff; }
   .identity-pill{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:flex-end; }
-  .identity-badge{ font-size:13px; padding:6px 13px; border-radius:20px; background:rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(255,255,255,0.14); }
+  .identity-badge{ font-size:13.5px; padding:6px 13px; border-radius:20px; background:rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(255,255,255,0.14); }
   .identity-badge b{ font-weight:600; }
   .switch-link{ font-size:12.5px; color:rgba(255,255,255,0.65); background:none; border:none; text-decoration:none; padding:4px; font-weight:500; }
   .switch-link:hover{ color:#fff; text-decoration:underline; }
@@ -133,7 +135,7 @@
   .nav-group-label:first-child{ margin-top:2px; }
   .nav-item{
     display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:10px 12px; border-radius:7px;
-    border:none; background:none; font-size:13.5px; font-weight:500; color:var(--ink-soft); margin-bottom:2px;
+    border:none; background:none; font-size:14px; font-weight:500; color:var(--ink-soft); margin-bottom:2px;
   }
   .nav-item .dot{ width:6px; height:6px; border-radius:50%; background:var(--border-strong); }
   .nav-item.active{ background:var(--navy-wash); color:var(--navy-dark); font-weight:600; }
@@ -141,10 +143,10 @@
 
   main#main{ flex:1; padding:28px 34px 64px; min-width:0; }
   .view-header{ display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:22px; padding-bottom:18px; border-bottom:1px solid var(--border); }
-  .view-title{ font-size:20px; font-weight:700; letter-spacing:-0.015em; }
-  .view-sub{ color:var(--ink-soft); font-size:13.5px; margin-top:4px; }
+  .view-title{ font-family:'Source Serif 4', serif; font-size:24px; font-weight:600; letter-spacing:-0.01em; }
+  .view-sub{ color:var(--ink-soft); font-size:14.5px; margin-top:4px; }
   .action-btn{
-    padding:9px 16px; background:var(--navy); color:#fff; border:none; border-radius:7px; font-weight:600; font-size:13.5px;
+    padding:10px 17px; background:var(--navy); color:#fff; border:none; border-radius:7px; font-weight:600; font-size:14px;
     display:inline-flex; align-items:center; gap:6px; transition:background .12s;
   }
   .action-btn:hover{ background:var(--navy-dark); }
@@ -160,9 +162,9 @@
   .stat-card{ background:var(--surface); border:1px solid var(--border); border-top:3px solid var(--border-strong); border-radius:var(--radius); padding:17px 19px; box-shadow:var(--shadow-sm); transition:box-shadow .15s, transform .15s; }
   .stat-card:hover{ box-shadow:var(--shadow-md); transform:translateY(-2px); }
   .stat-card.compact{ padding:14px 16px; }
-  .stat-card.compact .stat-num{ font-size:23px; }
+  .stat-card.compact .stat-num{ font-size:25px; }
   .stat-card.compact .stat-label{ font-size:11px; margin-top:2px; }
-  .stat-num{ font-size:27px; font-weight:700; letter-spacing:-0.02em; color:var(--ink); }
+  .stat-num{ font-size:30px; font-weight:700; letter-spacing:-0.02em; color:var(--ink); }
   .stat-label{ font-size:12px; color:var(--ink-soft); margin-top:3px; font-weight:500; display:flex; align-items:center; gap:6px; }
   .stat-label .dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; box-shadow:0 0 0 3px rgba(0,0,0,0.04); }
   /* Category accents — tinted background + colored number, applied first so urgency (warn/ok) can override below */
@@ -186,7 +188,7 @@
   .stat-card.ok .stat-num{ color:var(--success); }
   .stat-card.ok .dot{ background:var(--success); }
 
-  .panel-title{ font-size:12.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); font-weight:600; margin:0 0 8px; display:flex; align-items:center; gap:7px; }
+  .panel-title{ font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); font-weight:600; margin:0 0 8px; display:flex; align-items:center; gap:7px; }
   .panel-title .dot{ width:7px; height:7px; border-radius:50%; }
   .two-col-panels{ display:grid; grid-template-columns:1.3fr 1fr; gap:18px; align-items:start; }
   .compact-card{ padding:8px 16px; margin-bottom:0; }
@@ -264,12 +266,12 @@
   .entry-card.cat-neutral{ border-left-color:var(--ink-faint); }
   .entry-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--border); }
   .entry-idx{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-faint); letter-spacing:.03em; text-transform:uppercase; }
-  .entry-title{ font-size:15px; font-weight:600; margin-top:3px; color:var(--ink); }
+  .entry-title{ font-family:'Source Serif 4', serif; font-size:17px; font-weight:600; margin-top:3px; color:var(--ink); }
   .entry-title.linkable, .task-link{ cursor:pointer; }
   .entry-title.linkable:hover, .task-link:hover{ color:var(--navy); text-decoration:underline; }
   @keyframes flashHighlight{ 0%{ box-shadow:0 0 0 3px var(--navy); } 70%{ box-shadow:0 0 0 3px var(--navy); } 100%{ box-shadow:var(--shadow-sm); } }
   .flash-highlight{ animation: flashHighlight 1.7s ease; }
-  .entry-meta{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
+  .entry-meta{ font-size:13px; color:var(--ink-soft); margin-top:2px; }
   .stamp{
     font-size:11px; font-weight:600; letter-spacing:.02em;
     padding:5px 11px; border-radius:20px; white-space:nowrap;
@@ -280,10 +282,10 @@
   .stamp.neutral{ color:var(--ink-soft); background:var(--neutral-wash); }
 
   .entry-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:4px; }
-  .entry-block{ font-size:13.5px; line-height:1.6; color:var(--ink); }
+  .entry-block{ font-size:14.5px; line-height:1.65; color:var(--ink); }
   .entry-block .lbl{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-faint); display:block; margin-bottom:4px; }
   .entry-actions{ display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
-  .small-btn{ padding:7px 13px; font-size:12.5px; font-weight:600; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface); color:var(--ink); }
+  .small-btn{ padding:7px 14px; font-size:13px; font-weight:600; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface); color:var(--ink); }
   .small-btn:hover{ border-color:var(--navy); color:var(--navy-dark); background:var(--navy-wash); }
   .small-btn.danger:hover{ border-color:var(--danger); color:var(--danger); background:var(--danger-wash); }
   .comment-box{ margin-top:14px; background:var(--navy-wash); border-radius:7px; padding:14px 16px; }
@@ -405,7 +407,7 @@ const state = {
   reportData: null
 };
 
-const MEETING_TYPES = ['Weekly Review','Monthly Presentation','Topic Discussion','Other'];
+const MEETING_TYPES = ['Weekly Review','Monthly Progress Presentation','Topic Discussion','Other'];
 const CONFERENCE_TYPES = ['Conference','Workshop','Symposium','Seminar','Summer School','Other'];
 const CONFERENCE_ROLES = ['Attendee','Poster Presentation','Oral Presentation','Invited Talk'];
 const FINANCIAL_TYPES = ['Visiting Position','Travel Grant','Fellowship','Scholarship','Conference Funding','Other'];
@@ -522,35 +524,64 @@ async function init(){
     renderSetupNeeded();
     return;
   }
-  renderLoginLoading();
+
+  // Speed: show cached data (from the last successful load on this device)
+  // instantly if we have it, while a fresh network fetch happens in the
+  // background. This makes repeat visits feel instant instead of waiting
+  // on a network round-trip before anything appears. If there's no cache
+  // yet (first visit ever), we just show the normal loading screen.
+  const cached = loadLocalCache();
+  if(cached){
+    applyDataValues(cached);
+    renderLogin();
+  } else {
+    renderLoginLoading();
+  }
+
   try{
     const values = await apiGetAll(ALL_DATA_KEYS);
-    const arr = (key) => { try{ return values[key] ? JSON.parse(values[key]) : []; }catch(e){ return []; } };
-    state.students = arr('students');
-    state.weekly = arr('weekly-reports');
-    state.samples = arr('samples');
-    state.papers = arr('papers');
-    state.instructions = arr('instructions');
-    state.meetings = arr('meetings');
-    state.coSupervisors = arr('co-supervisors');
-    state.readings = arr('readings');
-    state.proposals = arr('proposals');
-    state.conferences = arr('conferences');
-    state.plannerTasks = arr('planner-tasks');
-    state.thesisPlans = arr('thesis-plans');
-    state.racReviews = arr('rac-reviews');
-    state.financialApps = arr('financial-applications');
-    state.courses = arr('courses');
-    state.fabricationItems = arr('fabrication-items');
-    let supervisorProfile = {};
-    try{ supervisorProfile = values['supervisor-pin'] ? JSON.parse(values['supervisor-pin']) : {}; }catch(e){ supervisorProfile = {}; }
-    state.supervisorPinHash = supervisorProfile.hash || null;
-    state.supervisorEmail = supervisorProfile.email || null;
-    renderLogin();
+    applyDataValues(values);
+    saveLocalCache(values);
+    // Only re-render the login screen if we're still on it — never clobber
+    // an in-progress app session if this background refresh lands late.
+    if(!state.identity) renderLogin();
   }catch(e){
     console.error('Failed to load from backend', e);
-    renderBackendError();
+    if(!cached) renderBackendError(); // if we had cached data on screen already, a transient network hiccup shouldn't rip it away
   }
+}
+function applyDataValues(values){
+  const arr = (key) => { try{ return values[key] ? JSON.parse(values[key]) : []; }catch(e){ return []; } };
+  state.students = arr('students');
+  state.weekly = arr('weekly-reports');
+  state.samples = arr('samples');
+  state.papers = arr('papers');
+  state.instructions = arr('instructions');
+  state.meetings = arr('meetings');
+  state.coSupervisors = arr('co-supervisors');
+  state.readings = arr('readings');
+  state.proposals = arr('proposals');
+  state.conferences = arr('conferences');
+  state.plannerTasks = arr('planner-tasks');
+  state.thesisPlans = arr('thesis-plans');
+  state.racReviews = arr('rac-reviews');
+  state.financialApps = arr('financial-applications');
+  state.courses = arr('courses');
+  state.fabricationItems = arr('fabrication-items');
+  let supervisorProfile = {};
+  try{ supervisorProfile = values['supervisor-pin'] ? JSON.parse(values['supervisor-pin']) : {}; }catch(e){ supervisorProfile = {}; }
+  state.supervisorPinHash = supervisorProfile.hash || null;
+  state.supervisorEmail = supervisorProfile.email || null;
+}
+const LOCAL_CACHE_KEY = 'rgms-data-cache-v1';
+function loadLocalCache(){
+  try{
+    const raw = localStorage.getItem(LOCAL_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; } // private browsing, storage disabled, etc. — just skip the cache
+}
+function saveLocalCache(values){
+  try{ localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(values)); }catch(e){ /* quota or storage unavailable — fine, cache is a bonus not a requirement */ }
 }
 function loginShell(cardHtml){
   return `
@@ -923,7 +954,7 @@ const NAV_GROUPS = [
     { key:'thesis', label:'Thesis Plan' },
   ]},
   { label:'Progress', items: [
-    { key:'weekly', label:'Weekly Progress' },
+    { key:'weekly', label:'Weekly Plan' },
     { key:'fabrication', label:'Sample Prep & Fabrication' },
     { key:'samples', label:'Characterization' },
     { key:'papers', label:'Paper Pipeline' },
@@ -1001,7 +1032,7 @@ function goToItem(type, id, studentId){
 /* ============================ GLOBAL SEARCH ============================ */
 function buildSearchIndex(){
   const items = [];
-  scopedList(state.weekly).forEach(w=> items.push({ type:'weekly', id:w.id, studentId:w.studentId, title:`Weekly report — week of ${fmtDate(w.weekStart)}`, category:'Weekly Progress' }));
+  scopedList(state.weekly).forEach(w=> items.push({ type:'weekly', id:w.id, studentId:w.studentId, title:`Weekly plan — week of ${fmtDate(w.weekStart)}`, category:'Weekly Plan' }));
   scopedList(state.samples).forEach(s=> items.push({ type:'sample', id:s.id, studentId:s.studentId, title:s.sampleName, category:'Characterization' }));
   scopedList(state.fabricationItems).forEach(it=> items.push({ type:'fabrication', id:it.id, studentId:it.studentId, title:it.itemName, category:'Sample Prep & Fabrication' }));
   scopedList(state.papers).forEach(p=> items.push({ type:'paper', id:p.id, studentId:p.studentId, title:p.title, category:'Paper Pipeline' }));
@@ -1066,6 +1097,13 @@ document.addEventListener('keydown', function(e){
 
 function isSupervisorLike(){
   return state.identity.role === 'supervisor' || state.identity.role === 'cosupervisor';
+}
+function isTrueSupervisor(){
+  // Deleting a logged record is restricted to the primary supervisor only —
+  // not mentors/co-supervisors, and not the research scholar who owns it.
+  // Everyone else can still edit (subject to the normal lock rules); only
+  // the supervisor can remove an entry from the record entirely.
+  return state.identity.role === 'supervisor';
 }
 function myCoSupervisorRecord(){
   return state.coSupervisors.find(c=>c.id===state.identity.id) || null;
@@ -1136,19 +1174,28 @@ function viewInstructions(){
   `;
 }
 function instructionCard(ins, i, total){
+  const overdue = ins.dueDate && !ins.done && ins.dueDate < todayStr();
   return `
     <div class="entry-card cat-navy" id="item-instruction-${ins.id}">
       <div class="entry-top">
         <div>
           <div class="entry-idx">I${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(ins.studentId))}</div>
           <div class="entry-title">${fmtDate(ins.date)}</div>
+          ${ins.dueDate ? `<div class="entry-meta">Due: ${fmtDate(ins.dueDate)}</div>` : ''}
         </div>
-        <span class="stamp neutral">Logged by ${escapeHtml(ins.addedByName)}</span>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+          <span class="stamp neutral">Logged by ${escapeHtml(ins.addedByName)}</span>
+          <span class="stamp ${ins.done?'good':'warn'}">${ins.done ? 'Done' : 'Open'}</span>
+          ${overdue ? `<span class="stamp bad">Overdue</span>` : ''}
+        </div>
       </div>
       <div class="entry-block">${nl2br(ins.text)}</div>
-      ${isSupervisorLike() ? `
-        <div class="entry-actions"><button class="small-btn danger" onclick="deleteInstruction('${ins.id}')">Delete</button></div>
-      ` : ''}
+      <div class="entry-actions">
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--ink-soft);">
+          <input type="checkbox" ${ins.done?'checked':''} onchange="toggleInstructionDone('${ins.id}')"> Mark as done
+        </label>
+        ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteInstruction('${ins.id}')">Delete</button>` : ''}
+      </div>
     </div>
   `;
 }
@@ -1161,8 +1208,14 @@ function openInstructionModal(){
     <select class="text-input" id="f_insStudent">
       ${visible.map(s=>`<option value="${s.id}" ${s.id===targetId?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}
     </select>
-    <label class="field-label">Date</label>
-    <input type="date" class="text-input" id="f_insDate" value="${todayStr()}">
+    <div class="two-col">
+      <div><label class="field-label">Date</label>
+        <input type="date" class="text-input" id="f_insDate" value="${todayStr()}">
+      </div>
+      <div><label class="field-label">Due date (optional)</label>
+        <input type="date" class="text-input" id="f_insDueDate">
+      </div>
+    </div>
     <label class="field-label">Instruction</label>
     <textarea class="text-input" id="f_insText" rows="4" placeholder="e.g. Repeat the XRD scan at a slower step rate before submitting for Rietveld refinement."></textarea>
   `, submitInstruction);
@@ -1170,11 +1223,19 @@ function openInstructionModal(){
 async function submitInstruction(){
   const studentId = document.getElementById('f_insStudent').value;
   const date = document.getElementById('f_insDate').value;
+  const dueDate = document.getElementById('f_insDueDate').value;
   const text = document.getElementById('f_insText').value.trim();
-  if(!studentId || !date || !text){ alert('Please fill in the student, date, and instruction.'); return; }
-  state.instructions.push({ id: uid('ins'), studentId, date, text, addedByName: state.identity.name });
+  if(!studentId || !date || !text){ alert('Please fill in the research scholar, date, and instruction.'); return; }
+  state.instructions.push({ id: uid('ins'), studentId, date, dueDate, text, done:false, addedByName: state.identity.name });
   await saveCollection('instructions', state.instructions);
   closeModal(); renderView();
+}
+async function toggleInstructionDone(id){
+  const ins = state.instructions.find(x=>x.id===id);
+  if(!ins) return;
+  ins.done = !ins.done;
+  await saveCollection('instructions', state.instructions);
+  renderView();
 }
 async function deleteInstruction(id){
   if(!confirm('Delete this instruction?')) return;
@@ -1187,7 +1248,7 @@ async function deleteInstruction(id){
 function pendingQueue(){
   const items = [];
   scopedList(state.weekly).filter(w=>w.status==='pending').forEach(w=>
-    items.push({ type:'weekly', id:w.id, studentId:w.studentId, title:`Weekly report — week of ${fmtDate(w.weekStart)}`, date:w.weekStart, category:'Weekly Progress', color:'var(--stat-blue)' }));
+    items.push({ type:'weekly', id:w.id, studentId:w.studentId, title:`Weekly plan — week of ${fmtDate(w.weekStart)}`, date:w.weekStart, category:'Weekly Plan', color:'var(--stat-blue)' }));
   scopedList(state.samples).filter(s=>s.approvalStatus==='pending').forEach(s=>
     items.push({ type:'sample', id:s.id, studentId:s.studentId, title:s.sampleName, date:s.submittedDate, category:'Characterization', color:'var(--stat-cyan)' }));
   scopedList(state.papers).filter(p=>!!p.pendingStage).forEach(p=>
@@ -1286,7 +1347,7 @@ function viewOverview(){
   };
 
   const feed = [
-    ...weekly.map(w=>({ type:'Weekly', color:'var(--stat-blue)', date:w.weekStart, text:`<b>${escapeHtml(studentName(w.studentId))}</b> logged progress — <span class="task-link" onclick="goToItem('weekly','${w.id}','${w.studentId}')">week of ${fmtDate(w.weekStart)}</span>` , sortDate:w.weekStart})),
+    ...weekly.map(w=>({ type:'Weekly', color:'var(--stat-blue)', date:w.weekStart, text:`<b>${escapeHtml(studentName(w.studentId))}</b> logged a plan — <span class="task-link" onclick="goToItem('weekly','${w.id}','${w.studentId}')">week of ${fmtDate(w.weekStart)}</span>` , sortDate:w.weekStart})),
     ...samples.map(s=>({ type:'Sample', color:'var(--stat-cyan)', date:s.submittedDate, text:`<b>${escapeHtml(studentName(s.studentId))}</b> submitted <span class="task-link" onclick="goToItem('sample','${s.id}','${s.studentId}')">${escapeHtml(s.sampleName)}</span> (${escapeHtml(s.technique)})${s.resultsReceivedDate? ' — results in':''}`, sortDate: s.resultsReceivedDate || s.submittedDate})),
     ...papers.map(p=>({ type:'Paper', color:'var(--stat-purple)', date:p.lastUpdate, text:`<b>${escapeHtml(studentName(p.studentId))}</b> — <span class="task-link" onclick="goToItem('paper','${p.id}','${p.studentId}')">"${escapeHtml(p.title)}"</span> is <b>${escapeHtml(p.stage)}</b>${p.pendingStage ? ` (proposed: ${escapeHtml(p.pendingStage)})` : ''}`, sortDate:p.lastUpdate })),
     ...meetings.map(m=>({ type:'Meeting', color:'var(--stat-indigo)', date:m.lastUpdate, text:`<b>${escapeHtml(studentName(m.studentId))}</b> — ${escapeHtml(m.type)}: <span class="task-link" onclick="goToItem('meeting','${m.id}','${m.studentId}')">"${escapeHtml(m.title)}"</span> (${m.status})`, sortDate:m.lastUpdate }))
@@ -2165,7 +2226,7 @@ function proposalCard(pr, i, total){
   const canManage = isSupervisorLike();
   const locked = pr.status === 'approved' && isOwner;
   const canEdit = canManage || (isOwner && !locked);
-  const canDelete = canEdit;
+  const canDelete = isTrueSupervisor();
   const st = proposalStatusMap()[pr.status] || proposalStatusMap().pending;
   const goals = pr.goals || [];
   const doneCount = goals.filter(g=>g.done).length;
@@ -2196,7 +2257,7 @@ function proposalCard(pr, i, total){
       <div class="entry-actions">
         ${isSupervisorLike() ? `<button class="small-btn" onclick="openProposalReviewBox('${pr.id}')">Review</button>` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openEditProposalModal('${pr.id}')">Edit</button>` : ''}
-        ${canDelete ? `<button class="small-btn danger" onclick="deleteProposal('${pr.id}')">Delete</button>` : ''}
+        ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteProposal('${pr.id}')">Delete</button>` : ''}
       </div>
       <div id="proposalReviewSlot-${pr.id}"></div>
     </div>
@@ -2429,11 +2490,14 @@ function thesisCard(tp, i, total){
               const linkedPaper = c.linkedPaperId ? state.papers.find(p=>p.id===c.linkedPaperId) : null;
               const chStatusMap = { not_started:{label:'Not started',cls:'neutral'}, in_progress:{label:'In progress',cls:'warn'}, done:{label:'Done',cls:'good'} };
               const chSt = chStatusMap[c.status] || chStatusMap.not_started;
+              const chOverdue = c.targetDate && c.status!=='done' && c.targetDate < todayStr();
               return `
                 <div style="border:1px solid var(--border); border-radius:7px; padding:8px 12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                   <span style="flex:1; min-width:140px; font-size:13.5px;">${escapeHtml(c.title)}</span>
                   ${linkedPaper ? `<span class="entry-meta">→ ${escapeHtml(linkedPaper.title)} (${escapeHtml(linkedPaper.stage)})</span>` : `<span class="entry-meta">No paper linked</span>`}
+                  ${c.targetDate ? `<span class="entry-meta mono">Target: ${fmtDate(c.targetDate)}</span>` : ''}
                   <span class="stamp ${chSt.cls}" style="padding:2px 8px; font-size:10px;">${chSt.label}</span>
+                  ${chOverdue ? `<span class="stamp bad" style="padding:2px 8px; font-size:10px;">Overdue</span>` : ''}
                   ${canEdit ? `<button class="small-btn" style="padding:1px 7px; font-size:11px;" onclick="deleteThesisChapter('${tp.id}','${c.id}')">Remove</button>` : ''}
                 </div>
               `;
@@ -2448,7 +2512,7 @@ function thesisCard(tp, i, total){
       <div class="entry-actions">
         ${isSupervisorLike() ? `<button class="small-btn" onclick="openThesisReviewBox('${tp.id}')">Review</button>` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openEditThesisModal('${tp.id}')">Edit</button>` : ''}
-        ${canEdit ? `<button class="small-btn danger" onclick="deleteThesis('${tp.id}')">Delete</button>` : ''}
+        ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteThesis('${tp.id}')">Delete</button>` : ''}
       </div>
       <div id="thesisReviewSlot-${tp.id}"></div>
     </div>
@@ -2522,6 +2586,8 @@ function openAddChapterModal(thId){
       <option value="in_progress">In progress</option>
       <option value="done">Done</option>
     </select>
+    <label class="field-label">Target completion date (optional)</label>
+    <input type="date" class="text-input" id="f_chTargetDate">
   `, ()=>submitAddChapter(thId));
 }
 async function submitAddChapter(thId){
@@ -2532,7 +2598,8 @@ async function submitAddChapter(thId){
   tp.chapters.push({
     id: uid('ch'), title,
     linkedPaperId: document.getElementById('f_chPaper').value || null,
-    status: document.getElementById('f_chStatus').value
+    status: document.getElementById('f_chStatus').value,
+    targetDate: document.getElementById('f_chTargetDate').value
   });
   tp.lastUpdate = todayStr();
   await saveCollection('thesis-plans', state.thesisPlans);
@@ -2630,7 +2697,7 @@ function racCard(r, i, total){
       <div class="entry-actions">
         ${isSupervisorLike() ? `<button class="small-btn" onclick="openRacReviewBox('${r.id}')">Review</button>` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openEditRacModal('${r.id}')">Edit</button>` : ''}
-        ${canEdit ? `<button class="small-btn danger" onclick="deleteRac('${r.id}')">Delete</button>` : ''}
+        ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteRac('${r.id}')">Delete</button>` : ''}
       </div>
       <div id="racReviewSlot-${r.id}"></div>
     </div>
@@ -2830,7 +2897,7 @@ function financialCard(f, i, total){
         ${canEdit ? `<button class="small-btn" onclick="openEditFinancialModal('${f.id}')">Edit application</button>` : ''}
         ${canRecordOutcome ? `<button class="small-btn" onclick="openFinancialOutcomeModal('${f.id}')">Record outcome</button>` : ''}
         ${isSupervisorLike() ? `<button class="small-btn" onclick="openFinancialReviewBox('${f.id}')">Review</button>` : ''}
-        ${canEdit ? `<button class="small-btn danger" onclick="deleteFinancial('${f.id}')">Delete</button>` : ''}
+        ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteFinancial('${f.id}')">Delete</button>` : ''}
       </div>
       <div id="financialReviewSlot-${f.id}"></div>
     </div>
@@ -3016,7 +3083,7 @@ function courseCard(c, i, total){
       <div class="entry-actions">
         ${isSupervisorLike() ? `<button class="small-btn" onclick="openCourseReviewBox('${c.id}')">Review</button>` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openEditCourseModal('${c.id}')">Edit</button>` : ''}
-        ${canEdit ? `<button class="small-btn danger" onclick="deleteCourse('${c.id}')">Delete</button>` : ''}
+        ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteCourse('${c.id}')">Delete</button>` : ''}
       </div>
       <div id="courseReviewSlot-${c.id}"></div>
     </div>
@@ -3165,6 +3232,9 @@ function fabricationCard(it, i, total){
   const st = fabricationApprovalMap()[it.approvalStatus] || fabricationApprovalMap().pending;
   const stg = FABRICATION_STAGES[it.stage] || FABRICATION_STAGES.prep;
   const linkedPaper = it.linkedPaperId ? state.papers.find(p=>p.id===it.linkedPaperId) : null;
+  const overdue = it.targetDate && it.stage!=='completed' && it.targetDate < todayStr();
+  const steps = it.roadmap || [];
+  const stepsDone = steps.filter(s=>s.done).length;
   return `
     <div class="entry-card cat-teal" id="item-fabrication-${it.id}">
       <div class="entry-top">
@@ -3178,19 +3248,36 @@ function fabricationCard(it, i, total){
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
           <span class="stamp ${st.cls}">${st.label}</span>
           <span class="stamp ${stg.cls}">${stg.label}</span>
+          ${overdue ? `<span class="stamp bad">Overdue</span>` : ''}
         </div>
       </div>
       <div class="entry-grid">
         <div class="entry-block"><span class="lbl">Started</span>${it.startDate ? fmtDate(it.startDate) : '—'}</div>
+        <div class="entry-block"><span class="lbl">Target completion</span>${it.targetDate ? fmtDate(it.targetDate) : 'not set'}</div>
         ${it.link ? `<div class="entry-block"><span class="lbl">Data / photos</span><a href="${escapeHtml(it.link)}" target="_blank" rel="noopener">Open ↗</a></div>` : ''}
         ${it.notes ? `<div class="entry-block" style="grid-column:1/-1;"><span class="lbl">Notes</span>${nl2br(it.notes)}</div>` : ''}
+      </div>
+      <div class="entry-block" style="margin-top:10px;">
+        <span class="lbl">Roadmap${steps.length>0 ? ` (${stepsDone}/${steps.length} complete)` : ''}</span>
+        ${steps.length===0 ? `<span class="entry-meta">No steps added yet.</span>` : `
+          <div style="display:flex; flex-direction:column; gap:5px; margin-top:6px;">
+            ${steps.map(s=>`
+              <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; padding:5px 0; border-top:1px solid var(--border);">
+                <input type="checkbox" ${s.done?'checked':''} ${canManage||isOwner?'':'disabled'} onchange="toggleFabricationStep('${it.id}','${s.id}')">
+                <span style="flex:1; ${s.done?'text-decoration:line-through; color:var(--ink-faint);':''}">${escapeHtml(s.text)}</span>
+                ${canEdit ? `<button class="small-btn" style="padding:1px 7px; font-size:11px;" onclick="deleteFabricationStep('${it.id}','${s.id}')">Remove</button>` : ''}
+              </label>
+            `).join('')}
+          </div>
+        `}
+        ${canEdit ? `<div class="entry-actions" style="margin-top:8px;"><button class="small-btn" onclick="openAddFabricationStepModal('${it.id}')">+ Add step</button></div>` : ''}
       </div>
       ${it.supervisorNote ? `<div class="comment-box"><span class="lbl">Supervisor note</span><div class="comment-existing">${nl2br(it.supervisorNote)}</div></div>` : ''}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${isSupervisorLike() ? `<button class="small-btn" onclick="openFabricationReviewBox('${it.id}')">Review</button>` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openEditFabricationModal('${it.id}')">Edit</button>` : ''}
-        ${canEdit ? `<button class="small-btn danger" onclick="deleteFabrication('${it.id}')">Delete</button>` : ''}
+        ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteFabrication('${it.id}')">Delete</button>` : ''}
       </div>
       <div id="fabricationReviewSlot-${it.id}"></div>
     </div>
@@ -3216,8 +3303,14 @@ function fabricationFormFields(it){
       <option value="">No paper linked</option>
       ${myPapers.map(p=>`<option value="${p.id}" ${it.linkedPaperId===p.id?'selected':''}>${escapeHtml(p.title)} (${escapeHtml(p.stage)})</option>`).join('')}
     </select>
-    <label class="field-label">Start date</label>
-    <input type="date" class="text-input" id="f_fabStart" value="${it.startDate||todayStr()}">
+    <div class="two-col">
+      <div><label class="field-label">Start date</label>
+        <input type="date" class="text-input" id="f_fabStart" value="${it.startDate||todayStr()}">
+      </div>
+      <div><label class="field-label">Target completion (optional)</label>
+        <input type="date" class="text-input" id="f_fabTargetDate" value="${it.targetDate||''}">
+      </div>
+    </div>
     <label class="field-label">Data / photos link (optional)</label>
     <input class="text-input" id="f_fabLink" value="${escapeHtml(it.link||'')}" placeholder="Drive link to raw data, images, or notes">
     <label class="field-label">Notes (optional)</label>
@@ -3237,8 +3330,10 @@ async function submitFabrication(){
     id: uid('fab'), studentId, itemName,
     stage: document.getElementById('f_fabStage').value,
     linkedPaperId: document.getElementById('f_fabPaper').value || null,
-    startDate, link: document.getElementById('f_fabLink').value.trim(),
+    startDate, targetDate: document.getElementById('f_fabTargetDate').value,
+    link: document.getElementById('f_fabLink').value.trim(),
     notes: document.getElementById('f_fabNotes').value.trim(),
+    roadmap: [],
     approvalStatus: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:'', lastUpdate: todayStr()
   });
   await saveCollection('fabrication-items', state.fabricationItems);
@@ -3260,6 +3355,7 @@ async function submitEditFabrication(id){
   it.stage = document.getElementById('f_fabStage').value;
   it.linkedPaperId = document.getElementById('f_fabPaper').value || null;
   it.startDate = startDate;
+  it.targetDate = document.getElementById('f_fabTargetDate').value;
   it.link = document.getElementById('f_fabLink').value.trim();
   it.notes = document.getElementById('f_fabNotes').value.trim();
   it.lastUpdate = todayStr();
@@ -3271,6 +3367,36 @@ async function submitEditFabrication(id){
     await saveCollection('fabrication-items', state.fabricationItems);
   }
   closeModal(); renderView();
+}
+function openAddFabricationStepModal(id){
+  showModal('Add roadmap step', `
+    <label class="field-label">Step</label>
+    <input class="text-input" id="f_fabStepText" placeholder="e.g. Anneal at 700°C for 4 hours">
+  `, ()=>submitAddFabricationStep(id));
+}
+async function submitAddFabricationStep(id){
+  const text = document.getElementById('f_fabStepText').value.trim();
+  if(!text){ alert('Please add a step.'); return; }
+  const it = state.fabricationItems.find(x=>x.id===id);
+  if(!it.roadmap) it.roadmap = [];
+  it.roadmap.push({ id: uid('step'), text, done:false });
+  it.lastUpdate = todayStr();
+  await saveCollection('fabrication-items', state.fabricationItems);
+  closeModal(); renderView();
+}
+async function toggleFabricationStep(id, stepId){
+  const it = state.fabricationItems.find(x=>x.id===id);
+  const s = (it.roadmap||[]).find(x=>x.id===stepId);
+  if(!s) return;
+  s.done = !s.done;
+  await saveCollection('fabrication-items', state.fabricationItems);
+  renderView();
+}
+async function deleteFabricationStep(id, stepId){
+  const it = state.fabricationItems.find(x=>x.id===id);
+  it.roadmap = (it.roadmap||[]).filter(x=>x.id!==stepId);
+  await saveCollection('fabrication-items', state.fabricationItems);
+  renderView();
 }
 function openFabricationReviewBox(id){
   const it = state.fabricationItems.find(x=>x.id===id);
@@ -3319,7 +3445,7 @@ function viewWeekly(){
   return `
     <div class="view-header">
       <div>
-        <div class="view-title">Weekly Progress</div>
+        <div class="view-title">Weekly Plan</div>
         <div class="view-sub">${isSupervisorLike() ? 'Review weekly logs and leave feedback.' : "Log what you did this week and what's next."}</div>
       </div>
       ${state.identity.role==='student' ? `<button class="action-btn" onclick="openWeeklyModal()">+ Log this week</button>` : ''}
@@ -3346,7 +3472,7 @@ function weeklyCard(w, i, total){
   const canManage = isSupervisorLike();
   const locked = w.status === 'approved' && isOwner;
   const canEdit = canManage || (isOwner && !locked);
-  const canDelete = canManage || (isOwner && !locked);
+  const canDelete = isTrueSupervisor();
   const statusMap = {
     pending: { label:'Pending Approval', cls:'warn' },
     approved: { label:'Approved', cls:'good' },
@@ -3388,7 +3514,7 @@ function openWeeklyModal(){
   const monday = getMondayStr();
   const mine = state.weekly.filter(w=>w.studentId===state.identity.id).sort((a,b)=>b.weekStart.localeCompare(a.weekStart));
   const previous = mine.find(w=>w.weekStart < monday) || mine[0];
-  showModal("Log this week's progress", `
+  showModal("Log this week's plan", `
     ${previous && previous.planNext ? `<div class="comment-box" style="margin-bottom:14px;"><span class="lbl">You planned last time (week of ${fmtDate(previous.weekStart)})</span><div class="comment-existing">${nl2br(previous.planNext)}</div></div>` : ''}
     <label class="field-label">Week starting</label>
     <input type="date" id="f_weekStart" class="text-input" value="${monday}">
@@ -3510,7 +3636,7 @@ function sampleCard(s, i, total){
   const canManage = isSupervisorLike();
   const locked = s.approvalStatus === 'approved' && isOwner;
   const canEditSubmission = canManage || (isOwner && !locked);
-  const canDelete = canManage || (isOwner && !locked);
+  const canDelete = isTrueSupervisor();
   const canMarkResults = canManage || isOwner; // adding results/data link is allowed even after approval
   const approvalMap = {
     pending: { label:'Pending Approval', cls:'warn' },
@@ -3722,17 +3848,19 @@ function paperCard(p, i, total){
   const canEdit = canManage || (isOwner && !locked);
   const hasPending = !!p.pendingStage;
   const refLinks = p.referenceLinks || [];
+  const overdue = p.targetDate && p.stage!=='Published' && p.targetDate < todayStr();
   return `
     <div class="entry-card cat-purple" id="item-paper-${p.id}">
       <div class="entry-top">
         <div>
           <div class="entry-idx">P${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(p.studentId))}</div>
           <div class="entry-title">${escapeHtml(p.title)}</div>
-          <div class="entry-meta">${escapeHtml(p.targetJournal || 'Target journal not set')}</div>
+          <div class="entry-meta">${escapeHtml(p.targetJournal || 'Target journal not set')}${p.targetDate ? ` · Target: ${fmtDate(p.targetDate)}` : ''}</div>
         </div>
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
           <span class="stamp ${stageStampClass(p.stage)}">${escapeHtml(p.stage)}</span>
           ${hasPending ? `<span class="stamp warn">Proposed: ${escapeHtml(p.pendingStage)}</span>` : ''}
+          ${overdue ? `<span class="stamp bad">Overdue</span>` : ''}
         </div>
       </div>
       ${p.notes ? `<div class="entry-block"><span class="lbl">Notes</span>${nl2br(p.notes)}</div>` : ''}
@@ -3769,7 +3897,7 @@ function paperCard(p, i, total){
         ` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openEditPaperDetails('${p.id}')">Edit details</button>` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openAddReferenceLinkModal('${p.id}')">+ Add reference link</button>` : ''}
-        ${canEdit ? `<button class="small-btn danger" onclick="deletePaper('${p.id}')">Delete</button>` : ''}
+        ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deletePaper('${p.id}')">Delete</button>` : ''}
       </div>
     </div>
   `;
@@ -3780,6 +3908,8 @@ function openPaperModal(){
     <input class="text-input" id="f_title" placeholder="e.g. Effect of annealing temperature on...">
     <label class="field-label">Target journal (optional)</label>
     <input class="text-input" id="f_journal" placeholder="e.g. Journal of Materials Chemistry">
+    <label class="field-label">Target date for next milestone (optional)</label>
+    <input type="date" class="text-input" id="f_paperTargetDate">
     <label class="field-label">Manuscript / draft link (optional)</label>
     <input class="text-input" id="f_manuscriptLink" placeholder="Google Docs / Overleaf link for the paper being written">
     <label class="field-label">Notes (optional)</label>
@@ -3789,13 +3919,14 @@ function openPaperModal(){
 async function submitPaper(){
   const title = document.getElementById('f_title').value.trim();
   const targetJournal = document.getElementById('f_journal').value.trim();
+  const targetDate = document.getElementById('f_paperTargetDate').value;
   const manuscriptLink = document.getElementById('f_manuscriptLink').value.trim();
   const notes = document.getElementById('f_paperNotes').value.trim();
   if(!title){ alert('Please add a title.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
   if(!studentId){ alert('Add a research scholar first.'); return; }
   state.papers.push({
-    id: uid('pap'), studentId, title, targetJournal, manuscriptLink, referenceLinks: [], stage: 'Planning', pendingStage: null,
+    id: uid('pap'), studentId, title, targetJournal, targetDate, manuscriptLink, referenceLinks: [], stage: 'Planning', pendingStage: null,
     notes, supervisorNote:'', lastUpdate: todayStr()
   });
   await saveCollection('papers', state.papers);
@@ -3843,6 +3974,8 @@ function openEditPaperDetails(id){
   showModal('Edit paper details', `
     <label class="field-label">Target journal</label>
     <input class="text-input" id="f_editJournal" value="${escapeHtml(p.targetJournal || '')}">
+    <label class="field-label">Target date for next milestone (optional)</label>
+    <input type="date" class="text-input" id="f_editPaperTargetDate" value="${p.targetDate || ''}">
     <label class="field-label">Manuscript / draft link</label>
     <input class="text-input" id="f_editManuscriptLink" value="${escapeHtml(p.manuscriptLink || '')}" placeholder="Google Docs / Overleaf link">
     <label class="field-label">Notes</label>
@@ -3852,6 +3985,7 @@ function openEditPaperDetails(id){
 async function saveEditPaperDetails(id){
   const p = state.papers.find(x=>x.id===id);
   p.targetJournal = document.getElementById('f_editJournal').value.trim();
+  p.targetDate = document.getElementById('f_editPaperTargetDate').value;
   p.manuscriptLink = document.getElementById('f_editManuscriptLink').value.trim();
   p.notes = document.getElementById('f_editNotes').value.trim();
   p.lastUpdate = todayStr();
@@ -3938,7 +4072,7 @@ function conferenceCard(c, i, total){
       <div class="entry-actions">
         ${isSupervisorLike() ? `<button class="small-btn" onclick="openConferenceReviewBox('${c.id}')">Review</button>` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openEditConferenceModal('${c.id}')">Edit</button>` : ''}
-        ${canEdit ? `<button class="small-btn danger" onclick="deleteConference('${c.id}')">Delete</button>` : ''}
+        ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteConference('${c.id}')">Delete</button>` : ''}
       </div>
       <div id="conferenceReviewSlot-${c.id}"></div>
     </div>
@@ -4093,7 +4227,7 @@ function viewMeetings(){
 function meetingCard(m, i, total){
   const isOwner = state.identity.role==='student' && m.studentId===state.identity.id;
   const canManage = isSupervisorLike();
-  const canDelete = canManage || (isOwner && m.status==='proposed');
+  const canDelete = isTrueSupervisor();
   const st = MEETING_STATUS[m.status] || MEETING_STATUS.proposed;
   const isPast = m.plannedDate < todayStr();
   return `
@@ -4287,7 +4421,7 @@ function renderStudentReportSection(s){
         </table>
       `}
 
-      <h3 class="report-section-title">Weekly Progress Log</h3>
+      <h3 class="report-section-title">Weekly Plan Log</h3>
       ${s.weekly.length===0 ? `<p class="report-empty">No weekly progress logged for this period.</p>` : s.weekly.map(w=>`
         <div class="report-entry">
           <div class="report-entry-head"><b>Week of ${fmtDate(w.weekStart)}</b><span>${weeklyStatusLabel[w.status]||w.status}</span></div>
@@ -4341,7 +4475,7 @@ function downloadReportText(){
     out += `\n-- Supervisor Instructions Log --\n`;
     if(s.instructions.length===0) out += `(none logged for this period)\n`;
     s.instructions.forEach(ins=>{ out += `[${fmtDate(ins.date)}] (logged by ${ins.addedByName})\n${ins.text}\n\n`; });
-    out += `\n-- Weekly Progress Log --\n`;
+    out += `\n-- Weekly Plan Log --\n`;
     if(s.weekly.length===0) out += `(none logged for this period)\n`;
     s.weekly.forEach(w=>{
       out += `[Week of ${fmtDate(w.weekStart)}] Status: ${w.status}\nWork done: ${w.workDone}\nPlan for next week: ${w.planNext}\n`;
