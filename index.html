@@ -419,6 +419,7 @@ const state = {
   loginPickId: null,
   supervisorPinHash: null, // null = no supervisor passcode set yet
   supervisorEmail: null,
+  supervisorName: null,
   loginError: '',
   reportStudentId: null,
   reportType: 'student',
@@ -592,6 +593,7 @@ function applyDataValues(values){
   try{ supervisorProfile = values['supervisor-pin'] ? JSON.parse(values['supervisor-pin']) : {}; }catch(e){ supervisorProfile = {}; }
   state.supervisorPinHash = supervisorProfile.hash || null;
   state.supervisorEmail = supervisorProfile.email || null;
+  state.supervisorName = supervisorProfile.name || null;
 }
 const LOCAL_CACHE_KEY = 'rgms-data-cache-v1';
 function loadLocalCache(){
@@ -736,13 +738,15 @@ function renderLogin(){
       `;
     } else {
       supervisorPinHtml = `
+        <label class="field-label">Your name</label>
+        <input class="text-input" id="supervisorName" placeholder="e.g. Dr. Rao">
         <label class="field-label">Create a supervisor passcode</label>
         <input class="text-input" id="supervisorPin" type="password" placeholder="This will be required for supervisor access">
         <label class="field-label">Confirm passcode</label>
         <input class="text-input" id="supervisorPinConfirm" type="password" placeholder="Re-enter passcode">
         <label class="field-label">Your email <span style="text-transform:none; font-weight:400;">(for update notifications)</span></label>
         <input class="text-input" id="supervisorEmailInput" type="email" placeholder="you@university.edu">
-        <div class="view-sub" style="margin-top:8px;">This is the first supervisor login for this group — the passcode you set here will protect supervisor access from now on.</div>
+        <div class="view-sub" style="margin-top:8px;">This is the first supervisor login for this group — the passcode you set here will protect supervisor access from now on. Your name and email are only asked once.</div>
       `;
     }
   }
@@ -750,7 +754,7 @@ function renderLogin(){
   if(role === 'cosupervisor'){
     const picked = state.loginPickId ? state.coSupervisors.find(x=>x.id===state.loginPickId) : null;
     if(state.coSupervisors.length === 0){
-      coSupPickerHtml = `<div class="view-sub" style="margin-top:10px;">No mentors have been added yet. Ask the supervisor to add you from Overview → Account → Mentors.</div>`;
+      coSupPickerHtml = `<div class="view-sub" style="margin-top:10px;">No mentors / co-supervisors / advisors have been added yet. Ask the supervisor to add you from Overview → Account → Mentor / Co-Supervisor / Advisor.</div>`;
     } else {
       coSupPickerHtml = `
         <label class="field-label">Who are you?</label>
@@ -784,12 +788,10 @@ function renderLogin(){
       <label class="field-label">I am logging in as</label>
       <div class="role-row">
         <button class="role-btn ${role==='supervisor'?'active':''}" onclick="chooseRole('supervisor')">Supervisor <small>Review reports, track the group</small></button>
-        <button class="role-btn ${role==='cosupervisor'?'active':''}" onclick="chooseRole('cosupervisor')">Mentor <small>Review your assigned scholars</small></button>
+        <button class="role-btn ${role==='cosupervisor'?'active':''}" onclick="chooseRole('cosupervisor')">Mentor / Co-Supervisor / Advisor <small>Review your assigned scholars</small></button>
         <button class="role-btn ${role==='student'?'active':''}" onclick="chooseRole('student')">Research Scholar <small>Log progress, samples, papers</small></button>
       </div>
       ${role==='supervisor' ? `
-        <label class="field-label">Your name</label>
-        <input class="text-input" id="supervisorName" placeholder="e.g. Dr. Rao">
         ${supervisorPinHtml}
       ` : ''}
       ${coSupPickerHtml}
@@ -806,7 +808,6 @@ function pickCoSupervisor(id){ state.loginPickId = id; state.loginError=''; rend
 async function doLogin(){
   state.loginError = '';
   if(state.loginRole === 'supervisor'){
-    const name = (document.getElementById('supervisorName')?.value || '').trim() || 'Supervisor';
     const pin = document.getElementById('supervisorPin')?.value || '';
     if(!pin){ state.loginError = 'Please enter the supervisor passcode.'; renderLogin(); return; }
     if(state.supervisorPinHash){
@@ -816,9 +817,10 @@ async function doLogin(){
         const email = (document.getElementById('supervisorEmailInput')?.value || '').trim();
         if(!isValidEmail(email)){ state.loginError = 'Please enter a valid email address.'; renderLogin(); return; }
         state.supervisorEmail = email;
-        await saveSupervisorProfile({ hash: state.supervisorPinHash, email });
+        await saveSupervisorProfile({ hash: state.supervisorPinHash, email, name: state.supervisorName });
       }
     } else {
+      const name = (document.getElementById('supervisorName')?.value || '').trim() || 'Supervisor';
       const confirmPin = document.getElementById('supervisorPinConfirm')?.value || '';
       const email = (document.getElementById('supervisorEmailInput')?.value || '').trim();
       if(pin.length < 4){ state.loginError = 'Passcode must be at least 4 characters.'; renderLogin(); return; }
@@ -827,9 +829,10 @@ async function doLogin(){
       const hash = await hashPin(pin);
       state.supervisorPinHash = hash;
       state.supervisorEmail = email;
-      await saveSupervisorProfile({ hash, email });
+      state.supervisorName = name;
+      await saveSupervisorProfile({ hash, email, name });
     }
-    state.identity = { role:'supervisor', id:'supervisor', name };
+    state.identity = { role:'supervisor', id:'supervisor', name: state.supervisorName || 'Supervisor' };
     showApp();
   } else if(state.loginRole === 'student'){
     if(state.loginPickId === '__new__'){
@@ -920,7 +923,7 @@ function switchUser(){
 function showApp(){
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appShell').style.display='block';
-  const roleLabel = state.identity.role === 'supervisor' ? 'Supervisor' : state.identity.role === 'cosupervisor' ? 'Mentor' : 'Research Scholar';
+  const roleLabel = state.identity.role === 'supervisor' ? 'Supervisor' : state.identity.role === 'cosupervisor' ? 'Mentor / Co-Supervisor / Advisor' : 'Research Scholar';
   document.getElementById('identityBadge').innerHTML = `<b>${escapeHtml(state.identity.name)}</b> · ${roleLabel}`;
   renderSidebar();
   renderView();
@@ -936,25 +939,11 @@ function showDigestPopup(){
       : `<p style="font-size:14px; line-height:1.6; color:var(--ink-soft);">Nothing is waiting on your approval right now.</p>`;
     if(count>0) primaryAction = `<button class="action-btn" onclick="closeModal(); goView('approvals');">Go to Pending Approval</button>`;
   } else {
-    const mine = {
-      weekly: state.weekly.filter(w=>w.studentId===state.identity.id),
-      samples: state.samples.filter(s=>s.studentId===state.identity.id),
-      proposals: state.proposals.filter(pr=>pr.studentId===state.identity.id),
-      conferences: state.conferences.filter(c=>c.studentId===state.identity.id),
-      rac: state.racReviews.filter(r=>r.studentId===state.identity.id),
-      financial: state.financialApps.filter(f=>f.studentId===state.identity.id),
-      courses: state.courses.filter(c=>c.studentId===state.identity.id)
-    };
-    const changesNeeded = mine.weekly.filter(w=>w.status==='changes_requested').length
-      + mine.samples.filter(s=>s.approvalStatus==='changes_requested').length
-      + mine.proposals.filter(pr=>pr.status==='changes_requested').length
-      + mine.conferences.filter(c=>c.approvalStatus==='changes_requested').length
-      + mine.rac.filter(r=>r.status==='changes_requested').length
-      + mine.financial.filter(f=>f.approvalStatus==='changes_requested').length
-      + mine.courses.filter(c=>c.approvalStatus==='changes_requested').length;
+    const changesNeeded = changesRequestedQueue().length;
     const upcomingMeetings = state.meetings.filter(m=>m.studentId===state.identity.id && (m.status==='proposed'||m.status==='confirmed') && m.plannedDate>=todayStr()).length;
     if(changesNeeded>0){
       bodyHtml += `<p style="font-size:14px; line-height:1.6;"><b>${changesNeeded}</b> item${changesNeeded===1?'':'s'} need${changesNeeded===1?'s':''} your attention — your supervisor requested changes.</p>`;
+      primaryAction = `<button class="action-btn" onclick="closeModal(); goView('changesRequested');">Go to Changes Requested</button>`;
     } else {
       bodyHtml += `<p style="font-size:14px; line-height:1.6; color:var(--ink-soft);">Nothing needs your attention right now.</p>`;
     }
@@ -979,7 +968,7 @@ function showDigestPopup(){
 }
 
 const NAV_ITEM_COLORS = {
-  overview:'var(--navy)', approvals:'var(--warning)', calendar:'var(--stat-indigo)',
+  overview:'var(--navy)', approvals:'var(--warning)', changesRequested:'var(--danger)', calendar:'var(--stat-indigo)',
   proposal:'var(--stat-indigo)', thesis:'var(--stat-purple)',
   weekly:'var(--stat-blue)', fabrication:'var(--stat-teal)', samples:'var(--stat-cyan)', papers:'var(--stat-purple)',
   rac:'var(--stat-rose)', learning:'var(--stat-blue)', financial:'var(--stat-teal)', conferences:'var(--stat-rose)',
@@ -989,6 +978,7 @@ const NAV_GROUPS = [
   { items: [
     { key:'overview', label:'Overview' },
     { key:'approvals', label:'Pending Approval', supervisorOnly:true },
+    { key:'changesRequested', label:'Changes Requested', studentOnly:true },
     { key:'calendar', label:'Calendar & Planner' },
   ]},
   { label:'Planning', items: [
@@ -1017,7 +1007,7 @@ const NAV_GROUPS = [
 function renderSidebar(){
   document.getElementById('sidebar').innerHTML = NAV_GROUPS.map(group => `
     ${group.label ? `<div class="nav-group-label">${group.label}</div>` : ''}
-    ${group.items.filter(item => !item.supervisorOnly || isSupervisorLike()).map(item => `
+    ${group.items.filter(item => (!item.supervisorOnly || isSupervisorLike()) && (!item.studentOnly || state.identity.role==='student')).map(item => `
       <button class="nav-item ${state.view===item.key?'active':''}" onclick="goView('${item.key}')">
         <span class="dot" style="background:${NAV_ITEM_COLORS[item.key] || 'var(--border-strong)'};"></span>${item.label}
       </button>
@@ -1030,6 +1020,7 @@ function renderView(){
   const main = document.getElementById('main');
   if(state.view==='overview') main.innerHTML = viewOverview();
   else if(state.view==='approvals') main.innerHTML = viewApprovals();
+  else if(state.view==='changesRequested') main.innerHTML = viewChangesRequested();
   else if(state.view==='calendar') main.innerHTML = viewCalendar();
   else if(state.view==='proposal') main.innerHTML = viewProposal();
   else if(state.view==='thesis') main.innerHTML = viewThesis();
@@ -1313,6 +1304,56 @@ function pendingQueue(){
     items.push({ type:'fabrication', id:it.id, studentId:it.studentId, title:it.itemName, date:it.startDate, category:'Sample Prep & Fabrication', color:'var(--stat-teal)' }));
   return items.sort((a,b)=> (a.date||'').localeCompare(b.date||''));
 }
+function changesRequestedQueue(){
+  const items = [];
+  scopedList(state.weekly).filter(w=>w.status==='changes_requested').forEach(w=>
+    items.push({ type:'weekly', id:w.id, studentId:w.studentId, title:`Weekly report — week of ${fmtDate(w.weekStart)}`, date:w.weekStart, category:'Weekly Plan', color:'var(--stat-blue)', note:w.supervisorComment }));
+  scopedList(state.samples).filter(s=>s.approvalStatus==='changes_requested').forEach(s=>
+    items.push({ type:'sample', id:s.id, studentId:s.studentId, title:s.sampleName, date:s.submittedDate, category:'Characterization', color:'var(--stat-cyan)', note:s.supervisorNote }));
+  scopedList(state.fabricationItems).filter(it=>it.approvalStatus==='changes_requested').forEach(it=>
+    items.push({ type:'fabrication', id:it.id, studentId:it.studentId, title:it.itemName, date:it.startDate, category:'Sample Prep & Fabrication', color:'var(--stat-teal)', note:it.supervisorNote }));
+  scopedList(state.proposals).filter(pr=>pr.status==='changes_requested').forEach(pr=>
+    items.push({ type:'proposal', id:pr.id, studentId:pr.studentId, title:pr.title, date:pr.lastUpdate, category:'Proposal & Work Plan', color:'var(--stat-indigo)', note:pr.supervisorNote }));
+  scopedList(state.thesisPlans).filter(tp=>tp.status==='changes_requested').forEach(tp=>
+    items.push({ type:'thesis', id:tp.id, studentId:tp.studentId, title:tp.title, date:tp.lastUpdate, category:'Thesis Plan', color:'var(--stat-purple)', note:tp.supervisorNote }));
+  scopedList(state.racReviews).filter(r=>r.status==='changes_requested').forEach(r=>
+    items.push({ type:'rac', id:r.id, studentId:r.studentId, title:r.title, date:r.reviewDate, category:'RAC Reviews', color:'var(--stat-rose)', note:r.supervisorNote }));
+  scopedList(state.conferences).filter(c=>c.approvalStatus==='changes_requested').forEach(c=>
+    items.push({ type:'conference', id:c.id, studentId:c.studentId, title:c.eventName, date:c.startDate, category:'Conferences', color:'var(--stat-rose)', note:c.supervisorNote }));
+  scopedList(state.financialApps).filter(f=>f.approvalStatus==='changes_requested').forEach(f=>
+    items.push({ type:'financial', id:f.id, studentId:f.studentId, title:f.title, date:f.applicationDate, category:'Visiting & Financial', color:'var(--stat-teal)', note:f.supervisorNote }));
+  scopedList(state.courses).filter(c=>c.approvalStatus==='changes_requested').forEach(c=>
+    items.push({ type:'course', id:c.id, studentId:c.studentId, title:c.title, date:c.startDate, category:'Learning & Courses', color:'var(--stat-blue)', note:c.supervisorNote }));
+  return items.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+}
+function viewChangesRequested(){
+  const items = changesRequestedQueue();
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Changes Requested</div>
+        <div class="view-sub">Everything your supervisor sent back with feedback, in one place — most recent first.</div>
+      </div>
+    </div>
+    ${items.length===0 ? emptyState('Nothing needs your attention', "Anything your supervisor sends back with requested changes will show up here.") : `
+      <div class="entry-card" style="padding:0;">
+        ${items.map((it,idx)=>`
+          <div style="padding:15px 20px; ${idx>0?'border-top:1px solid var(--border);':''}">
+            <div style="display:flex; align-items:center; gap:14px;">
+              <span style="width:8px; height:8px; border-radius:50%; background:${it.color}; flex-shrink:0;"></span>
+              <div style="flex:1; min-width:0;">
+                <span class="task-link" style="font-weight:600; font-size:13.5px;" onclick="goToItem('${it.type}','${it.id}','${it.studentId}')">${escapeHtml(it.title)}</span>
+                <div class="entry-meta">${escapeHtml(it.category)}${it.date ? ' · '+fmtDate(it.date) : ''}</div>
+              </div>
+              <button class="small-btn" onclick="goToItem('${it.type}','${it.id}','${it.studentId}')">Fix it →</button>
+            </div>
+            ${it.note ? `<div class="comment-box" style="margin-top:10px;"><span class="lbl">Supervisor feedback</span><div class="comment-existing">${nl2br(it.note)}</div></div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `}
+  `;
+}
 function viewApprovals(){
   const items = pendingQueue();
   return `
@@ -1409,7 +1450,7 @@ function viewOverview(){
     <div class="stat-grid compact">
       ${isSupervisorLike()
         ? `<div class="stat-card compact accent-blue ${totalPendingApproval>0?'warn':'ok'}" style="cursor:pointer;" onclick="goView('approvals')"><div class="stat-num">${totalPendingApproval}</div><div class="stat-label"><span class="dot"></span>Awaiting approval</div></div>`
-        : `<div class="stat-card compact accent-blue ${pendingReports>0?'warn':''}"><div class="stat-num">${pendingReports}</div><div class="stat-label"><span class="dot"></span>Reports pending</div></div>`}
+        : `<div class="stat-card compact ${changesRequestedQueue().length>0?'warn':'ok'}" style="cursor:pointer;" onclick="goView('changesRequested')"><div class="stat-num">${changesRequestedQueue().length}</div><div class="stat-label"><span class="dot" style="background:var(--danger);"></span>Changes requested</div></div>`}
       <div class="stat-card compact accent-teal ${overdueSamples>0?'warn':'ok'}"><div class="stat-num">${awaitingSamples}</div><div class="stat-label"><span class="dot"></span>Awaiting results</div></div>
       <div class="stat-card compact ${overdueSamples>0?'warn':''}"><div class="stat-num">${overdueSamples}</div><div class="stat-label"><span class="dot" style="background:var(--danger);"></span>Overdue</div></div>
       <div class="stat-card compact accent-purple"><div class="stat-num">${activePapers}</div><div class="stat-label"><span class="dot"></span>Papers active</div></div>
@@ -1665,6 +1706,7 @@ function accessSection(){
         `).join('')}
       <div class="entry-actions">
         <button class="small-btn" onclick="openChangeSupervisorPinModal()">Change supervisor passcode</button>
+        <button class="small-btn" onclick="openChangeSupervisorNameModal()">Update my name</button>
         <button class="small-btn" onclick="openChangeSupervisorEmailModal()">Update my email</button>
         <button class="small-btn" onclick="testMyEmail()">Send test email</button>
       </div>
@@ -1676,7 +1718,7 @@ function accessSection(){
 
 function coSupervisorAdminSection(){
   return `
-    <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Mentors</h3>
+    <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Mentor / Co-Supervisor / Advisor</h3>
     <div class="entry-card">
       <div class="entry-block" style="margin-bottom:14px;">Add a mentor and assign them to specific research scholars — they'll see and can review only those scholars' entries, nothing else in the group.</div>
       ${state.coSupervisors.length===0 ? `<div class="entry-meta" style="margin-bottom:10px;">No mentors added yet.</div>` :
@@ -1990,7 +2032,7 @@ async function submitChangeSupervisorPin(){
   if(next.length < 4){ alert('New passcode must be at least 4 characters.'); return; }
   if(next !== confirmNext){ alert('New passcodes do not match.'); return; }
   state.supervisorPinHash = await hashPin(next);
-  await saveSupervisorProfile({ hash: state.supervisorPinHash, email: state.supervisorEmail });
+  await saveSupervisorProfile({ hash: state.supervisorPinHash, email: state.supervisorEmail, name: state.supervisorName });
   closeModal(); renderView();
 }
 function openChangeStudentEmailModal(){
@@ -2069,6 +2111,21 @@ async function deleteStudentAccount(studentId){
   alert(`${s.name}'s account and all associated data have been deleted.`);
   renderView();
 }
+function openChangeSupervisorNameModal(){
+  showModal('Update my name', `
+    <label class="field-label">Name</label>
+    <input class="text-input" id="f_supName" value="${escapeHtml(state.supervisorName || '')}" placeholder="e.g. Dr. Rao">
+  `, submitChangeSupervisorName);
+}
+async function submitChangeSupervisorName(){
+  const name = document.getElementById('f_supName').value.trim();
+  if(!name){ alert('Please enter a name.'); return; }
+  state.supervisorName = name;
+  state.identity.name = name;
+  await saveSupervisorProfile({ hash: state.supervisorPinHash, email: state.supervisorEmail, name });
+  document.getElementById('identityBadge').innerHTML = `<b>${escapeHtml(state.identity.name)}</b> · Supervisor`;
+  closeModal(); renderView();
+}
 function openChangeSupervisorEmailModal(){
   showModal('Update supervisor email', `
     <label class="field-label">Email</label>
@@ -2079,7 +2136,7 @@ async function submitChangeSupervisorEmail(){
   const email = document.getElementById('f_supEmail').value.trim();
   if(!isValidEmail(email)){ alert('Please enter a valid email address.'); return; }
   state.supervisorEmail = email;
-  await saveSupervisorProfile({ hash: state.supervisorPinHash, email });
+  await saveSupervisorProfile({ hash: state.supervisorPinHash, email, name: state.supervisorName });
   closeModal(); renderView();
 }
 
@@ -2328,6 +2385,17 @@ function proposalCard(pr, i, total){
         <span class="stamp ${st.cls}">${st.label}</span>
       </div>
       <div class="entry-block"><span class="lbl">Objective</span>${nl2br(pr.objective) || '—'}</div>
+      ${(pr.linkedPaperIds && pr.linkedPaperIds.length>0) ? `
+        <div class="entry-block" style="margin-top:8px;">
+          <span class="lbl">Linked to paper(s)</span>
+          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+            ${pr.linkedPaperIds.map(pid=>{
+              const p = state.papers.find(x=>x.id===pid);
+              return p ? `<span class="task-link stamp neutral" onclick="goToItem('paper','${p.id}','${pr.studentId}')">${escapeHtml(p.title)}</span>` : '';
+            }).join('')}
+          </div>
+        </div>
+      ` : ''}
       <div class="entry-block" style="margin-top:10px;">
         <span class="lbl">Goals / milestones</span>
         ${goals.length===0 ? `<span class="entry-meta">No goals added yet.</span>` : `
@@ -2372,7 +2440,7 @@ async function submitProposal(){
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
   if(!studentId){ alert('Add a research scholar first.'); return; }
   state.proposals.push({
-    id: uid('pr'), studentId, title, objective, methodology, expectedOutcomes, goals: [],
+    id: uid('pr'), studentId, title, objective, methodology, expectedOutcomes, goals: [], linkedPaperIds: [],
     status: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:'', lastUpdate: todayStr()
   });
   await saveCollection('proposals', state.proposals);
@@ -2383,6 +2451,8 @@ async function submitProposal(){
 }
 function openEditProposalModal(id){
   const pr = state.proposals.find(x=>x.id===id);
+  const myPapers = state.papers.filter(p=>p.studentId===pr.studentId);
+  const linked = pr.linkedPaperIds || [];
   showModal('Edit proposal / work plan', `
     <label class="field-label">Title</label>
     <input class="text-input" id="f_editPrTitle" value="${escapeHtml(pr.title)}">
@@ -2392,6 +2462,13 @@ function openEditProposalModal(id){
     <textarea class="text-input" id="f_editPrMethodology" rows="3">${escapeHtml(pr.methodology||'')}</textarea>
     <label class="field-label">Expected outcomes (optional)</label>
     <textarea class="text-input" id="f_editPrOutcomes" rows="2">${escapeHtml(pr.expectedOutcomes||'')}</textarea>
+    ${myPapers.length>0 ? `
+      <label class="field-label">Linked to which paper(s) in the pipeline? (optional)</label>
+      <select class="text-input" id="f_editPrPapers" multiple size="${Math.min(5, Math.max(3, myPapers.length))}">
+        ${myPapers.map(p=>`<option value="${p.id}" ${linked.includes(p.id)?'selected':''}>${escapeHtml(p.title)}</option>`).join('')}
+      </select>
+      <div class="view-sub" style="margin-top:4px;">Hold Ctrl (or ⌘ on Mac) to select more than one.</div>
+    ` : ''}
     ${!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''}
   `, ()=>submitEditProposal(id));
 }
@@ -2404,6 +2481,8 @@ async function submitEditProposal(id){
   pr.objective = objective;
   pr.methodology = document.getElementById('f_editPrMethodology').value.trim();
   pr.expectedOutcomes = document.getElementById('f_editPrOutcomes').value.trim();
+  const prPapersSelect = document.getElementById('f_editPrPapers');
+  pr.linkedPaperIds = prPapersSelect ? Array.from(prPapersSelect.selectedOptions).map(el=>el.value) : (pr.linkedPaperIds || []);
   pr.lastUpdate = todayStr();
   if(!isSupervisorLike()){
     pr.status = 'pending';
@@ -3606,11 +3685,22 @@ function weeklyCard(w, i, total){
       </div>
       ${(w.linkedPaperIds && w.linkedPaperIds.length>0) ? `
         <div class="entry-block" style="margin-top:8px;">
-          <span class="lbl">Relates to</span>
+          <span class="lbl">Relates to paper(s)</span>
           <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
             ${w.linkedPaperIds.map(pid=>{
               const p = state.papers.find(x=>x.id===pid);
               return p ? `<span class="task-link stamp neutral" onclick="goToItem('paper','${p.id}','${w.studentId}')">${escapeHtml(p.title)}</span>` : '';
+            }).join('')}
+          </div>
+        </div>
+      ` : ''}
+      ${(w.linkedProposalIds && w.linkedProposalIds.length>0) ? `
+        <div class="entry-block" style="margin-top:8px;">
+          <span class="lbl">Contributes to proposal(s)</span>
+          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+            ${w.linkedProposalIds.map(prid=>{
+              const pr = state.proposals.find(x=>x.id===prid);
+              return pr ? `<span class="task-link stamp neutral" onclick="goToItem('proposal','${pr.id}','${w.studentId}')">${escapeHtml(pr.title)}</span>` : '';
             }).join('')}
           </div>
         </div>
@@ -3637,6 +3727,7 @@ function openWeeklyModal(){
   const mine = state.weekly.filter(w=>w.studentId===state.identity.id).sort((a,b)=>b.weekStart.localeCompare(a.weekStart));
   const previous = mine.find(w=>w.weekStart < monday) || mine[0];
   const myPapers = state.papers.filter(p=>p.studentId===state.identity.id);
+  const myApprovedProposals = state.proposals.filter(p=>p.studentId===state.identity.id && p.status==='approved');
   showModal("Log this week's plan", `
     ${previous && previous.planNext ? `<div class="comment-box" style="margin-bottom:14px;"><span class="lbl">You planned last time (week of ${fmtDate(previous.weekStart)})</span><div class="comment-existing">${nl2br(previous.planNext)}</div></div>` : ''}
     <label class="field-label">Week starting</label>
@@ -3653,6 +3744,12 @@ function openWeeklyModal(){
         ${myPapers.map(p=>`<option value="${p.id}">${escapeHtml(p.title)}</option>`).join('')}
       </select>
       <div class="view-sub" style="margin-top:4px;">Hold Ctrl (or ⌘ on Mac) to select more than one.</div>
+    ` : ''}
+    ${myApprovedProposals.length>0 ? `
+      <label class="field-label">Which approved proposal / work plan does this week contribute to? (optional)</label>
+      <select class="text-input" id="f_weeklyProposals" multiple size="${Math.min(4, Math.max(2, myApprovedProposals.length))}">
+        ${myApprovedProposals.map(p=>`<option value="${p.id}">${escapeHtml(p.title)}</option>`).join('')}
+      </select>
     ` : ''}
   `, submitWeekly);
 }
@@ -3671,8 +3768,10 @@ async function submitWeekly(){
   if(!weekStart || !workDone){ alert('Please add the week and what you worked on.'); return; }
   const papersSelect = document.getElementById('f_weeklyPapers');
   const linkedPaperIds = papersSelect ? Array.from(papersSelect.selectedOptions).map(el=>el.value) : [];
+  const proposalsSelect = document.getElementById('f_weeklyProposals');
+  const linkedProposalIds = proposalsSelect ? Array.from(proposalsSelect.selectedOptions).map(el=>el.value) : [];
   state.weekly.push({
-    id: uid('wk'), studentId: state.identity.id, weekStart, workDone, planNext, challenges, linkedPaperIds,
+    id: uid('wk'), studentId: state.identity.id, weekStart, workDone, planNext, challenges, linkedPaperIds, linkedProposalIds,
     status:'pending', supervisorComment:''
   });
   await saveCollection('weekly-reports', state.weekly);
@@ -3711,6 +3810,8 @@ function openEditWeeklyModal(id){
   const w = state.weekly.find(x=>x.id===id);
   const myPapers = state.papers.filter(p=>p.studentId===w.studentId);
   const linked = w.linkedPaperIds || [];
+  const myApprovedProposals = state.proposals.filter(p=>p.studentId===w.studentId && p.status==='approved');
+  const linkedProposals = w.linkedProposalIds || [];
   showModal('Edit weekly report', `
     <label class="field-label">Week starting</label>
     <input type="date" id="f_editWeekStart" class="text-input" value="${w.weekStart}">
@@ -3727,6 +3828,12 @@ function openEditWeeklyModal(id){
       </select>
       <div class="view-sub" style="margin-top:4px;">Hold Ctrl (or ⌘ on Mac) to select more than one.</div>
     ` : ''}
+    ${myApprovedProposals.length>0 ? `
+      <label class="field-label">Which approved proposal / work plan does this week contribute to? (optional)</label>
+      <select class="text-input" id="f_editWeeklyProposals" multiple size="${Math.min(4, Math.max(2, myApprovedProposals.length))}">
+        ${myApprovedProposals.map(p=>`<option value="${p.id}" ${linkedProposals.includes(p.id)?'selected':''}>${escapeHtml(p.title)}</option>`).join('')}
+      </select>
+    ` : ''}
     ${!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''}
   `, ()=>submitEditWeekly(id));
 }
@@ -3742,7 +3849,9 @@ async function submitEditWeekly(id){
   w.planNext = planNext;
   w.challenges = challenges;
   const editPapersSelect = document.getElementById('f_editWeeklyPapers');
-  w.linkedPaperIds = editPapersSelect ? Array.from(editPapersSelect.selectedOptions).map(el=>el.value) : [];
+  w.linkedPaperIds = editPapersSelect ? Array.from(editPapersSelect.selectedOptions).map(el=>el.value) : (w.linkedPaperIds || []);
+  const editProposalsSelect = document.getElementById('f_editWeeklyProposals');
+  w.linkedProposalIds = editProposalsSelect ? Array.from(editProposalsSelect.selectedOptions).map(el=>el.value) : (w.linkedProposalIds || []);
   if(!isSupervisorLike()){
     w.status = 'pending';
     await saveCollection('weekly-reports', state.weekly);
