@@ -421,6 +421,8 @@ const state = {
   supervisorEmail: null,
   loginError: '',
   reportStudentId: null,
+  reportType: 'student',
+  reportPaperId: null,
   reportFrom: '',
   reportTo: '',
   reportData: null
@@ -608,7 +610,7 @@ function loginShell(cardHtml){
       <div class="login-hero-title">Research Group<br>Management System</div>
       <div class="login-hero-tag">A shared, live workspace for weekly progress, characterization tracking, and the paper pipeline — built for supervisors, mentors, and research scholars.</div>
       <ul class="login-hero-list">
-        <li>Weekly progress with supervisor approval</li>
+        <li>Weekly progress and Review</li>
         <li>Characterization &amp; battery testing pipeline</li>
         <li>Paper pipeline with reference tracking</li>
       </ul>
@@ -3647,13 +3649,10 @@ function openWeeklyModal(){
     <textarea id="f_challenges" class="text-input" rows="2" placeholder="Anything blocking progress?"></textarea>
     ${myPapers.length>0 ? `
       <label class="field-label">Which paper(s) does this week's work relate to? (optional)</label>
-      <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
-        ${myPapers.map(p=>`
-          <label style="display:flex; align-items:center; gap:8px; font-size:13.5px;">
-            <input type="checkbox" class="weeklyPaperLink" value="${p.id}"> ${escapeHtml(p.title)}
-          </label>
-        `).join('')}
-      </div>
+      <select class="text-input" id="f_weeklyPapers" multiple size="${Math.min(5, Math.max(3, myPapers.length))}">
+        ${myPapers.map(p=>`<option value="${p.id}">${escapeHtml(p.title)}</option>`).join('')}
+      </select>
+      <div class="view-sub" style="margin-top:4px;">Hold Ctrl (or ⌘ on Mac) to select more than one.</div>
     ` : ''}
   `, submitWeekly);
 }
@@ -3670,7 +3669,8 @@ async function submitWeekly(){
   const planNext = document.getElementById('f_planNext').value.trim();
   const challenges = document.getElementById('f_challenges').value.trim();
   if(!weekStart || !workDone){ alert('Please add the week and what you worked on.'); return; }
-  const linkedPaperIds = Array.from(document.querySelectorAll('.weeklyPaperLink:checked')).map(el=>el.value);
+  const papersSelect = document.getElementById('f_weeklyPapers');
+  const linkedPaperIds = papersSelect ? Array.from(papersSelect.selectedOptions).map(el=>el.value) : [];
   state.weekly.push({
     id: uid('wk'), studentId: state.identity.id, weekStart, workDone, planNext, challenges, linkedPaperIds,
     status:'pending', supervisorComment:''
@@ -3722,13 +3722,10 @@ function openEditWeeklyModal(id){
     <textarea id="f_editChallenges" class="text-input" rows="2">${escapeHtml(w.challenges||'')}</textarea>
     ${myPapers.length>0 ? `
       <label class="field-label">Which paper(s) does this week's work relate to? (optional)</label>
-      <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
-        ${myPapers.map(p=>`
-          <label style="display:flex; align-items:center; gap:8px; font-size:13.5px;">
-            <input type="checkbox" class="weeklyPaperLinkEdit" value="${p.id}" ${linked.includes(p.id)?'checked':''}> ${escapeHtml(p.title)}
-          </label>
-        `).join('')}
-      </div>
+      <select class="text-input" id="f_editWeeklyPapers" multiple size="${Math.min(5, Math.max(3, myPapers.length))}">
+        ${myPapers.map(p=>`<option value="${p.id}" ${linked.includes(p.id)?'selected':''}>${escapeHtml(p.title)}</option>`).join('')}
+      </select>
+      <div class="view-sub" style="margin-top:4px;">Hold Ctrl (or ⌘ on Mac) to select more than one.</div>
     ` : ''}
     ${!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''}
   `, ()=>submitEditWeekly(id));
@@ -3744,7 +3741,8 @@ async function submitEditWeekly(id){
   w.workDone = workDone;
   w.planNext = planNext;
   w.challenges = challenges;
-  w.linkedPaperIds = Array.from(document.querySelectorAll('.weeklyPaperLinkEdit:checked')).map(el=>el.value);
+  const editPapersSelect = document.getElementById('f_editWeeklyPapers');
+  w.linkedPaperIds = editPapersSelect ? Array.from(editPapersSelect.selectedOptions).map(el=>el.value) : [];
   if(!isSupervisorLike()){
     w.status = 'pending';
     await saveCollection('weekly-reports', state.weekly);
@@ -4550,41 +4548,68 @@ function viewReports(){
   if(!state.reportStudentId){
     state.reportStudentId = (isSupervisor || isCoSup) ? 'all' : state.identity.id;
   }
+  if(!state.reportType) state.reportType = 'student';
   const studentOptions = (isSupervisor || isCoSup)
     ? `<option value="all" ${state.reportStudentId==='all'?'selected':''}>${isSupervisor ? 'All research scholars' : 'All my research scholars'}</option>` +
       visible.map(s=>`<option value="${s.id}" ${state.reportStudentId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')
     : `<option value="${state.identity.id}" selected>${escapeHtml(state.identity.name)}</option>`;
 
+  const availablePapers = scopedList(state.papers);
+  if(!state.reportPaperId && availablePapers.length>0) state.reportPaperId = availablePapers[0].id;
+
   return `
     <div class="view-header">
       <div>
         <div class="view-title">Reports</div>
-        <div class="view-sub">Combines the supervisor instructions log with the student's progress, sample, and paper logs into one report.</div>
+        <div class="view-sub">Combines the supervisor instructions log with the research scholar's progress, sample, and paper logs into one report — or build one around a single paper.</div>
       </div>
     </div>
     <div class="entry-card" style="margin-bottom:20px;">
-      <div class="two-col">
-        <div><label class="field-label">Research Scholar</label>
-          <select class="text-input" id="r_student" ${(isSupervisor||isCoSup)?'':'disabled'} onchange="state.reportStudentId=this.value">
-            ${studentOptions}
-          </select>
-        </div>
-        <div></div>
-        <div><label class="field-label">From (optional)</label>
-          <input type="date" class="text-input" id="r_from" value="${state.reportFrom}" onchange="state.reportFrom=this.value">
-        </div>
-        <div><label class="field-label">To (optional)</label>
-          <input type="date" class="text-input" id="r_to" value="${state.reportTo}" onchange="state.reportTo=this.value">
-        </div>
-      </div>
-      <div class="entry-actions">
-        <button class="action-btn" onclick="generateReport()">Generate report</button>
-        ${state.reportData ? `<button class="action-btn ghost" onclick="window.print()">Print / Save as PDF</button><button class="action-btn ghost" onclick="downloadReportText()">Download as text</button>` : ''}
+      <label class="field-label">Report type</label>
+      <div class="role-row" style="margin-bottom:0;">
+        <button class="role-btn ${state.reportType==='student'?'active':''}" onclick="setReportType('student')">By Research Scholar <small>Instructions, weekly plans, samples, papers, meetings</small></button>
+        <button class="role-btn ${state.reportType==='paper'?'active':''}" onclick="setReportType('paper')">By Paper <small>Everything linked to one specific paper</small></button>
       </div>
     </div>
+    ${state.reportType==='student' ? `
+      <div class="entry-card" style="margin-bottom:20px;">
+        <div class="two-col">
+          <div><label class="field-label">Research Scholar</label>
+            <select class="text-input" id="r_student" ${(isSupervisor||isCoSup)?'':'disabled'} onchange="state.reportStudentId=this.value">
+              ${studentOptions}
+            </select>
+          </div>
+          <div></div>
+          <div><label class="field-label">From (optional)</label>
+            <input type="date" class="text-input" id="r_from" value="${state.reportFrom}" onchange="state.reportFrom=this.value">
+          </div>
+          <div><label class="field-label">To (optional)</label>
+            <input type="date" class="text-input" id="r_to" value="${state.reportTo}" onchange="state.reportTo=this.value">
+          </div>
+        </div>
+        <div class="entry-actions">
+          <button class="action-btn" onclick="generateReport()">Generate report</button>
+          ${state.reportData ? `<button class="action-btn ghost" onclick="window.print()">Print / Save as PDF</button><button class="action-btn ghost" onclick="downloadReportText()">Download as text</button>` : ''}
+        </div>
+      </div>
+    ` : `
+      <div class="entry-card" style="margin-bottom:20px;">
+        ${availablePapers.length===0 ? `<div class="entry-meta">No papers available to report on yet.</div>` : `
+          <label class="field-label">Paper</label>
+          <select class="text-input" id="r_paper" onchange="state.reportPaperId=this.value">
+            ${availablePapers.map(p=>`<option value="${p.id}" ${state.reportPaperId===p.id?'selected':''}>${escapeHtml(studentName(p.studentId))} — ${escapeHtml(p.title)}</option>`).join('')}
+          </select>
+        `}
+        <div class="entry-actions">
+          <button class="action-btn" onclick="generatePaperReport()" ${availablePapers.length===0?'disabled':''}>Generate report</button>
+          ${state.reportData && state.reportData.kind==='paper' ? `<button class="action-btn ghost" onclick="window.print()">Print / Save as PDF</button><button class="action-btn ghost" onclick="downloadReportText()">Download as text</button>` : ''}
+        </div>
+      </div>
+    `}
     <div id="reportPrintArea">${state.reportData ? renderReportHtml(state.reportData) : ''}</div>
   `;
 }
+function setReportType(t){ state.reportType = t; state.reportData = null; renderView(); }
 
 function inRange(dateStr, from, to){
   if(!dateStr) return !from && !to ? true : false;
@@ -4605,16 +4630,40 @@ function buildReportForStudent(studentId, from, to){
 function generateReport(){
   const from = state.reportFrom, to = state.reportTo;
   const studentIds = state.reportStudentId==='all' ? visibleStudentsForIdentity().map(s=>s.id) : [state.reportStudentId];
-  if(studentIds.length===0){ alert('No students to report on yet.'); return; }
+  if(studentIds.length===0){ alert('No research scholars to report on yet.'); return; }
   state.reportData = {
+    kind: 'student',
     generatedAt: todayStr(), from, to,
     students: studentIds.map(id=>buildReportForStudent(id, from, to))
   };
   renderView();
   setTimeout(()=>{ document.getElementById('reportPrintArea')?.scrollIntoView({behavior:'smooth'}); }, 50);
 }
+function buildReportForPaper(paperId){
+  const p = state.papers.find(x=>x.id===paperId);
+  const weekly = state.weekly.filter(w=>(w.linkedPaperIds||[]).includes(paperId)).sort((a,b)=>a.weekStart.localeCompare(b.weekStart));
+  const fabrication = state.fabricationItems.filter(it=>it.linkedPaperId===paperId).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
+  const thesisLinks = [];
+  state.thesisPlans.forEach(tp=>{
+    (tp.chapters||[]).forEach(c=>{
+      if(c.linkedPaperId===paperId) thesisLinks.push({ thesisTitle: tp.title, chapterTitle: c.title, status: c.status });
+    });
+  });
+  return { paper: p, weekly, fabrication, thesisLinks };
+}
+function generatePaperReport(){
+  if(!state.reportPaperId){ alert('Choose a paper first.'); return; }
+  state.reportData = {
+    kind: 'paper',
+    generatedAt: todayStr(),
+    ...buildReportForPaper(state.reportPaperId)
+  };
+  renderView();
+  setTimeout(()=>{ document.getElementById('reportPrintArea')?.scrollIntoView({behavior:'smooth'}); }, 50);
+}
 
 function renderReportHtml(data){
+  if(data.kind === 'paper') return renderPaperReportHtml(data);
   const periodLabel = (data.from || data.to) ? `${data.from ? fmtDate(data.from) : 'Start'} — ${data.to ? fmtDate(data.to) : 'Present'}` : 'All time';
   return `
     <div class="report-doc">
@@ -4623,6 +4672,60 @@ function renderReportHtml(data){
         <div class="report-meta">Generated ${fmtDate(data.generatedAt)} · Period: ${escapeHtml(periodLabel)}</div>
       </div>
       ${data.students.map(s=>renderStudentReportSection(s)).join('<div class="report-divider"></div>')}
+    </div>
+  `;
+}
+function renderPaperReportHtml(data){
+  const p = data.paper;
+  if(!p){
+    return `<div class="report-doc"><p class="report-empty">This paper could not be found — it may have been deleted.</p></div>`;
+  }
+  const refLinks = p.referenceLinks || [];
+  return `
+    <div class="report-doc">
+      <div class="report-head">
+        <div class="report-eyebrow">Research Group Management System — Paper Report</div>
+        <div class="report-meta">Generated ${fmtDate(data.generatedAt)} · Research Scholar: ${escapeHtml(studentName(p.studentId))}</div>
+      </div>
+      <div class="report-student">
+        <h2 class="report-student-name">${escapeHtml(p.title)}</h2>
+        <p><b>Target journal:</b> ${escapeHtml(p.targetJournal)||'—'} &nbsp; <b>Stage:</b> ${escapeHtml(p.stage)}${p.pendingStage?` (proposed: ${escapeHtml(p.pendingStage)})`:''}${p.targetDate ? ` &nbsp; <b>Target date:</b> ${fmtDate(p.targetDate)}` : ''}</p>
+        ${p.manuscriptLink ? `<p><b>Manuscript / draft:</b> ${escapeHtml(p.manuscriptLink)}</p>` : ''}
+        ${p.notes ? `<p><b>Notes:</b> ${nl2br(p.notes)}</p>` : ''}
+        ${p.supervisorNote ? `<p><b>Supervisor note:</b> ${nl2br(p.supervisorNote)}</p>` : ''}
+
+        <h3 class="report-section-title">Reference Links</h3>
+        ${refLinks.length===0 ? `<p class="report-empty">No reference links added.</p>` : `
+          <table class="report-table">
+            <thead><tr><th>Title</th><th>Link</th></tr></thead>
+            <tbody>${refLinks.map(l=>`<tr><td>${escapeHtml(l.label||'—')}</td><td>${escapeHtml(l.url)}</td></tr>`).join('')}</tbody>
+          </table>
+        `}
+
+        <h3 class="report-section-title">Consolidated Weekly Updates</h3>
+        ${data.weekly.length===0 ? `<p class="report-empty">No weekly plans have been linked to this paper yet.</p>` : data.weekly.map(w=>`
+          <div class="report-entry">
+            <div class="report-entry-head"><b>Week of ${fmtDate(w.weekStart)}</b></div>
+            <p>${nl2br(w.workDone) || '—'}</p>
+          </div>
+        `).join('')}
+
+        <h3 class="report-section-title">Sample Prep &amp; Fabrication Linked to This Paper</h3>
+        ${data.fabrication.length===0 ? `<p class="report-empty">No sample prep or fabrication items linked to this paper.</p>` : `
+          <table class="report-table">
+            <thead><tr><th>Item</th><th>Stage</th><th>Started</th><th>Target completion</th></tr></thead>
+            <tbody>${data.fabrication.map(it=>`<tr><td>${escapeHtml(it.itemName)}</td><td>${(FABRICATION_STAGES[it.stage]||{label:it.stage}).label}</td><td>${it.startDate?fmtDate(it.startDate):'—'}</td><td>${it.targetDate?fmtDate(it.targetDate):'—'}</td></tr>`).join('')}</tbody>
+          </table>
+        `}
+
+        <h3 class="report-section-title">Thesis Chapters Linked to This Paper</h3>
+        ${data.thesisLinks.length===0 ? `<p class="report-empty">This paper is not linked to any thesis chapter.</p>` : `
+          <table class="report-table">
+            <thead><tr><th>Thesis</th><th>Chapter</th><th>Status</th></tr></thead>
+            <tbody>${data.thesisLinks.map(t=>`<tr><td>${escapeHtml(t.thesisTitle)}</td><td>${escapeHtml(t.chapterTitle)}</td><td>${escapeHtml(t.status)}</td></tr>`).join('')}</tbody>
+          </table>
+        `}
+      </div>
     </div>
   `;
 }
@@ -4689,6 +4792,7 @@ function renderStudentReportSection(s){
 function downloadReportText(){
   const data = state.reportData;
   if(!data) return;
+  if(data.kind === 'paper'){ downloadPaperReportText(data); return; }
   const periodLabel = (data.from || data.to) ? `${data.from ? fmtDate(data.from) : 'Start'} - ${data.to ? fmtDate(data.to) : 'Present'}` : 'All time';
   let out = `RESEARCH GROUP LOGBOOK — PROGRESS REPORT\nGenerated ${fmtDate(data.generatedAt)}\nPeriod: ${periodLabel}\n`;
   data.students.forEach(s=>{
@@ -4724,11 +4828,43 @@ function downloadReportText(){
       if(m.outcomeNotes) out += `  Notes: ${m.outcomeNotes}\n`;
     });
   });
-  const blob = new Blob([out], {type:'text/plain'});
+  downloadTextBlob(out, `progress-report-${todayStr()}.txt`);
+}
+function downloadPaperReportText(data){
+  const p = data.paper;
+  if(!p) return;
+  let out = `RESEARCH GROUP LOGBOOK — PAPER REPORT\nGenerated ${fmtDate(data.generatedAt)}\nResearch Scholar: ${studentName(p.studentId)}\n`;
+  out += `\n${'='.repeat(60)}\n${p.title}\n${'='.repeat(60)}\n`;
+  out += `Target journal: ${p.targetJournal||'—'} | Stage: ${p.stage}${p.pendingStage?` (proposed: ${p.pendingStage})`:''}${p.targetDate?` | Target date: ${fmtDate(p.targetDate)}`:''}\n`;
+  if(p.manuscriptLink) out += `Manuscript / draft: ${p.manuscriptLink}\n`;
+  if(p.notes) out += `Notes: ${p.notes}\n`;
+  if(p.supervisorNote) out += `Supervisor note: ${p.supervisorNote}\n`;
+
+  out += `\n-- Reference Links --\n`;
+  const refLinks = p.referenceLinks || [];
+  if(refLinks.length===0) out += `(none added)\n`;
+  refLinks.forEach(l=>{ out += `${l.label||'—'}: ${l.url}\n`; });
+
+  out += `\n-- Consolidated Weekly Updates --\n`;
+  if(data.weekly.length===0) out += `(no weekly plans linked to this paper yet)\n`;
+  data.weekly.forEach(w=>{ out += `[Week of ${fmtDate(w.weekStart)}]\n${w.workDone}\n\n`; });
+
+  out += `\n-- Sample Prep & Fabrication Linked to This Paper --\n`;
+  if(data.fabrication.length===0) out += `(none linked)\n`;
+  data.fabrication.forEach(it=>{ out += `${it.itemName} | Stage: ${(FABRICATION_STAGES[it.stage]||{label:it.stage}).label} | Started: ${it.startDate?fmtDate(it.startDate):'—'} | Target: ${it.targetDate?fmtDate(it.targetDate):'—'}\n`; });
+
+  out += `\n-- Thesis Chapters Linked to This Paper --\n`;
+  if(data.thesisLinks.length===0) out += `(none linked)\n`;
+  data.thesisLinks.forEach(t=>{ out += `${t.thesisTitle} — ${t.chapterTitle} | Status: ${t.status}\n`; });
+
+  downloadTextBlob(out, `paper-report-${todayStr()}.txt`);
+}
+function downloadTextBlob(text, filename){
+  const blob = new Blob([text], {type:'text/plain'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `progress-report-${todayStr()}.txt`;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
