@@ -151,34 +151,83 @@
 
   /* ---------- Dashboard cards ---------- */
   .stat-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(168px,1fr)); gap:14px; margin-bottom:30px; }
-  .stat-grid.compact{ grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:12px; margin-bottom:22px; }
+  .stat-grid.compact{ grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:12px; margin-bottom:22px; }
   .stat-card{ background:var(--surface); border:1px solid var(--border); border-top:3px solid var(--border-strong); border-radius:var(--radius); padding:17px 19px; box-shadow:var(--shadow-sm); transition:box-shadow .15s, transform .15s; }
-  .stat-card:hover{ box-shadow:var(--shadow-md); transform:translateY(-1px); }
-  .stat-card.compact{ padding:13px 15px; }
-  .stat-card.compact .stat-num{ font-size:22px; }
+  .stat-card:hover{ box-shadow:var(--shadow-md); transform:translateY(-2px); }
+  .stat-card.compact{ padding:14px 16px; }
+  .stat-card.compact .stat-num{ font-size:23px; }
   .stat-card.compact .stat-label{ font-size:11px; margin-top:2px; }
   .stat-num{ font-size:27px; font-weight:700; letter-spacing:-0.02em; color:var(--ink); }
   .stat-label{ font-size:12px; color:var(--ink-soft); margin-top:3px; font-weight:500; display:flex; align-items:center; gap:6px; }
-  .stat-label .dot{ width:6px; height:6px; border-radius:50%; flex-shrink:0; }
-  .stat-card.warn{ border-top-color:var(--danger); }
-  .stat-card.warn .stat-num{ color:var(--danger); }
-  .stat-card.ok{ border-top-color:var(--success); }
-  .stat-card.ok .stat-num{ color:var(--success); }
-  .stat-card.accent-blue{ border-top-color:var(--stat-blue); }
+  .stat-label .dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; box-shadow:0 0 0 3px rgba(0,0,0,0.04); }
+  /* Category accents — tinted background + colored number, applied first so urgency (warn/ok) can override below */
+  .stat-card.accent-blue{ background:linear-gradient(180deg, var(--stat-blue-wash) 0%, var(--surface) 100%); border-top-color:var(--stat-blue); }
+  .stat-card.accent-blue .stat-num{ color:var(--stat-blue); }
   .stat-card.accent-blue .dot{ background:var(--stat-blue); }
-  .stat-card.accent-purple{ border-top-color:var(--stat-purple); }
+  .stat-card.accent-purple{ background:linear-gradient(180deg, var(--stat-purple-wash) 0%, var(--surface) 100%); border-top-color:var(--stat-purple); }
+  .stat-card.accent-purple .stat-num{ color:var(--stat-purple); }
   .stat-card.accent-purple .dot{ background:var(--stat-purple); }
-  .stat-card.accent-teal{ border-top-color:var(--stat-teal); }
+  .stat-card.accent-teal{ background:linear-gradient(180deg, var(--stat-teal-wash) 0%, var(--surface) 100%); border-top-color:var(--stat-teal); }
+  .stat-card.accent-teal .stat-num{ color:var(--stat-teal); }
   .stat-card.accent-teal .dot{ background:var(--stat-teal); }
-  .stat-card.accent-indigo{ border-top-color:var(--stat-indigo); }
+  .stat-card.accent-indigo{ background:linear-gradient(180deg, var(--stat-indigo-wash) 0%, var(--surface) 100%); border-top-color:var(--stat-indigo); }
+  .stat-card.accent-indigo .stat-num{ color:var(--stat-indigo); }
   .stat-card.accent-indigo .dot{ background:var(--stat-indigo); }
+  /* Urgency state — wins over category tint when both are present (defined after accents on purpose) */
+  .stat-card.warn{ background:linear-gradient(180deg, var(--danger-wash) 0%, var(--surface) 100%); border-top-color:var(--danger); }
+  .stat-card.warn .stat-num{ color:var(--danger); }
   .stat-card.warn .dot{ background:var(--danger); }
+  .stat-card.ok{ background:linear-gradient(180deg, var(--success-wash) 0%, var(--surface) 100%); border-top-color:var(--success); }
+  .stat-card.ok .stat-num{ color:var(--success); }
   .stat-card.ok .dot{ background:var(--success); }
 
   .panel-title{ font-size:12.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); font-weight:600; margin:0 0 8px; display:flex; align-items:center; gap:7px; }
   .panel-title .dot{ width:7px; height:7px; border-radius:50%; }
   .two-col-panels{ display:grid; grid-template-columns:1.3fr 1fr; gap:18px; align-items:start; }
   .compact-card{ padding:8px 16px; margin-bottom:0; }
+
+  /* ---------- Calendar & Planner ---------- */
+  .cal-header{ display:flex; align-items:center; justify-content:space-between; margin:18px 0 10px; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:6px; }
+  .cal-grid-labels{ margin-bottom:4px; }
+  .cal-day-label{ text-align:center; font-size:11px; font-weight:600; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.04em; }
+  .cal-day{ min-height:70px; border:1px solid var(--border); border-radius:7px; padding:6px 7px; background:var(--surface); cursor:pointer; transition:box-shadow .12s, border-color .12s; }
+  .cal-day:hover{ box-shadow:var(--shadow-sm); border-color:var(--border-strong); }
+  .cal-day.other-month{ visibility:hidden; }
+  .cal-day.today{ border-color:var(--navy); box-shadow:inset 0 0 0 1px var(--navy); }
+  .cal-day-num{ font-size:12.5px; font-weight:600; color:var(--ink); }
+  .cal-dots{ display:flex; gap:3px; margin-top:6px; flex-wrap:wrap; }
+  .cal-dot{ width:6px; height:6px; border-radius:50%; display:inline-block; flex-shrink:0; }
+  .cal-dot.indigo{ background:var(--stat-indigo); }
+  .cal-dot.purple{ background:var(--stat-purple); }
+  .cal-dot.teal{ background:var(--stat-teal); }
+  .cal-dot.blue{ background:var(--stat-blue); }
+  .cal-legend{ display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--ink-soft); margin:10px 0 24px; }
+  .cal-legend span{ display:flex; align-items:center; gap:6px; }
+
+  .planner-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:10px; margin-bottom:30px; }
+  .planner-day{ background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px; min-height:130px; display:flex; flex-direction:column; gap:6px; }
+  .planner-day.today{ border-color:var(--navy); box-shadow:inset 0 0 0 1px var(--navy); }
+  .planner-day-head{ font-size:11.5px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em; display:flex; justify-content:space-between; }
+  .planner-evt{ font-size:11px; padding:3px 6px; border-radius:5px; background:var(--neutral-wash); color:var(--ink-soft); }
+  .planner-evt.indigo{ background:var(--stat-indigo-wash); color:var(--stat-indigo); }
+  .planner-evt.purple{ background:var(--stat-purple-wash); color:var(--stat-purple); }
+  .planner-evt.teal{ background:var(--stat-teal-wash); color:var(--stat-teal); }
+  .planner-task{ display:flex; align-items:center; gap:6px; font-size:12.5px; }
+  .planner-task input{ flex-shrink:0; }
+  .planner-task span{ flex:1; word-break:break-word; }
+  .planner-task-del{ background:none; border:none; color:var(--ink-faint); font-size:14px; cursor:pointer; padding:0 3px; line-height:1; }
+  .planner-task-del:hover{ color:var(--danger); }
+  .planner-add-btn{ margin-top:auto; background:none; border:1px dashed var(--border-strong); border-radius:6px; padding:5px; font-size:11.5px; color:var(--ink-soft); cursor:pointer; }
+  .planner-add-btn:hover{ border-color:var(--navy); color:var(--navy); }
+
+  @media (max-width: 860px){
+    .planner-grid{ grid-template-columns:repeat(2,1fr); }
+  }
+  @media (max-width: 480px){
+    .cal-day-num{ font-size:11px; }
+    .cal-day{ min-height:50px; padding:4px; }
+  }
 
   .feed-item{ display:flex; gap:12px; padding:13px 0; border-bottom:1px solid var(--border); }
   .feed-item.compact{ padding:8px 0; gap:10px; }
@@ -311,9 +360,19 @@ const state = {
   meetings: [],
   coSupervisors: [],
   readings: [],
+  proposals: [],
+  conferences: [],
+  plannerTasks: [],
+  thesisPlans: [],
+  racReviews: [],
+  financialApps: [],
+  courses: [],
+  calendarMonth: null,
+  plannerWeekStart: null,
   view: 'overview',
   filterStudentId: 'all',
   filterMeetingType: 'all',
+  filterWeeklyStatus: 'all',
   loginRole: null,
   loginPickId: null,
   supervisorPinHash: null, // null = no supervisor passcode set yet
@@ -326,6 +385,12 @@ const state = {
 };
 
 const MEETING_TYPES = ['Weekly Review','Monthly Presentation','Topic Discussion','Other'];
+const CONFERENCE_TYPES = ['Conference','Workshop','Symposium','Seminar','Summer School','Other'];
+const CONFERENCE_ROLES = ['Attendee','Poster Presentation','Oral Presentation','Invited Talk'];
+const FINANCIAL_TYPES = ['Visiting Position','Travel Grant','Fellowship','Scholarship','Conference Funding','Other'];
+const FINANCIAL_OUTCOMES = { awaiting_result:{label:'Awaiting Result', cls:'warn'}, awarded:{label:'Awarded', cls:'good'}, not_awarded:{label:'Not Awarded', cls:'bad'} };
+const COURSE_TYPES = ['Course','Certification','Workshop','Training Program','MOOC','Other'];
+const COURSE_STATUSES = { not_started:{label:'Not Started', cls:'neutral'}, in_progress:{label:'In Progress', cls:'warn'}, completed:{label:'Completed', cls:'good'} };
 
 const TECHNIQUES = ['CV (Cyclic Voltammetry)','GCD (Galvanostatic Charge-Discharge)','Battery Testing','Cycling Test','EIS (Impedance Spectroscopy)','XRD','SEM','TEM','TGA/DSC','NMR','UV-Vis','FTIR','BET (Surface Area)','XPS','Raman','GC-MS','Other'];
 const PAPER_STAGES = ['Planning','Drafting','Internal Review','Submitted','Under Review','Revisions Requested','Accepted','Published'];
@@ -379,11 +444,37 @@ async function apiSetRaw(key, value){
 }
 async function apiNotify(type, payload){
   try{
-    await fetch(DATA_API_URL, {
+    const res = await fetch(DATA_API_URL, {
       method: 'POST',
       body: JSON.stringify({ action:'notify', type, payload, appKey: APP_KEY })
     });
-  }catch(e){ console.error('Notification failed to send', type, e); }
+    const json = await res.json().catch(()=>({}));
+    if(!json.ok){ console.error('Notification failed (backend reported an error):', type, json.error); }
+  }catch(e){ console.error('Notification failed to send (network/fetch error)', type, e); }
+}
+async function apiTestEmail(to){
+  try{
+    const res = await fetch(DATA_API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'testEmail', to, appKey: APP_KEY })
+    });
+    const json = await res.json().catch(()=>({}));
+    if(json.ok){
+      alert(`Test email sent to ${to}. Check that inbox (and its spam folder).${json.remainingQuota!==undefined ? '\n\nRemaining daily send quota: ' + json.remainingQuota : ''}`);
+    } else {
+      alert(`Test email failed to send.\n\nError: ${json.error || 'Unknown error'}${json.remainingQuota!==undefined ? '\nRemaining daily send quota: ' + json.remainingQuota : ''}\n\nOpen the Apps Script editor → Executions (left sidebar) for the full error detail.`);
+    }
+  }catch(e){
+    alert('Could not reach the backend to send a test email: ' + e.message);
+  }
+}
+function testMyEmail(){
+  let email = null;
+  if(state.identity.role === 'student'){ const me = state.students.find(x=>x.id===state.identity.id); email = me?.email; }
+  else if(state.identity.role === 'cosupervisor'){ const me = myCoSupervisorRecord(); email = me?.email; }
+  else { email = state.supervisorEmail; }
+  if(!email){ alert('No email is set on your account yet — add one first.'); return; }
+  apiTestEmail(email);
 }
 function isValidEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v||'').trim()); }
 
@@ -417,7 +508,7 @@ async function init(){
   }
   renderLoginLoading();
   try{
-    const [students, weekly, samples, papers, instructions, meetings, coSupervisors, readings, supervisorProfile] = await Promise.all([
+    const [students, weekly, samples, papers, instructions, meetings, coSupervisors, readings, proposals, conferences, plannerTasks, thesisPlans, racReviews, financialApps, courses, supervisorProfile] = await Promise.all([
       loadCollection('students'),
       loadCollection('weekly-reports'),
       loadCollection('samples'),
@@ -426,6 +517,13 @@ async function init(){
       loadCollection('meetings'),
       loadCollection('co-supervisors'),
       loadCollection('readings'),
+      loadCollection('proposals'),
+      loadCollection('conferences'),
+      loadCollection('planner-tasks'),
+      loadCollection('thesis-plans'),
+      loadCollection('rac-reviews'),
+      loadCollection('financial-applications'),
+      loadCollection('courses'),
       loadSupervisorProfile()
     ]);
     state.students = students;
@@ -436,6 +534,13 @@ async function init(){
     state.meetings = meetings;
     state.coSupervisors = coSupervisors;
     state.readings = readings;
+    state.proposals = proposals;
+    state.conferences = conferences;
+    state.plannerTasks = plannerTasks;
+    state.thesisPlans = thesisPlans;
+    state.racReviews = racReviews;
+    state.financialApps = financialApps;
+    state.courses = courses;
     state.supervisorPinHash = supervisorProfile.hash || null;
     state.supervisorEmail = supervisorProfile.email || null;
     renderLogin();
@@ -747,9 +852,16 @@ function showApp(){
 
 const NAV_ITEMS = [
   { key:'overview', label:'Overview' },
+  { key:'calendar', label:'Calendar & Planner' },
+  { key:'proposal', label:'Proposal & Work Plan' },
+  { key:'thesis', label:'Thesis Plan' },
+  { key:'rac', label:'RAC Reviews' },
   { key:'weekly', label:'Weekly Progress' },
   { key:'samples', label:'Characterization' },
   { key:'papers', label:'Paper Pipeline' },
+  { key:'conferences', label:'Conferences' },
+  { key:'financial', label:'Visiting & Financial Support' },
+  { key:'learning', label:'Learning & Courses' },
   { key:'meetings', label:'Meetings' },
   { key:'instructions', label:'Instructions' },
   { key:'reports', label:'Reports' },
@@ -767,9 +879,16 @@ function goView(key){ state.view = key; renderSidebar(); renderView(); }
 function renderView(){
   const main = document.getElementById('main');
   if(state.view==='overview') main.innerHTML = viewOverview();
+  else if(state.view==='calendar') main.innerHTML = viewCalendar();
+  else if(state.view==='proposal') main.innerHTML = viewProposal();
+  else if(state.view==='thesis') main.innerHTML = viewThesis();
+  else if(state.view==='rac') main.innerHTML = viewRac();
   else if(state.view==='weekly') main.innerHTML = viewWeekly();
   else if(state.view==='samples') main.innerHTML = viewSamples();
   else if(state.view==='papers') main.innerHTML = viewPapers();
+  else if(state.view==='conferences') main.innerHTML = viewConferences();
+  else if(state.view==='financial') main.innerHTML = viewFinancial();
+  else if(state.view==='learning') main.innerHTML = viewLearning();
   else if(state.view==='meetings') main.innerHTML = viewMeetings();
   else if(state.view==='instructions') main.innerHTML = viewInstructions();
   else if(state.view==='reports') main.innerHTML = viewReports();
@@ -915,6 +1034,34 @@ function viewOverview(){
   const upcoming = meetings.filter(m=> (m.status==='proposed'||m.status==='confirmed') && m.plannedDate >= todayStr())
     .sort((a,b)=> a.plannedDate.localeCompare(b.plannedDate)).slice(0,5);
 
+  // Progress status breakdown across every approval-gated item in view
+  const proposalsList = scopedList(state.proposals);
+  const conferencesList = scopedList(state.conferences);
+  const statusCounts = { approved:0, pending:0, changes_requested:0 };
+  weekly.forEach(w=>{ statusCounts[w.status] = (statusCounts[w.status]||0) + 1; });
+  samples.forEach(s=>{ statusCounts[s.approvalStatus] = (statusCounts[s.approvalStatus]||0) + 1; });
+  proposalsList.forEach(pr=>{ statusCounts[pr.status] = (statusCounts[pr.status]||0) + 1; });
+  conferencesList.forEach(c=>{ statusCounts[c.approvalStatus] = (statusCounts[c.approvalStatus]||0) + 1; });
+  papers.forEach(p=>{ statusCounts[p.pendingStage ? 'pending' : 'approved'] += 1; });
+
+  // Meeting timeline — last 6 months, counts by month
+  const monthKeys = [];
+  for(let i=5;i>=0;i--){
+    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-i);
+    monthKeys.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));
+  }
+  const meetingsByMonth = monthKeys.map(key => ({
+    key,
+    label: new Date(key+'-01T00:00:00').toLocaleDateString('en-GB',{month:'short'}),
+    count: meetings.filter(m=>m.plannedDate && m.plannedDate.slice(0,7)===key).length
+  }));
+  const meetingStats = {
+    total: meetings.length,
+    upcoming: meetings.filter(m=>(m.status==='proposed'||m.status==='confirmed') && m.plannedDate>=todayStr()).length,
+    completed: meetings.filter(m=>m.status==='completed').length,
+    cancelled: meetings.filter(m=>m.status==='cancelled').length
+  };
+
   const feed = [
     ...weekly.map(w=>({ type:'Weekly', date:w.weekStart, text:`<b>${escapeHtml(studentName(w.studentId))}</b> logged progress — week of ${fmtDate(w.weekStart)}` , sortDate:w.weekStart})),
     ...samples.map(s=>({ type:'Sample', date:s.submittedDate, text:`<b>${escapeHtml(studentName(s.studentId))}</b> submitted <b>${escapeHtml(s.sampleName)}</b> (${escapeHtml(s.technique)})${s.resultsReceivedDate? ' — results in':''}`, sortDate: s.resultsReceivedDate || s.submittedDate})),
@@ -948,6 +1095,21 @@ function viewOverview(){
 
     <div class="two-col-panels">
       <div>
+        <h3 class="panel-title"><span class="dot" style="background:var(--stat-purple);"></span>Progress status</h3>
+        <div class="entry-card compact-card">
+          ${renderStatusPie(statusCounts)}
+        </div>
+      </div>
+      <div>
+        <h3 class="panel-title"><span class="dot" style="background:var(--stat-indigo);"></span>Meeting timeline</h3>
+        <div class="entry-card compact-card">
+          ${renderMeetingTimeline(meetingStats, meetingsByMonth)}
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col-panels">
+      <div>
         <h3 class="panel-title"><span class="dot" style="background:var(--navy);"></span>Recent activity</h3>
         <div class="entry-card compact-card">
           ${feed.length===0 ? `<div class="empty-state"><div class="em-title">The logbook is empty</div><div class="em-sub">Once progress, samples, or papers are logged, they'll show up here.</div></div>` :
@@ -973,6 +1135,66 @@ function viewOverview(){
   `;
 }
 
+function renderStatusPie(counts){
+  const total = counts.approved + counts.pending + counts.changes_requested;
+  if(total === 0){
+    return `<div class="empty-state"><div class="em-title">Nothing to show yet</div><div class="em-sub">Once items are submitted, their approval status will appear here.</div></div>`;
+  }
+  const segments = [
+    { key:'approved', label:'Approved', color:'var(--success)', count: counts.approved },
+    { key:'pending', label:'Pending Approval', color:'var(--warning)', count: counts.pending },
+    { key:'changes_requested', label:'Changes Requested', color:'var(--danger)', count: counts.changes_requested }
+  ];
+  let acc = 0;
+  const stops = segments.map(seg=>{
+    const pct = (seg.count/total)*100;
+    const start = acc;
+    acc += pct;
+    return `${seg.color} ${start}% ${acc}%`;
+  }).join(', ');
+  return `
+    <div style="display:flex; align-items:center; gap:22px; flex-wrap:wrap;">
+      <div style="position:relative; width:130px; height:130px; flex-shrink:0;">
+        <div style="width:100%; height:100%; border-radius:50%; background:conic-gradient(${stops});"></div>
+        <div style="position:absolute; inset:18px; border-radius:50%; background:var(--surface); display:flex; flex-direction:column; align-items:center; justify-content:center;">
+          <div style="font-size:22px; font-weight:700; color:var(--ink); line-height:1;">${total}</div>
+          <div style="font-size:10px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.04em; margin-top:2px;">Total items</div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px; flex:1; min-width:160px;">
+        ${segments.map(seg=>`
+          <div style="display:flex; align-items:center; gap:8px; font-size:13px;">
+            <span style="width:9px; height:9px; border-radius:50%; background:${seg.color}; flex-shrink:0;"></span>
+            <span style="flex:1; color:var(--ink-soft);">${seg.label}</span>
+            <span style="font-weight:700; color:var(--ink);">${seg.count}</span>
+            <span class="entry-meta" style="width:38px; text-align:right;">${total? Math.round((seg.count/total)*100):0}%</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+function renderMeetingTimeline(stats, byMonth){
+  const maxCount = Math.max(1, ...byMonth.map(m=>m.count));
+  return `
+    <div class="stat-grid compact" style="margin-bottom:16px; grid-template-columns:repeat(4,1fr);">
+      <div class="stat-card compact accent-indigo"><div class="stat-num">${stats.total}</div><div class="stat-label"><span class="dot"></span>Total</div></div>
+      <div class="stat-card compact accent-blue"><div class="stat-num">${stats.upcoming}</div><div class="stat-label"><span class="dot"></span>Upcoming</div></div>
+      <div class="stat-card compact ok"><div class="stat-num">${stats.completed}</div><div class="stat-label"><span class="dot"></span>Completed</div></div>
+      <div class="stat-card compact ${stats.cancelled>0?'warn':''}"><div class="stat-num">${stats.cancelled}</div><div class="stat-label"><span class="dot"></span>Cancelled</div></div>
+    </div>
+    <div class="entry-meta" style="margin-bottom:8px;">Meetings scheduled per month (last 6 months)</div>
+    <div style="display:flex; align-items:flex-end; gap:10px; height:90px;">
+      ${byMonth.map(m=>`
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; justify-content:flex-end;">
+          <div class="entry-meta mono" style="font-size:11px;">${m.count||''}</div>
+          <div style="width:100%; max-width:34px; height:${Math.max(4, (m.count/maxCount)*64)}px; background:var(--stat-indigo); border-radius:4px 4px 0 0; opacity:${m.count===0?0.25:1};"></div>
+          <div class="entry-meta" style="font-size:11px;">${m.label}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
 function studentSummaryTable(){
   const visible = visibleStudentsForIdentity();
   if(visible.length===0) return '';
@@ -1033,6 +1255,7 @@ function accessSection(){
         <div class="entry-actions">
           <button class="small-btn" onclick="openChangePinModal()">Change my PIN</button>
           <button class="small-btn" onclick="openChangeStudentEmailModal()">Change my email</button>
+          <button class="small-btn" onclick="testMyEmail()">Send test email</button>
         </div>
       </div>
       ${backupSection()}
@@ -1053,6 +1276,7 @@ function accessSection(){
         <div class="entry-actions">
           <button class="small-btn" onclick="openChangeCoSupPinModal()">Change my PIN</button>
           <button class="small-btn" onclick="openChangeCoSupEmailModal()">Change my email</button>
+          <button class="small-btn" onclick="testMyEmail()">Send test email</button>
         </div>
       </div>
       ${backupSection()}
@@ -1075,6 +1299,7 @@ function accessSection(){
       <div class="entry-actions">
         <button class="small-btn" onclick="openChangeSupervisorPinModal()">Change supervisor passcode</button>
         <button class="small-btn" onclick="openChangeSupervisorEmailModal()">Update my email</button>
+        <button class="small-btn" onclick="testMyEmail()">Send test email</button>
       </div>
     </div>
     ${coSupervisorAdminSection()}
@@ -1255,7 +1480,14 @@ function downloadBackup(){
     students: visible.map(s=>({id:s.id, name:s.name, email:s.email||''})),
     weeklyReports: scopedList(state.weekly),
     samples: scopedList(state.samples),
-    papers: scopedList(state.papers)
+    papers: scopedList(state.papers),
+    proposals: scopedList(state.proposals),
+    conferences: scopedList(state.conferences),
+    plannerTasks: scopedList(state.plannerTasks),
+    thesisPlans: scopedList(state.thesisPlans),
+    racReviews: scopedList(state.racReviews),
+    financialApps: scopedList(state.financialApps),
+    courses: scopedList(state.courses)
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
   const url = URL.createObjectURL(blob);
@@ -1287,11 +1519,25 @@ function handleRestoreFile(event){
     state.weekly = parsed.weeklyReports;
     state.samples = parsed.samples;
     state.papers = parsed.papers;
+    state.proposals = Array.isArray(parsed.proposals) ? parsed.proposals : state.proposals;
+    state.conferences = Array.isArray(parsed.conferences) ? parsed.conferences : state.conferences;
+    state.plannerTasks = Array.isArray(parsed.plannerTasks) ? parsed.plannerTasks : state.plannerTasks;
+    state.thesisPlans = Array.isArray(parsed.thesisPlans) ? parsed.thesisPlans : state.thesisPlans;
+    state.racReviews = Array.isArray(parsed.racReviews) ? parsed.racReviews : state.racReviews;
+    state.financialApps = Array.isArray(parsed.financialApps) ? parsed.financialApps : state.financialApps;
+    state.courses = Array.isArray(parsed.courses) ? parsed.courses : state.courses;
     await Promise.all([
       saveCollection('students', state.students),
       saveCollection('weekly-reports', state.weekly),
       saveCollection('samples', state.samples),
-      saveCollection('papers', state.papers)
+      saveCollection('papers', state.papers),
+      saveCollection('proposals', state.proposals),
+      saveCollection('conferences', state.conferences),
+      saveCollection('planner-tasks', state.plannerTasks),
+      saveCollection('thesis-plans', state.thesisPlans),
+      saveCollection('rac-reviews', state.racReviews),
+      saveCollection('financial-applications', state.financialApps),
+      saveCollection('courses', state.courses)
     ]);
     event.target.value = '';
     alert('Restore complete.');
@@ -1392,9 +1638,1216 @@ async function submitChangeSupervisorEmail(){
   closeModal(); renderView();
 }
 
+/* ============================ CALENDAR & WEEKLY PLANNER ============================ */
+function ymOf(dateStr){ return dateStr.slice(0,7); }
+function shiftMonth(ymStr, delta){
+  const [y,m] = ymStr.split('-').map(Number);
+  const d = new Date(y, m-1+delta, 1);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
+function monthLabel(ymStr){
+  const [y,m] = ymStr.split('-').map(Number);
+  return new Date(y, m-1, 1).toLocaleDateString('en-GB', { month:'long', year:'numeric' });
+}
+function buildMonthCells(ymStr){
+  const [y,m] = ymStr.split('-').map(Number);
+  const first = new Date(y, m-1, 1);
+  const firstDow = (first.getDay()+6)%7; // Monday = 0
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const cells = [];
+  for(let i=0;i<firstDow;i++) cells.push(null);
+  for(let d=1; d<=daysInMonth; d++) cells.push(`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+  while(cells.length % 7 !== 0) cells.push(null);
+  return cells;
+}
+function mondayOf(dateStr){
+  const d = new Date(dateStr+'T00:00:00');
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day===0?-6:1);
+  return new Date(d.setDate(diff)).toISOString().slice(0,10);
+}
+function shiftDate(dateStr, days){
+  const d = new Date(dateStr+'T00:00:00');
+  d.setDate(d.getDate()+days);
+  return d.toISOString().slice(0,10);
+}
+function weekDates(monday){
+  const out = [];
+  for(let i=0;i<7;i++) out.push(shiftDate(monday, i));
+  return out;
+}
+function eventsForDate(dateStr){
+  const out = [];
+  scopedList(state.meetings).forEach(m=>{ if(m.plannedDate===dateStr) out.push({ type:'meeting', label:`${m.type}: ${m.title}`, cls:'indigo' }); });
+  scopedList(state.conferences).forEach(c=>{
+    const end = c.endDate || c.startDate;
+    if(c.startDate<=dateStr && dateStr<=end) out.push({ type:'conference', label:c.eventName, cls:'purple' });
+  });
+  scopedList(state.proposals).forEach(pr=>{
+    (pr.goals||[]).forEach(g=>{ if(g.targetDate===dateStr) out.push({ type:'goal', label:g.text, cls:'teal' }); });
+  });
+  scopedList(state.plannerTasks).forEach(t=>{ if(t.date===dateStr) out.push({ type:'task', label:t.text, cls:'blue' }); });
+  return out;
+}
+function viewCalendar(){
+  if(!state.calendarMonth) state.calendarMonth = todayStr().slice(0,7);
+  if(!state.plannerWeekStart) state.plannerWeekStart = getMondayStr();
+  const cells = buildMonthCells(state.calendarMonth);
+  const weekdayLabels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Calendar &amp; Weekly Planner</div>
+        <div class="view-sub">All scheduled meetings, conferences, and goal deadlines at a glance — plus a day-by-day planner for the week ahead.</div>
+      </div>
+    </div>
+    ${supervisorFilterBar()}
+    <div class="cal-header">
+      <button class="small-btn" onclick="shiftCalendarMonth(-1)">‹ Prev</button>
+      <h3 class="panel-title" style="margin:0;"><span class="dot" style="background:var(--navy);"></span>${monthLabel(state.calendarMonth)}</h3>
+      <button class="small-btn" onclick="shiftCalendarMonth(1)">Next ›</button>
+    </div>
+    <div class="cal-grid cal-grid-labels">
+      ${weekdayLabels.map(l=>`<div class="cal-day-label">${l}</div>`).join('')}
+    </div>
+    <div class="cal-grid">
+      ${cells.map(dateStr=>{
+        if(!dateStr) return `<div class="cal-day other-month"></div>`;
+        const evts = eventsForDate(dateStr);
+        const isToday = dateStr === todayStr();
+        const dayNum = parseInt(dateStr.slice(8,10),10);
+        return `<div class="cal-day ${isToday?'today':''}" onclick="jumpToWeekOf('${dateStr}')" title="${evts.length} item(s)">
+          <div class="cal-day-num">${dayNum}</div>
+          <div class="cal-dots">${evts.slice(0,5).map(e=>`<span class="cal-dot ${e.cls}" title="${escapeHtml(e.label)}"></span>`).join('')}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="cal-legend">
+      <span><span class="cal-dot indigo"></span> Meetings</span>
+      <span><span class="cal-dot purple"></span> Conferences</span>
+      <span><span class="cal-dot teal"></span> Goal deadlines</span>
+      <span><span class="cal-dot blue"></span> Planner tasks</span>
+    </div>
+    <div class="entry-meta" style="margin-bottom:10px;">Click any day to jump the planner below to that week.</div>
+
+    ${weeklyPlannerPanel()}
+  `;
+}
+function shiftCalendarMonth(delta){ state.calendarMonth = shiftMonth(state.calendarMonth, delta); renderView(); }
+function jumpToWeekOf(dateStr){
+  state.plannerWeekStart = mondayOf(dateStr);
+  renderView();
+  document.getElementById('weeklyPlannerPanel')?.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+function weeklyPlannerPanel(){
+  const dates = weekDates(state.plannerWeekStart);
+  const canAdd = state.identity.role==='student';
+  return `
+    <div id="weeklyPlannerPanel" style="margin-top:8px;">
+      <div class="cal-header">
+        <button class="small-btn" onclick="shiftPlannerWeek(-1)">‹ Prev week</button>
+        <h3 class="panel-title" style="margin:0;"><span class="dot" style="background:var(--stat-blue);"></span>Weekly Planner — ${fmtDate(dates[0])} to ${fmtDate(dates[6])}</h3>
+        <button class="small-btn" onclick="shiftPlannerWeek(1)">Next week ›</button>
+      </div>
+      <div class="planner-grid">
+        ${dates.map(dateStr=>plannerDayCard(dateStr, canAdd)).join('')}
+      </div>
+      ${!canAdd ? `<div class="entry-meta">Only the student can add planner tasks for themselves — you're viewing in read-only mode.</div>` : ''}
+    </div>
+  `;
+}
+function shiftPlannerWeek(deltaWeeks){ state.plannerWeekStart = shiftDate(state.plannerWeekStart, deltaWeeks*7); renderView(); }
+function plannerDayCard(dateStr, canAdd){
+  const dayName = new Date(dateStr+'T00:00:00').toLocaleDateString('en-GB', { weekday:'short' });
+  const dayNum = parseInt(dateStr.slice(8,10),10);
+  const isToday = dateStr === todayStr();
+  const tasks = scopedList(state.plannerTasks).filter(t=>t.date===dateStr);
+  const evts = eventsForDate(dateStr).filter(e=>e.type!=='task');
+  return `
+    <div class="planner-day ${isToday?'today':''}">
+      <div class="planner-day-head">${dayName} <span class="mono">${dayNum}</span></div>
+      ${evts.map(e=>`<div class="planner-evt ${e.cls}">${escapeHtml(e.label)}</div>`).join('')}
+      ${tasks.map(t=>`
+        <label class="planner-task">
+          <input type="checkbox" ${t.done?'checked':''} onchange="togglePlannerTask('${t.id}')">
+          <span style="${t.done?'text-decoration:line-through; color:var(--ink-faint);':''}">${escapeHtml(t.text)}</span>
+          <button class="planner-task-del" onclick="deletePlannerTask('${t.id}')">&times;</button>
+        </label>
+      `).join('')}
+      ${canAdd ? `<button class="planner-add-btn" onclick="openAddPlannerTaskModal('${dateStr}')">+ Add task</button>` : ''}
+    </div>
+  `;
+}
+function openAddPlannerTaskModal(dateStr){
+  showModal(`Add task — ${fmtDate(dateStr)}`, `
+    <label class="field-label">Task</label>
+    <input class="text-input" id="f_taskText" placeholder="e.g. Run EIS on Batch-3 sample">
+  `, ()=>submitAddPlannerTask(dateStr));
+}
+async function submitAddPlannerTask(dateStr){
+  const text = document.getElementById('f_taskText').value.trim();
+  if(!text){ alert('Please add a task.'); return; }
+  state.plannerTasks.push({ id: uid('task'), studentId: state.identity.id, date: dateStr, text, done:false });
+  await saveCollection('planner-tasks', state.plannerTasks);
+  closeModal(); renderView();
+}
+async function togglePlannerTask(id){
+  const t = state.plannerTasks.find(x=>x.id===id);
+  if(!t) return;
+  t.done = !t.done;
+  await saveCollection('planner-tasks', state.plannerTasks);
+  renderView();
+}
+async function deletePlannerTask(id){
+  state.plannerTasks = state.plannerTasks.filter(x=>x.id!==id);
+  await saveCollection('planner-tasks', state.plannerTasks);
+  renderView();
+}
+
+/* ============================ PROPOSAL & WORK PLAN ============================ */
+function viewProposal(){
+  let list = scopedList(state.proposals).slice().sort((a,b)=> (b.lastUpdate||'').localeCompare(a.lastUpdate||''));
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Proposal &amp; Work Plan</div>
+        <div class="view-sub">Objectives, goals, and methodology for the research — approved by your supervisor.</div>
+      </div>
+      ${state.identity.role==='student' ? `<button class="action-btn" onclick="openProposalModal()">+ New proposal / work plan</button>` : ''}
+    </div>
+    ${supervisorFilterBar()}
+    ${list.length===0 ? emptyState('No proposal or work plan yet', state.identity.role==='student' ? 'Add your research objective, goals, and methodology to start the record.' : 'A work plan will appear here once the student adds one.') : list.map((pr,i)=>proposalCard(pr,i,list.length)).join('')}
+  `;
+}
+function proposalStatusMap(){
+  return {
+    pending: { label:'Pending Approval', cls:'warn' },
+    approved: { label:'Approved', cls:'good' },
+    changes_requested: { label:'Changes Requested', cls:'bad' }
+  };
+}
+function goalRow(pr, g, canEdit, canManage, isOwner){
+  const today = todayStr();
+  const overdue = !g.done && g.targetDate && g.targetDate < today;
+  let progressPct = null;
+  if(g.startDate && g.targetDate && g.targetDate > g.startDate){
+    const start = new Date(g.startDate+'T00:00:00').getTime();
+    const target = new Date(g.targetDate+'T00:00:00').getTime();
+    const now = new Date(today+'T00:00:00').getTime();
+    progressPct = Math.max(0, Math.min(100, Math.round(((now-start)/(target-start))*100)));
+  }
+  const barColor = g.done ? 'var(--success)' : overdue ? 'var(--danger)' : 'var(--stat-blue)';
+  return `
+    <div style="border:1px solid var(--border); border-radius:7px; padding:9px 12px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" ${g.done?'checked':''} ${canManage || isOwner ? '' : 'disabled'} onchange="toggleProposalGoal('${pr.id}','${g.id}')">
+        <span style="flex:1; font-size:13.5px; ${g.done?'text-decoration:line-through; color:var(--ink-faint);':''}">${escapeHtml(g.text)}</span>
+        ${overdue ? `<span class="stamp bad" style="padding:2px 8px; font-size:10px;">Overdue</span>` : ''}
+        ${canEdit ? `<button class="small-btn" style="padding:1px 7px; font-size:11px;" onclick="deleteProposalGoal('${pr.id}','${g.id}')">Remove</button>` : ''}
+      </div>
+      ${(g.startDate || g.targetDate) ? `
+        <div style="display:flex; align-items:center; gap:8px; margin-top:7px;">
+          <span class="entry-meta mono" style="font-size:11px;">${g.startDate ? fmtDate(g.startDate) : '—'} → ${g.targetDate ? fmtDate(g.targetDate) : 'no target date'}</span>
+        </div>
+        ${progressPct!==null ? `
+          <div style="height:5px; border-radius:3px; background:var(--neutral-wash); margin-top:6px; overflow:hidden;">
+            <div style="height:100%; width:${progressPct}%; background:${barColor}; border-radius:3px;"></div>
+          </div>
+        ` : ''}
+      ` : ''}
+    </div>
+  `;
+}
+function proposalCard(pr, i, total){
+  const isOwner = state.identity.role==='student' && pr.studentId===state.identity.id;
+  const canManage = isSupervisorLike();
+  const locked = pr.status === 'approved' && isOwner;
+  const canEdit = canManage || (isOwner && !locked);
+  const canDelete = canEdit;
+  const st = proposalStatusMap()[pr.status] || proposalStatusMap().pending;
+  const goals = pr.goals || [];
+  const doneCount = goals.filter(g=>g.done).length;
+  return `
+    <div class="entry-card">
+      <div class="entry-top">
+        <div>
+          <div class="entry-idx">PR${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(pr.studentId))}</div>
+          <div class="entry-title">${escapeHtml(pr.title)}</div>
+          ${goals.length>0 ? `<div class="entry-meta">${doneCount} of ${goals.length} goals complete</div>` : ''}
+        </div>
+        <span class="stamp ${st.cls}">${st.label}</span>
+      </div>
+      <div class="entry-block"><span class="lbl">Objective</span>${nl2br(pr.objective) || '—'}</div>
+      <div class="entry-block" style="margin-top:10px;">
+        <span class="lbl">Goals / milestones</span>
+        ${goals.length===0 ? `<span class="entry-meta">No goals added yet.</span>` : `
+          <div style="margin-top:6px; display:flex; flex-direction:column; gap:8px;">
+            ${goals.map(g=>goalRow(pr, g, canEdit, canManage, isOwner)).join('')}
+          </div>
+        `}
+        ${canEdit ? `<div class="entry-actions" style="margin-top:8px;"><button class="small-btn" onclick="openAddGoalModal('${pr.id}')">+ Add goal</button></div>` : ''}
+      </div>
+      ${pr.methodology ? `<div class="entry-block" style="margin-top:10px;"><span class="lbl">Methodology</span>${nl2br(pr.methodology)}</div>` : ''}
+      ${pr.expectedOutcomes ? `<div class="entry-block" style="margin-top:10px;"><span class="lbl">Expected outcomes</span>${nl2br(pr.expectedOutcomes)}</div>` : ''}
+      ${pr.supervisorNote ? `<div class="comment-box"><span class="lbl">Supervisor feedback</span><div class="comment-existing">${nl2br(pr.supervisorNote)}</div></div>` : ''}
+      ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved plans are locked — contact your supervisor if this needs to change.</div>` : ''}
+      <div class="entry-actions">
+        ${isSupervisorLike() ? `<button class="small-btn" onclick="openProposalReviewBox('${pr.id}')">Review</button>` : ''}
+        ${canEdit ? `<button class="small-btn" onclick="openEditProposalModal('${pr.id}')">Edit</button>` : ''}
+        ${canDelete ? `<button class="small-btn danger" onclick="deleteProposal('${pr.id}')">Delete</button>` : ''}
+      </div>
+      <div id="proposalReviewSlot-${pr.id}"></div>
+    </div>
+  `;
+}
+function openProposalModal(){
+  showModal('New proposal / work plan', `
+    <label class="field-label">Title</label>
+    <input class="text-input" id="f_prTitle" placeholder="e.g. PhD Work Plan — Year 1">
+    <label class="field-label">Objective</label>
+    <textarea class="text-input" id="f_prObjective" rows="3" placeholder="What is the overall aim of this research?"></textarea>
+    <label class="field-label">Methodology (optional)</label>
+    <textarea class="text-input" id="f_prMethodology" rows="3" placeholder="Approach, techniques, experimental plan..."></textarea>
+    <label class="field-label">Expected outcomes (optional)</label>
+    <textarea class="text-input" id="f_prOutcomes" rows="2" placeholder="What results or deliverables are expected?"></textarea>
+    <div class="view-sub" style="margin-top:8px;">You can add specific goals/milestones after creating this.</div>
+  `, submitProposal);
+}
+async function submitProposal(){
+  const title = document.getElementById('f_prTitle').value.trim();
+  const objective = document.getElementById('f_prObjective').value.trim();
+  const methodology = document.getElementById('f_prMethodology').value.trim();
+  const expectedOutcomes = document.getElementById('f_prOutcomes').value.trim();
+  if(!title || !objective){ alert('Please add a title and objective.'); return; }
+  const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
+  if(!studentId){ alert('Add a student first.'); return; }
+  state.proposals.push({
+    id: uid('pr'), studentId, title, objective, methodology, expectedOutcomes, goals: [],
+    status: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:'', lastUpdate: todayStr()
+  });
+  await saveCollection('proposals', state.proposals);
+  if(!isSupervisorLike()){
+    apiNotify('proposalSubmitted', { studentId, title });
+  }
+  closeModal(); renderView();
+}
+function openEditProposalModal(id){
+  const pr = state.proposals.find(x=>x.id===id);
+  showModal('Edit proposal / work plan', `
+    <label class="field-label">Title</label>
+    <input class="text-input" id="f_editPrTitle" value="${escapeHtml(pr.title)}">
+    <label class="field-label">Objective</label>
+    <textarea class="text-input" id="f_editPrObjective" rows="3">${escapeHtml(pr.objective)}</textarea>
+    <label class="field-label">Methodology (optional)</label>
+    <textarea class="text-input" id="f_editPrMethodology" rows="3">${escapeHtml(pr.methodology||'')}</textarea>
+    <label class="field-label">Expected outcomes (optional)</label>
+    <textarea class="text-input" id="f_editPrOutcomes" rows="2">${escapeHtml(pr.expectedOutcomes||'')}</textarea>
+    ${!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''}
+  `, ()=>submitEditProposal(id));
+}
+async function submitEditProposal(id){
+  const pr = state.proposals.find(x=>x.id===id);
+  const title = document.getElementById('f_editPrTitle').value.trim();
+  const objective = document.getElementById('f_editPrObjective').value.trim();
+  if(!title || !objective){ alert('Please add a title and objective.'); return; }
+  pr.title = title;
+  pr.objective = objective;
+  pr.methodology = document.getElementById('f_editPrMethodology').value.trim();
+  pr.expectedOutcomes = document.getElementById('f_editPrOutcomes').value.trim();
+  pr.lastUpdate = todayStr();
+  if(!isSupervisorLike()){
+    pr.status = 'pending';
+    await saveCollection('proposals', state.proposals);
+    apiNotify('proposalSubmitted', { studentId: pr.studentId, title: pr.title });
+  } else {
+    await saveCollection('proposals', state.proposals);
+  }
+  closeModal(); renderView();
+}
+function openAddGoalModal(prId){
+  showModal('Add goal / milestone', `
+    <label class="field-label">Goal</label>
+    <input class="text-input" id="f_goalText" placeholder="e.g. Complete literature review">
+    <div class="two-col">
+      <div><label class="field-label">Start date (optional)</label>
+        <input type="date" class="text-input" id="f_goalStartDate" value="${todayStr()}">
+      </div>
+      <div><label class="field-label">Target date (optional)</label>
+        <input type="date" class="text-input" id="f_goalDate">
+      </div>
+    </div>
+  `, ()=>submitAddGoal(prId));
+}
+async function submitAddGoal(prId){
+  const text = document.getElementById('f_goalText').value.trim();
+  const startDate = document.getElementById('f_goalStartDate').value;
+  const targetDate = document.getElementById('f_goalDate').value;
+  if(!text){ alert('Please add a goal.'); return; }
+  const pr = state.proposals.find(x=>x.id===prId);
+  if(!pr.goals) pr.goals = [];
+  pr.goals.push({ id: uid('goal'), text, startDate, targetDate, done:false });
+  pr.lastUpdate = todayStr();
+  await saveCollection('proposals', state.proposals);
+  closeModal(); renderView();
+}
+async function toggleProposalGoal(prId, goalId){
+  const pr = state.proposals.find(x=>x.id===prId);
+  const g = (pr.goals||[]).find(x=>x.id===goalId);
+  if(!g) return;
+  g.done = !g.done;
+  await saveCollection('proposals', state.proposals);
+  renderView();
+}
+async function deleteProposalGoal(prId, goalId){
+  const pr = state.proposals.find(x=>x.id===prId);
+  pr.goals = (pr.goals||[]).filter(x=>x.id!==goalId);
+  await saveCollection('proposals', state.proposals);
+  renderView();
+}
+function openProposalReviewBox(id){
+  const pr = state.proposals.find(x=>x.id===id);
+  document.getElementById('proposalReviewSlot-'+id).innerHTML = `
+    <div class="comment-box">
+      <span class="lbl">Feedback (required to request changes)</span>
+      <textarea id="proposalReviewInput-${id}">${escapeHtml(pr.supervisorNote || '')}</textarea>
+      <div class="entry-actions">
+        <button class="small-btn" onclick="reviewProposal('${id}','approved')">Approve</button>
+        <button class="small-btn danger" onclick="reviewProposal('${id}','changes_requested')">Request changes</button>
+      </div>
+    </div>`;
+}
+async function reviewProposal(id, decision){
+  const pr = state.proposals.find(x=>x.id===id);
+  const val = document.getElementById('proposalReviewInput-'+id).value.trim();
+  if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
+  pr.supervisorNote = val;
+  pr.status = decision;
+  await saveCollection('proposals', state.proposals);
+  apiNotify('proposalReviewed', { studentId: pr.studentId, title: pr.title, decision, note: val });
+  renderView();
+}
+async function deleteProposal(id){
+  if(!confirm('Delete this proposal / work plan?')) return;
+  state.proposals = state.proposals.filter(x=>x.id!==id);
+  await saveCollection('proposals', state.proposals);
+  renderView();
+}
+
+/* ============================ THESIS PLAN ============================ */
+function thesisStatusMap(){
+  return {
+    pending: { label:'Pending Approval', cls:'warn' },
+    approved: { label:'Approved', cls:'good' },
+    changes_requested: { label:'Changes Requested', cls:'bad' }
+  };
+}
+function thesisProgress(tp){
+  const chapters = tp.chapters || [];
+  const linkedPaperIds = [...new Set(chapters.map(c=>c.linkedPaperId).filter(Boolean))];
+  const linkedPapers = linkedPaperIds.map(id => state.papers.find(p=>p.id===id)).filter(Boolean);
+  const papersPublished = linkedPapers.filter(p=>p.stage==='Published').length;
+  const totalPlanned = tp.totalPlannedPapers || 0;
+  const paperPct = totalPlanned > 0 ? Math.round((papersPublished/totalPlanned)*100) : null;
+
+  const chaptersTotal = chapters.length;
+  const chaptersDone = chapters.filter(c=>c.status==='done').length;
+  const chapterPct = chaptersTotal > 0 ? Math.round((chaptersDone/chaptersTotal)*100) : null;
+
+  const myProposals = state.proposals.filter(pr=>pr.studentId===tp.studentId);
+  const allGoals = myProposals.flatMap(pr=>pr.goals||[]);
+  const goalsDone = allGoals.filter(g=>g.done).length;
+  const goalsTotal = allGoals.length;
+  const goalPct = goalsTotal > 0 ? Math.round((goalsDone/goalsTotal)*100) : null;
+
+  const parts = [paperPct, chapterPct, goalPct].filter(p=>p!==null);
+  const overallPct = parts.length ? Math.round(parts.reduce((a,b)=>a+b,0)/parts.length) : 0;
+
+  return { linkedPaperIds, linkedPapers, papersPublished, totalPlanned, paperPct, chaptersTotal, chaptersDone, chapterPct, goalsDone, goalsTotal, goalPct, overallPct };
+}
+function progressBarRow(label, done, total, pct, color){
+  return `
+    <div style="margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:4px;">
+        <span style="color:var(--ink-soft);">${label}</span>
+        <span style="font-weight:600;">${total>0 ? `${done} / ${total}` : '—'}${pct!==null ? ` · ${pct}%` : ''}</span>
+      </div>
+      <div style="height:7px; border-radius:4px; background:var(--neutral-wash); overflow:hidden;">
+        <div style="height:100%; width:${pct||0}%; background:${color}; border-radius:4px;"></div>
+      </div>
+    </div>
+  `;
+}
+function viewThesis(){
+  let list = scopedList(state.thesisPlans).slice().sort((a,b)=> (b.lastUpdate||'').localeCompare(a.lastUpdate||''));
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Thesis Plan</div>
+        <div class="view-sub">Planned papers, chapters, and how it all maps to progress on the work plan.</div>
+      </div>
+      ${state.identity.role==='student' ? `<button class="action-btn" onclick="openThesisModal()">+ New thesis plan</button>` : ''}
+    </div>
+    ${supervisorFilterBar()}
+    ${list.length===0 ? emptyState('No thesis plan yet', state.identity.role==='student' ? 'Add your planned number of papers and chapters to start tracking overall progress.' : 'A thesis plan will appear here once the student adds one.') : list.map((tp,i)=>thesisCard(tp,i,list.length)).join('')}
+  `;
+}
+function thesisCard(tp, i, total){
+  const isOwner = state.identity.role==='student' && tp.studentId===state.identity.id;
+  const canManage = isSupervisorLike();
+  const locked = tp.status === 'approved' && isOwner;
+  const canEdit = canManage || (isOwner && !locked);
+  const st = thesisStatusMap()[tp.status] || thesisStatusMap().pending;
+  const prog = thesisProgress(tp);
+  const chapters = tp.chapters || [];
+  const myPapers = state.papers.filter(p=>p.studentId===tp.studentId);
+  return `
+    <div class="entry-card">
+      <div class="entry-top">
+        <div>
+          <div class="entry-idx">TH${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(tp.studentId))}</div>
+          <div class="entry-title">${escapeHtml(tp.title)}</div>
+          <div class="entry-meta">Planned papers for thesis: <b>${tp.totalPlannedPapers||0}</b></div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+          <span class="stamp ${st.cls}">${st.label}</span>
+          <span class="stamp ${prog.overallPct>=70?'good':prog.overallPct>=35?'warn':'bad'}">${prog.overallPct}% overall</span>
+        </div>
+      </div>
+
+      <div class="entry-block" style="margin-bottom:6px;"><span class="lbl">Progress mapping</span></div>
+      ${progressBarRow('Planned papers published', prog.papersPublished, prog.totalPlanned, prog.paperPct, 'var(--stat-purple)')}
+      ${progressBarRow('Chapters complete', prog.chaptersDone, prog.chaptersTotal, prog.chapterPct, 'var(--stat-teal)')}
+      ${progressBarRow('Work plan goals complete', prog.goalsDone, prog.goalsTotal, prog.goalPct, 'var(--stat-blue)')}
+
+      <div class="entry-block" style="margin-top:6px;">
+        <span class="lbl">Chapters</span>
+        ${chapters.length===0 ? `<span class="entry-meta">No chapters added yet.</span>` : `
+          <div style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">
+            ${chapters.map(c=>{
+              const linkedPaper = c.linkedPaperId ? state.papers.find(p=>p.id===c.linkedPaperId) : null;
+              const chStatusMap = { not_started:{label:'Not started',cls:'neutral'}, in_progress:{label:'In progress',cls:'warn'}, done:{label:'Done',cls:'good'} };
+              const chSt = chStatusMap[c.status] || chStatusMap.not_started;
+              return `
+                <div style="border:1px solid var(--border); border-radius:7px; padding:8px 12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                  <span style="flex:1; min-width:140px; font-size:13.5px;">${escapeHtml(c.title)}</span>
+                  ${linkedPaper ? `<span class="entry-meta">→ ${escapeHtml(linkedPaper.title)} (${escapeHtml(linkedPaper.stage)})</span>` : `<span class="entry-meta">No paper linked</span>`}
+                  <span class="stamp ${chSt.cls}" style="padding:2px 8px; font-size:10px;">${chSt.label}</span>
+                  ${canEdit ? `<button class="small-btn" style="padding:1px 7px; font-size:11px;" onclick="deleteThesisChapter('${tp.id}','${c.id}')">Remove</button>` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `}
+        ${canEdit ? `<div class="entry-actions" style="margin-top:8px;"><button class="small-btn" onclick="openAddChapterModal('${tp.id}')">+ Add chapter</button></div>` : ''}
+      </div>
+
+      ${tp.supervisorNote ? `<div class="comment-box"><span class="lbl">Supervisor feedback</span><div class="comment-existing">${nl2br(tp.supervisorNote)}</div></div>` : ''}
+      ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved thesis plans are locked — contact your supervisor if this needs to change.</div>` : ''}
+      <div class="entry-actions">
+        ${isSupervisorLike() ? `<button class="small-btn" onclick="openThesisReviewBox('${tp.id}')">Review</button>` : ''}
+        ${canEdit ? `<button class="small-btn" onclick="openEditThesisModal('${tp.id}')">Edit</button>` : ''}
+        ${canEdit ? `<button class="small-btn danger" onclick="deleteThesis('${tp.id}')">Delete</button>` : ''}
+      </div>
+      <div id="thesisReviewSlot-${tp.id}"></div>
+    </div>
+  `;
+}
+function openThesisModal(){
+  showModal('New thesis plan', `
+    <label class="field-label">Thesis title</label>
+    <input class="text-input" id="f_thTitle" placeholder="e.g. Development of High-Capacity Cathode Materials for Li-ion Batteries">
+    <label class="field-label">Planned number of papers for this thesis</label>
+    <input type="number" min="0" class="text-input" id="f_thPapers" placeholder="e.g. 3">
+    <div class="view-sub" style="margin-top:8px;">You can add chapters and link them to papers in the Paper Pipeline after creating this.</div>
+  `, submitThesis);
+}
+async function submitThesis(){
+  const title = document.getElementById('f_thTitle').value.trim();
+  const totalPlannedPapers = parseInt(document.getElementById('f_thPapers').value, 10) || 0;
+  if(!title){ alert('Please add a thesis title.'); return; }
+  const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
+  if(!studentId){ alert('Add a student first.'); return; }
+  state.thesisPlans.push({
+    id: uid('th'), studentId, title, totalPlannedPapers, chapters: [],
+    status: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:'', lastUpdate: todayStr()
+  });
+  await saveCollection('thesis-plans', state.thesisPlans);
+  if(!isSupervisorLike()){
+    apiNotify('thesisSubmitted', { studentId, title });
+  }
+  closeModal(); renderView();
+}
+function openEditThesisModal(id){
+  const tp = state.thesisPlans.find(x=>x.id===id);
+  showModal('Edit thesis plan', `
+    <label class="field-label">Thesis title</label>
+    <input class="text-input" id="f_editThTitle" value="${escapeHtml(tp.title)}">
+    <label class="field-label">Planned number of papers for this thesis</label>
+    <input type="number" min="0" class="text-input" id="f_editThPapers" value="${tp.totalPlannedPapers||0}">
+    ${!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''}
+  `, ()=>submitEditThesis(id));
+}
+async function submitEditThesis(id){
+  const tp = state.thesisPlans.find(x=>x.id===id);
+  const title = document.getElementById('f_editThTitle').value.trim();
+  if(!title){ alert('Please add a thesis title.'); return; }
+  tp.title = title;
+  tp.totalPlannedPapers = parseInt(document.getElementById('f_editThPapers').value, 10) || 0;
+  tp.lastUpdate = todayStr();
+  if(!isSupervisorLike()){
+    tp.status = 'pending';
+    await saveCollection('thesis-plans', state.thesisPlans);
+    apiNotify('thesisSubmitted', { studentId: tp.studentId, title: tp.title });
+  } else {
+    await saveCollection('thesis-plans', state.thesisPlans);
+  }
+  closeModal(); renderView();
+}
+function openAddChapterModal(thId){
+  const tp = state.thesisPlans.find(x=>x.id===thId);
+  const myPapers = state.papers.filter(p=>p.studentId===tp.studentId);
+  showModal('Add chapter', `
+    <label class="field-label">Chapter title</label>
+    <input class="text-input" id="f_chTitle" placeholder="e.g. Chapter 3 — Electrochemical Characterization">
+    <label class="field-label">Link to a paper (optional)</label>
+    <select class="text-input" id="f_chPaper">
+      <option value="">No paper linked</option>
+      ${myPapers.map(p=>`<option value="${p.id}">${escapeHtml(p.title)} (${escapeHtml(p.stage)})</option>`).join('')}
+    </select>
+    <label class="field-label">Status</label>
+    <select class="text-input" id="f_chStatus">
+      <option value="not_started">Not started</option>
+      <option value="in_progress">In progress</option>
+      <option value="done">Done</option>
+    </select>
+  `, ()=>submitAddChapter(thId));
+}
+async function submitAddChapter(thId){
+  const title = document.getElementById('f_chTitle').value.trim();
+  if(!title){ alert('Please add a chapter title.'); return; }
+  const tp = state.thesisPlans.find(x=>x.id===thId);
+  if(!tp.chapters) tp.chapters = [];
+  tp.chapters.push({
+    id: uid('ch'), title,
+    linkedPaperId: document.getElementById('f_chPaper').value || null,
+    status: document.getElementById('f_chStatus').value
+  });
+  tp.lastUpdate = todayStr();
+  await saveCollection('thesis-plans', state.thesisPlans);
+  closeModal(); renderView();
+}
+async function deleteThesisChapter(thId, chId){
+  const tp = state.thesisPlans.find(x=>x.id===thId);
+  tp.chapters = (tp.chapters||[]).filter(x=>x.id!==chId);
+  await saveCollection('thesis-plans', state.thesisPlans);
+  renderView();
+}
+function openThesisReviewBox(id){
+  const tp = state.thesisPlans.find(x=>x.id===id);
+  document.getElementById('thesisReviewSlot-'+id).innerHTML = `
+    <div class="comment-box">
+      <span class="lbl">Feedback (required to request changes)</span>
+      <textarea id="thesisReviewInput-${id}">${escapeHtml(tp.supervisorNote || '')}</textarea>
+      <div class="entry-actions">
+        <button class="small-btn" onclick="reviewThesis('${id}','approved')">Approve</button>
+        <button class="small-btn danger" onclick="reviewThesis('${id}','changes_requested')">Request changes</button>
+      </div>
+    </div>`;
+}
+async function reviewThesis(id, decision){
+  const tp = state.thesisPlans.find(x=>x.id===id);
+  const val = document.getElementById('thesisReviewInput-'+id).value.trim();
+  if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
+  tp.supervisorNote = val;
+  tp.status = decision;
+  await saveCollection('thesis-plans', state.thesisPlans);
+  apiNotify('thesisReviewed', { studentId: tp.studentId, title: tp.title, decision, note: val });
+  renderView();
+}
+async function deleteThesis(id){
+  if(!confirm('Delete this thesis plan?')) return;
+  state.thesisPlans = state.thesisPlans.filter(x=>x.id!==id);
+  await saveCollection('thesis-plans', state.thesisPlans);
+  renderView();
+}
+
+/* ============================ RAC REVIEWS ============================ */
+function racStatusMap(){
+  return {
+    pending: { label:'Pending Approval', cls:'warn' },
+    approved: { label:'Approved', cls:'good' },
+    changes_requested: { label:'Changes Requested', cls:'bad' }
+  };
+}
+function viewRac(){
+  let list = scopedList(state.racReviews).slice().sort((a,b)=> (b.reviewDate||'').localeCompare(a.reviewDate||''));
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">RAC Reviews</div>
+        <div class="view-sub">Research Advisory Committee comments and the action plan arising from them — mapped to progress.</div>
+      </div>
+      ${state.identity.role==='student' ? `<button class="action-btn" onclick="openRacModal()">+ Log RAC review</button>` : ''}
+    </div>
+    ${supervisorFilterBar()}
+    ${list.length===0 ? emptyState('No RAC review logged yet', state.identity.role==='student' ? "Log your committee's comments and the action plan that follows." : 'A RAC review will appear here once the student logs one.') : list.map((r,i)=>racCard(r,i,list.length)).join('')}
+  `;
+}
+function racCard(r, i, total){
+  const isOwner = state.identity.role==='student' && r.studentId===state.identity.id;
+  const canManage = isSupervisorLike();
+  const locked = r.status === 'approved' && isOwner;
+  const canEdit = canManage || (isOwner && !locked);
+  const st = racStatusMap()[r.status] || racStatusMap().pending;
+  const items = r.actionItems || [];
+  const doneCount = items.filter(it=>it.done).length;
+  const pct = items.length ? Math.round((doneCount/items.length)*100) : null;
+  return `
+    <div class="entry-card">
+      <div class="entry-top">
+        <div>
+          <div class="entry-idx">RAC${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(r.studentId))}</div>
+          <div class="entry-title">${escapeHtml(r.title)}</div>
+          <div class="entry-meta">${fmtDate(r.reviewDate)}${r.committeeMembers ? ' · ' + escapeHtml(r.committeeMembers) : ''}</div>
+        </div>
+        <span class="stamp ${st.cls}">${st.label}</span>
+      </div>
+      ${r.comments ? `<div class="entry-block"><span class="lbl">Committee comments</span>${nl2br(r.comments)}</div>` : ''}
+      <div class="entry-block" style="margin-top:10px;">
+        <span class="lbl">Action plan</span>
+        ${items.length>0 ? progressBarRow('Action items complete', doneCount, items.length, pct, 'var(--stat-teal)') : `<span class="entry-meta">No action items added yet.</span>`}
+        ${items.length>0 ? `
+          <div style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
+            ${items.map(it=>racActionItemRow(r, it, canEdit, canManage, isOwner)).join('')}
+          </div>
+        ` : ''}
+        ${canEdit ? `<div class="entry-actions" style="margin-top:8px;"><button class="small-btn" onclick="openAddRacItemModal('${r.id}')">+ Add action item</button></div>` : ''}
+      </div>
+      ${r.supervisorNote ? `<div class="comment-box"><span class="lbl">Supervisor feedback</span><div class="comment-existing">${nl2br(r.supervisorNote)}</div></div>` : ''}
+      ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved reviews are locked — contact your supervisor if this needs to change.</div>` : ''}
+      <div class="entry-actions">
+        ${isSupervisorLike() ? `<button class="small-btn" onclick="openRacReviewBox('${r.id}')">Review</button>` : ''}
+        ${canEdit ? `<button class="small-btn" onclick="openEditRacModal('${r.id}')">Edit</button>` : ''}
+        ${canEdit ? `<button class="small-btn danger" onclick="deleteRac('${r.id}')">Delete</button>` : ''}
+      </div>
+      <div id="racReviewSlot-${r.id}"></div>
+    </div>
+  `;
+}
+function racActionItemRow(r, it, canEdit, canManage, isOwner){
+  const today = todayStr();
+  const overdue = !it.done && it.targetDate && it.targetDate < today;
+  return `
+    <div style="border:1px solid var(--border); border-radius:7px; padding:9px 12px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" ${it.done?'checked':''} ${canManage || isOwner ? '' : 'disabled'} onchange="toggleRacActionItem('${r.id}','${it.id}')">
+        <span style="flex:1; font-size:13.5px; ${it.done?'text-decoration:line-through; color:var(--ink-faint);':''}">${escapeHtml(it.text)}</span>
+        ${overdue ? `<span class="stamp bad" style="padding:2px 8px; font-size:10px;">Overdue</span>` : ''}
+        ${canEdit ? `<button class="small-btn" style="padding:1px 7px; font-size:11px;" onclick="deleteRacActionItem('${r.id}','${it.id}')">Remove</button>` : ''}
+      </div>
+      ${it.targetDate ? `<div class="entry-meta mono" style="font-size:11px; margin-top:6px;">Target: ${fmtDate(it.targetDate)}</div>` : ''}
+    </div>
+  `;
+}
+function racFormFields(r){
+  r = r || {};
+  return `
+    <label class="field-label">Title</label>
+    <input class="text-input" id="f_racTitle" value="${escapeHtml(r.title||'')}" placeholder="e.g. RAC Review — Year 2">
+    <div class="two-col">
+      <div><label class="field-label">Review date</label>
+        <input type="date" class="text-input" id="f_racDate" value="${r.reviewDate||todayStr()}">
+      </div>
+      <div><label class="field-label">Committee members (optional)</label>
+        <input class="text-input" id="f_racMembers" value="${escapeHtml(r.committeeMembers||'')}" placeholder="e.g. Prof. A, Prof. B, Dr. C">
+      </div>
+    </div>
+    <label class="field-label">Committee comments</label>
+    <textarea class="text-input" id="f_racComments" rows="4" placeholder="What did the committee say?">${escapeHtml(r.comments||'')}</textarea>
+  `;
+}
+function openRacModal(){
+  showModal('Log RAC review', racFormFields(), submitRac);
+}
+async function submitRac(){
+  const title = document.getElementById('f_racTitle').value.trim();
+  const reviewDate = document.getElementById('f_racDate').value;
+  if(!title || !reviewDate){ alert('Please add a title and review date.'); return; }
+  const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
+  if(!studentId){ alert('Add a student first.'); return; }
+  state.racReviews.push({
+    id: uid('rac'), studentId, title, reviewDate,
+    committeeMembers: document.getElementById('f_racMembers').value.trim(),
+    comments: document.getElementById('f_racComments').value.trim(),
+    actionItems: [], status: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:'', lastUpdate: todayStr()
+  });
+  await saveCollection('rac-reviews', state.racReviews);
+  if(!isSupervisorLike()){
+    apiNotify('racSubmitted', { studentId, title });
+  }
+  closeModal(); renderView();
+}
+function openEditRacModal(id){
+  const r = state.racReviews.find(x=>x.id===id);
+  showModal('Edit RAC review', racFormFields(r) + (!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''), ()=>submitEditRac(id));
+}
+async function submitEditRac(id){
+  const r = state.racReviews.find(x=>x.id===id);
+  const title = document.getElementById('f_racTitle').value.trim();
+  const reviewDate = document.getElementById('f_racDate').value;
+  if(!title || !reviewDate){ alert('Please add a title and review date.'); return; }
+  r.title = title;
+  r.reviewDate = reviewDate;
+  r.committeeMembers = document.getElementById('f_racMembers').value.trim();
+  r.comments = document.getElementById('f_racComments').value.trim();
+  r.lastUpdate = todayStr();
+  if(!isSupervisorLike()){
+    r.status = 'pending';
+    await saveCollection('rac-reviews', state.racReviews);
+    apiNotify('racSubmitted', { studentId: r.studentId, title: r.title });
+  } else {
+    await saveCollection('rac-reviews', state.racReviews);
+  }
+  closeModal(); renderView();
+}
+function openAddRacItemModal(racId){
+  showModal('Add action item', `
+    <label class="field-label">Action item</label>
+    <input class="text-input" id="f_racItemText" placeholder="e.g. Repeat cycling test with tighter voltage window">
+    <label class="field-label">Target date (optional)</label>
+    <input type="date" class="text-input" id="f_racItemDate">
+  `, ()=>submitAddRacItem(racId));
+}
+async function submitAddRacItem(racId){
+  const text = document.getElementById('f_racItemText').value.trim();
+  const targetDate = document.getElementById('f_racItemDate').value;
+  if(!text){ alert('Please add an action item.'); return; }
+  const r = state.racReviews.find(x=>x.id===racId);
+  if(!r.actionItems) r.actionItems = [];
+  r.actionItems.push({ id: uid('racitem'), text, targetDate, done:false });
+  r.lastUpdate = todayStr();
+  await saveCollection('rac-reviews', state.racReviews);
+  closeModal(); renderView();
+}
+async function toggleRacActionItem(racId, itemId){
+  const r = state.racReviews.find(x=>x.id===racId);
+  const it = (r.actionItems||[]).find(x=>x.id===itemId);
+  if(!it) return;
+  it.done = !it.done;
+  await saveCollection('rac-reviews', state.racReviews);
+  renderView();
+}
+async function deleteRacActionItem(racId, itemId){
+  const r = state.racReviews.find(x=>x.id===racId);
+  r.actionItems = (r.actionItems||[]).filter(x=>x.id!==itemId);
+  await saveCollection('rac-reviews', state.racReviews);
+  renderView();
+}
+function openRacReviewBox(id){
+  const r = state.racReviews.find(x=>x.id===id);
+  document.getElementById('racReviewSlot-'+id).innerHTML = `
+    <div class="comment-box">
+      <span class="lbl">Feedback (required to request changes)</span>
+      <textarea id="racReviewInput-${id}">${escapeHtml(r.supervisorNote || '')}</textarea>
+      <div class="entry-actions">
+        <button class="small-btn" onclick="reviewRac('${id}','approved')">Approve</button>
+        <button class="small-btn danger" onclick="reviewRac('${id}','changes_requested')">Request changes</button>
+      </div>
+    </div>`;
+}
+async function reviewRac(id, decision){
+  const r = state.racReviews.find(x=>x.id===id);
+  const val = document.getElementById('racReviewInput-'+id).value.trim();
+  if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
+  r.supervisorNote = val;
+  r.status = decision;
+  await saveCollection('rac-reviews', state.racReviews);
+  apiNotify('racReviewed', { studentId: r.studentId, title: r.title, decision, note: val });
+  renderView();
+}
+async function deleteRac(id){
+  if(!confirm('Delete this RAC review?')) return;
+  state.racReviews = state.racReviews.filter(x=>x.id!==id);
+  await saveCollection('rac-reviews', state.racReviews);
+  renderView();
+}
+
+/* ============================ VISITING & FINANCIAL SUPPORT ============================ */
+function financialStatusMap(){
+  return {
+    pending: { label:'Pending Approval', cls:'warn' },
+    approved: { label:'Approved', cls:'good' },
+    changes_requested: { label:'Changes Requested', cls:'bad' }
+  };
+}
+function viewFinancial(){
+  let list = scopedList(state.financialApps).slice().sort((a,b)=> (b.applicationDate||'').localeCompare(a.applicationDate||''));
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Visiting &amp; Financial Support</div>
+        <div class="view-sub">Visiting positions, travel grants, fellowships, and scholarship applications.</div>
+      </div>
+      <button class="action-btn" onclick="openFinancialModal()">+ Log application</button>
+    </div>
+    ${supervisorFilterBar()}
+    ${list.length===0 ? emptyState('Nothing logged yet', 'Log a visiting position or financial support application to start tracking it.') : list.map((f,i)=>financialCard(f,i,list.length)).join('')}
+  `;
+}
+function financialCard(f, i, total){
+  const isOwner = state.identity.role==='student' && f.studentId===state.identity.id;
+  const canManage = isSupervisorLike();
+  const locked = f.approvalStatus === 'approved' && isOwner;
+  const canEdit = canManage || (isOwner && !locked);
+  const canRecordOutcome = canManage || isOwner;
+  const st = financialStatusMap()[f.approvalStatus] || financialStatusMap().pending;
+  const outcome = FINANCIAL_OUTCOMES[f.outcomeStatus] || FINANCIAL_OUTCOMES.awaiting_result;
+  return `
+    <div class="entry-card">
+      <div class="entry-top">
+        <div>
+          <div class="entry-idx">F${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(f.studentId))}</div>
+          <div class="entry-title">${escapeHtml(f.title)}</div>
+          <div class="entry-meta">${escapeHtml(f.type)}${f.hostInstitution ? ' · '+escapeHtml(f.hostInstitution) : ''}</div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+          <span class="stamp ${st.cls}">${st.label}</span>
+          <span class="stamp ${outcome.cls}">${outcome.label}</span>
+        </div>
+      </div>
+      <div class="entry-grid">
+        <div class="entry-block"><span class="lbl">Applied</span>${fmtDate(f.applicationDate)}</div>
+        ${f.amount ? `<div class="entry-block"><span class="lbl">Amount</span>${escapeHtml(f.amount)}</div>` : ''}
+        ${f.resultDate ? `<div class="entry-block"><span class="lbl">Result date</span>${fmtDate(f.resultDate)}</div>` : ''}
+        ${f.link ? `<div class="entry-block"><span class="lbl">Link</span><a href="${escapeHtml(f.link)}" target="_blank" rel="noopener">Open ↗</a></div>` : ''}
+        ${f.notes ? `<div class="entry-block" style="grid-column:1/-1;"><span class="lbl">Notes</span>${nl2br(f.notes)}</div>` : ''}
+      </div>
+      ${f.supervisorNote ? `<div class="comment-box"><span class="lbl">Supervisor note</span><div class="comment-existing">${nl2br(f.supervisorNote)}</div></div>` : ''}
+      ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved applications are locked — you can still record the outcome, but contact your supervisor to change the application details.</div>` : ''}
+      <div class="entry-actions">
+        ${canEdit ? `<button class="small-btn" onclick="openEditFinancialModal('${f.id}')">Edit application</button>` : ''}
+        ${canRecordOutcome ? `<button class="small-btn" onclick="openFinancialOutcomeModal('${f.id}')">Record outcome</button>` : ''}
+        ${isSupervisorLike() ? `<button class="small-btn" onclick="openFinancialReviewBox('${f.id}')">Review</button>` : ''}
+        ${canEdit ? `<button class="small-btn danger" onclick="deleteFinancial('${f.id}')">Delete</button>` : ''}
+      </div>
+      <div id="financialReviewSlot-${f.id}"></div>
+    </div>
+  `;
+}
+function financialFormFields(f){
+  f = f || {};
+  return `
+    <label class="field-label">Title</label>
+    <input class="text-input" id="f_finTitle" value="${escapeHtml(f.title||'')}" placeholder="e.g. DAAD Visiting Researcher Program">
+    <div class="two-col">
+      <div><label class="field-label">Type</label>
+        <select class="text-input" id="f_finType">${FINANCIAL_TYPES.map(t=>`<option value="${t}" ${f.type===t?'selected':''}>${t}</option>`).join('')}</select>
+      </div>
+      <div><label class="field-label">Host institution (optional)</label>
+        <input class="text-input" id="f_finHost" value="${escapeHtml(f.hostInstitution||'')}" placeholder="e.g. TU Munich">
+      </div>
+    </div>
+    <div class="two-col">
+      <div><label class="field-label">Application date</label>
+        <input type="date" class="text-input" id="f_finDate" value="${f.applicationDate||todayStr()}">
+      </div>
+      <div><label class="field-label">Amount (optional)</label>
+        <input class="text-input" id="f_finAmount" value="${escapeHtml(f.amount||'')}" placeholder="e.g. €2,000 or $1,500">
+      </div>
+    </div>
+    <label class="field-label">Link (optional)</label>
+    <input class="text-input" id="f_finLink" value="${escapeHtml(f.link||'')}" placeholder="Application portal or program page">
+    <label class="field-label">Notes (optional)</label>
+    <textarea class="text-input" id="f_finNotes" rows="2">${escapeHtml(f.notes||'')}</textarea>
+  `;
+}
+function openFinancialModal(){
+  showModal('Log visiting / financial support application', financialFormFields(), submitFinancial);
+}
+async function submitFinancial(){
+  const title = document.getElementById('f_finTitle').value.trim();
+  const applicationDate = document.getElementById('f_finDate').value;
+  if(!title || !applicationDate){ alert('Please add a title and application date.'); return; }
+  const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
+  if(!studentId){ alert('Add a student first.'); return; }
+  state.financialApps.push({
+    id: uid('fin'), studentId,
+    title, type: document.getElementById('f_finType').value,
+    hostInstitution: document.getElementById('f_finHost').value.trim(),
+    applicationDate, amount: document.getElementById('f_finAmount').value.trim(),
+    link: document.getElementById('f_finLink').value.trim(),
+    notes: document.getElementById('f_finNotes').value.trim(),
+    resultDate: '', outcomeStatus: 'awaiting_result',
+    approvalStatus: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:''
+  });
+  await saveCollection('financial-applications', state.financialApps);
+  if(!isSupervisorLike()){
+    apiNotify('financialSubmitted', { studentId, title });
+  }
+  closeModal(); renderView();
+}
+function openEditFinancialModal(id){
+  const f = state.financialApps.find(x=>x.id===id);
+  showModal('Edit application', financialFormFields(f) + (!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''), ()=>submitEditFinancial(id));
+}
+async function submitEditFinancial(id){
+  const f = state.financialApps.find(x=>x.id===id);
+  const title = document.getElementById('f_finTitle').value.trim();
+  const applicationDate = document.getElementById('f_finDate').value;
+  if(!title || !applicationDate){ alert('Please add a title and application date.'); return; }
+  f.title = title;
+  f.type = document.getElementById('f_finType').value;
+  f.hostInstitution = document.getElementById('f_finHost').value.trim();
+  f.applicationDate = applicationDate;
+  f.amount = document.getElementById('f_finAmount').value.trim();
+  f.link = document.getElementById('f_finLink').value.trim();
+  f.notes = document.getElementById('f_finNotes').value.trim();
+  if(!isSupervisorLike()){
+    f.approvalStatus = 'pending';
+    await saveCollection('financial-applications', state.financialApps);
+    apiNotify('financialSubmitted', { studentId: f.studentId, title: f.title });
+  } else {
+    await saveCollection('financial-applications', state.financialApps);
+  }
+  closeModal(); renderView();
+}
+function openFinancialOutcomeModal(id){
+  const f = state.financialApps.find(x=>x.id===id);
+  showModal('Record outcome', `
+    <label class="field-label">Outcome</label>
+    <select class="text-input" id="f_finOutcome">
+      <option value="awaiting_result" ${f.outcomeStatus==='awaiting_result'?'selected':''}>Awaiting result</option>
+      <option value="awarded" ${f.outcomeStatus==='awarded'?'selected':''}>Awarded</option>
+      <option value="not_awarded" ${f.outcomeStatus==='not_awarded'?'selected':''}>Not awarded</option>
+    </select>
+    <label class="field-label">Result date (optional)</label>
+    <input type="date" class="text-input" id="f_finResultDate" value="${f.resultDate||todayStr()}">
+  `, ()=>submitFinancialOutcome(id));
+}
+async function submitFinancialOutcome(id){
+  const f = state.financialApps.find(x=>x.id===id);
+  f.outcomeStatus = document.getElementById('f_finOutcome').value;
+  f.resultDate = document.getElementById('f_finResultDate').value;
+  await saveCollection('financial-applications', state.financialApps);
+  closeModal(); renderView();
+}
+function openFinancialReviewBox(id){
+  const f = state.financialApps.find(x=>x.id===id);
+  document.getElementById('financialReviewSlot-'+id).innerHTML = `
+    <div class="comment-box">
+      <span class="lbl">Note (required to request changes)</span>
+      <textarea id="financialReviewInput-${id}">${escapeHtml(f.supervisorNote || '')}</textarea>
+      <div class="entry-actions">
+        <button class="small-btn" onclick="reviewFinancial('${id}','approved')">Approve</button>
+        <button class="small-btn danger" onclick="reviewFinancial('${id}','changes_requested')">Request changes</button>
+      </div>
+    </div>`;
+}
+async function reviewFinancial(id, decision){
+  const f = state.financialApps.find(x=>x.id===id);
+  const val = document.getElementById('financialReviewInput-'+id).value.trim();
+  if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
+  f.supervisorNote = val;
+  f.approvalStatus = decision;
+  await saveCollection('financial-applications', state.financialApps);
+  apiNotify('financialReviewed', { studentId: f.studentId, title: f.title, decision, note: val });
+  renderView();
+}
+async function deleteFinancial(id){
+  if(!confirm('Delete this application?')) return;
+  state.financialApps = state.financialApps.filter(x=>x.id!==id);
+  await saveCollection('financial-applications', state.financialApps);
+  renderView();
+}
+
+/* ============================ LEARNING & COURSES ============================ */
+function learningApprovalMap(){
+  return {
+    pending: { label:'Pending Approval', cls:'warn' },
+    approved: { label:'Approved', cls:'good' },
+    changes_requested: { label:'Changes Requested', cls:'bad' }
+  };
+}
+function viewLearning(){
+  let list = scopedList(state.courses).slice().sort((a,b)=> (b.startDate||'').localeCompare(a.startDate||''));
+  const completed = list.filter(c=>c.status==='completed').length;
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Learning &amp; Courses</div>
+        <div class="view-sub">Courses, certifications, workshops, and training taken alongside the research.${list.length>0 ? ` ${completed} of ${list.length} completed.` : ''}</div>
+      </div>
+      <button class="action-btn" onclick="openCourseModal()">+ Log course</button>
+    </div>
+    ${supervisorFilterBar()}
+    ${list.length===0 ? emptyState('Nothing logged yet', 'Log a course, certification, or training program to start tracking it.') : list.map((c,i)=>courseCard(c,i,list.length)).join('')}
+  `;
+}
+function courseCard(c, i, total){
+  const isOwner = state.identity.role==='student' && c.studentId===state.identity.id;
+  const canManage = isSupervisorLike();
+  const locked = c.approvalStatus === 'approved' && isOwner;
+  const canEdit = canManage || (isOwner && !locked);
+  const st = learningApprovalMap()[c.approvalStatus] || learningApprovalMap().pending;
+  const cst = COURSE_STATUSES[c.status] || COURSE_STATUSES.not_started;
+  return `
+    <div class="entry-card">
+      <div class="entry-top">
+        <div>
+          <div class="entry-idx">L${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(c.studentId))}</div>
+          <div class="entry-title">${escapeHtml(c.title)}</div>
+          <div class="entry-meta">${escapeHtml(c.type)}${c.provider ? ' · '+escapeHtml(c.provider) : ''}</div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+          <span class="stamp ${st.cls}">${st.label}</span>
+          <span class="stamp ${cst.cls}">${cst.label}</span>
+        </div>
+      </div>
+      <div class="entry-grid">
+        <div class="entry-block"><span class="lbl">Start date</span>${c.startDate ? fmtDate(c.startDate) : '—'}</div>
+        ${c.endDate ? `<div class="entry-block"><span class="lbl">${c.status==='completed'?'Completed':'End date'}</span>${fmtDate(c.endDate)}</div>` : ''}
+        ${c.certificateLink ? `<div class="entry-block"><span class="lbl">Certificate</span><a href="${escapeHtml(c.certificateLink)}" target="_blank" rel="noopener">Open ↗</a></div>` : ''}
+        ${c.notes ? `<div class="entry-block" style="grid-column:1/-1;"><span class="lbl">Notes</span>${nl2br(c.notes)}</div>` : ''}
+      </div>
+      ${c.supervisorNote ? `<div class="comment-box"><span class="lbl">Supervisor note</span><div class="comment-existing">${nl2br(c.supervisorNote)}</div></div>` : ''}
+      ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
+      <div class="entry-actions">
+        ${isSupervisorLike() ? `<button class="small-btn" onclick="openCourseReviewBox('${c.id}')">Review</button>` : ''}
+        ${canEdit ? `<button class="small-btn" onclick="openEditCourseModal('${c.id}')">Edit</button>` : ''}
+        ${canEdit ? `<button class="small-btn danger" onclick="deleteCourse('${c.id}')">Delete</button>` : ''}
+      </div>
+      <div id="courseReviewSlot-${c.id}"></div>
+    </div>
+  `;
+}
+function courseFormFields(c){
+  c = c || {};
+  return `
+    <label class="field-label">Course / program title</label>
+    <input class="text-input" id="f_courseTitle" value="${escapeHtml(c.title||'')}" placeholder="e.g. Machine Learning for Materials Science">
+    <div class="two-col">
+      <div><label class="field-label">Type</label>
+        <select class="text-input" id="f_courseType">${COURSE_TYPES.map(t=>`<option value="${t}" ${c.type===t?'selected':''}>${t}</option>`).join('')}</select>
+      </div>
+      <div><label class="field-label">Provider (optional)</label>
+        <input class="text-input" id="f_courseProvider" value="${escapeHtml(c.provider||'')}" placeholder="e.g. Coursera, NPTEL, in-house">
+      </div>
+    </div>
+    <div class="two-col">
+      <div><label class="field-label">Start date</label>
+        <input type="date" class="text-input" id="f_courseStart" value="${c.startDate||todayStr()}">
+      </div>
+      <div><label class="field-label">End date (optional)</label>
+        <input type="date" class="text-input" id="f_courseEnd" value="${c.endDate||''}">
+      </div>
+    </div>
+    <label class="field-label">Status</label>
+    <select class="text-input" id="f_courseStatus">
+      <option value="not_started" ${c.status==='not_started'?'selected':''}>Not started</option>
+      <option value="in_progress" ${(!c.status||c.status==='in_progress')?'selected':''}>In progress</option>
+      <option value="completed" ${c.status==='completed'?'selected':''}>Completed</option>
+    </select>
+    <label class="field-label">Certificate link (optional)</label>
+    <input class="text-input" id="f_courseLink" value="${escapeHtml(c.certificateLink||'')}" placeholder="Certificate or course page link">
+    <label class="field-label">Notes (optional)</label>
+    <textarea class="text-input" id="f_courseNotes" rows="2">${escapeHtml(c.notes||'')}</textarea>
+  `;
+}
+function openCourseModal(){
+  showModal('Log course / certification', courseFormFields(), submitCourse);
+}
+async function submitCourse(){
+  const title = document.getElementById('f_courseTitle').value.trim();
+  const startDate = document.getElementById('f_courseStart').value;
+  if(!title || !startDate){ alert('Please add a title and start date.'); return; }
+  const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
+  if(!studentId){ alert('Add a student first.'); return; }
+  state.courses.push({
+    id: uid('crs'), studentId, title,
+    type: document.getElementById('f_courseType').value,
+    provider: document.getElementById('f_courseProvider').value.trim(),
+    startDate, endDate: document.getElementById('f_courseEnd').value,
+    status: document.getElementById('f_courseStatus').value,
+    certificateLink: document.getElementById('f_courseLink').value.trim(),
+    notes: document.getElementById('f_courseNotes').value.trim(),
+    approvalStatus: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:''
+  });
+  await saveCollection('courses', state.courses);
+  if(!isSupervisorLike()){
+    apiNotify('courseSubmitted', { studentId, title });
+  }
+  closeModal(); renderView();
+}
+function openEditCourseModal(id){
+  const c = state.courses.find(x=>x.id===id);
+  showModal('Edit course / certification', courseFormFields(c) + (!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''), ()=>submitEditCourse(id));
+}
+async function submitEditCourse(id){
+  const c = state.courses.find(x=>x.id===id);
+  const title = document.getElementById('f_courseTitle').value.trim();
+  const startDate = document.getElementById('f_courseStart').value;
+  if(!title || !startDate){ alert('Please add a title and start date.'); return; }
+  c.title = title;
+  c.type = document.getElementById('f_courseType').value;
+  c.provider = document.getElementById('f_courseProvider').value.trim();
+  c.startDate = startDate;
+  c.endDate = document.getElementById('f_courseEnd').value;
+  c.status = document.getElementById('f_courseStatus').value;
+  c.certificateLink = document.getElementById('f_courseLink').value.trim();
+  c.notes = document.getElementById('f_courseNotes').value.trim();
+  if(!isSupervisorLike()){
+    c.approvalStatus = 'pending';
+    await saveCollection('courses', state.courses);
+    apiNotify('courseSubmitted', { studentId: c.studentId, title: c.title });
+  } else {
+    await saveCollection('courses', state.courses);
+  }
+  closeModal(); renderView();
+}
+function openCourseReviewBox(id){
+  const c = state.courses.find(x=>x.id===id);
+  document.getElementById('courseReviewSlot-'+id).innerHTML = `
+    <div class="comment-box">
+      <span class="lbl">Note (required to request changes)</span>
+      <textarea id="courseReviewInput-${id}">${escapeHtml(c.supervisorNote || '')}</textarea>
+      <div class="entry-actions">
+        <button class="small-btn" onclick="reviewCourse('${id}','approved')">Approve</button>
+        <button class="small-btn danger" onclick="reviewCourse('${id}','changes_requested')">Request changes</button>
+      </div>
+    </div>`;
+}
+async function reviewCourse(id, decision){
+  const c = state.courses.find(x=>x.id===id);
+  const val = document.getElementById('courseReviewInput-'+id).value.trim();
+  if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
+  c.supervisorNote = val;
+  c.approvalStatus = decision;
+  await saveCollection('courses', state.courses);
+  apiNotify('courseReviewed', { studentId: c.studentId, title: c.title, decision, note: val });
+  renderView();
+}
+async function deleteCourse(id){
+  if(!confirm('Delete this entry?')) return;
+  state.courses = state.courses.filter(x=>x.id!==id);
+  await saveCollection('courses', state.courses);
+  renderView();
+}
+
 /* ============================ WEEKLY PROGRESS ============================ */
 function viewWeekly(){
   let list = scopedList(state.weekly).slice().sort((a,b)=> b.weekStart.localeCompare(a.weekStart));
+  if(state.filterWeeklyStatus && state.filterWeeklyStatus !== 'all'){
+    list = list.filter(w => w.status === state.filterWeeklyStatus);
+  }
+  const total = list.length;
+  const groups = [];
+  list.forEach((w,i)=>{
+    const monthKey = (w.weekStart||'').slice(0,7);
+    const monthLabel = w.weekStart ? new Date(w.weekStart+'T00:00:00').toLocaleDateString('en-GB',{month:'long', year:'numeric'}) : 'Undated';
+    let group = groups.find(g=>g.key===monthKey);
+    if(!group){ group = { key: monthKey, label: monthLabel, items: [] }; groups.push(group); }
+    group.items.push({ w, idx: i });
+  });
   return `
     <div class="view-header">
       <div>
@@ -1404,9 +2857,22 @@ function viewWeekly(){
       ${state.identity.role==='student' ? `<button class="action-btn" onclick="openWeeklyModal()">+ Log this week</button>` : ''}
     </div>
     ${supervisorFilterBar()}
-    ${list.length===0 ? emptyState('No progress logged yet', isSupervisorLike() ? 'Weekly logs from students will appear here once submitted.' : 'Log your first week to start the record.') : list.map((w,i)=>weeklyCard(w,i,list.length)).join('')}
+    <div class="filter-row">
+      <select onchange="setFilterWeeklyStatus(this.value)">
+        <option value="all" ${(!state.filterWeeklyStatus||state.filterWeeklyStatus==='all')?'selected':''}>All statuses</option>
+        <option value="pending" ${state.filterWeeklyStatus==='pending'?'selected':''}>Pending Approval</option>
+        <option value="approved" ${state.filterWeeklyStatus==='approved'?'selected':''}>Approved</option>
+        <option value="changes_requested" ${state.filterWeeklyStatus==='changes_requested'?'selected':''}>Changes Requested</option>
+      </select>
+    </div>
+    ${total===0 ? emptyState('No progress logged yet', isSupervisorLike() ? 'Weekly logs from students will appear here once submitted.' : 'Log your first week to start the record.') :
+      groups.map(g => `
+        <h3 class="panel-title" style="margin-top:18px;"><span class="dot" style="background:var(--stat-blue);"></span>${escapeHtml(g.label)}</h3>
+        ${g.items.map(({w,idx})=>weeklyCard(w, idx, total)).join('')}
+      `).join('')}
   `;
 }
+function setFilterWeeklyStatus(v){ state.filterWeeklyStatus = v; renderView(); }
 function weeklyCard(w, i, total){
   const isOwner = state.identity.role==='student' && w.studentId===state.identity.id;
   const canManage = isSupervisorLike();
@@ -1424,7 +2890,7 @@ function weeklyCard(w, i, total){
       <div class="entry-top">
         <div>
           <div class="entry-idx">W${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(w.studentId))}</div>
-          <div class="entry-title">Week of ${fmtDate(w.weekStart)}</div>
+          <div class="entry-title">Week of ${fmtDate(w.weekStart)} <span class="entry-meta" style="font-weight:400;">→ ${fmtDate(shiftDate(w.weekStart,6))}</span></div>
         </div>
         <span class="stamp ${st.cls}">${st.label}</span>
       </div>
@@ -1452,7 +2918,10 @@ function emptyState(title, sub){
 
 function openWeeklyModal(){
   const monday = getMondayStr();
+  const mine = state.weekly.filter(w=>w.studentId===state.identity.id).sort((a,b)=>b.weekStart.localeCompare(a.weekStart));
+  const previous = mine.find(w=>w.weekStart < monday) || mine[0];
   showModal("Log this week's progress", `
+    ${previous && previous.planNext ? `<div class="comment-box" style="margin-bottom:14px;"><span class="lbl">You planned last time (week of ${fmtDate(previous.weekStart)})</span><div class="comment-existing">${nl2br(previous.planNext)}</div></div>` : ''}
     <label class="field-label">Week starting</label>
     <input type="date" id="f_weekStart" class="text-input" value="${monday}">
     <label class="field-label">What did you do this week?</label>
@@ -1949,6 +3418,174 @@ async function deletePaper(id){
   if(!confirm('Delete this paper record?')) return;
   state.papers = state.papers.filter(x=>x.id!==id);
   await saveCollection('papers', state.papers);
+  renderView();
+}
+
+/* ============================ CONFERENCES & PRESENTATIONS ============================ */
+function conferenceStatusMap(){
+  return {
+    pending: { label:'Pending Approval', cls:'warn' },
+    approved: { label:'Approved', cls:'good' },
+    changes_requested: { label:'Changes Requested', cls:'bad' }
+  };
+}
+function viewConferences(){
+  let list = scopedList(state.conferences).slice().sort((a,b)=> (b.startDate||'').localeCompare(a.startDate||''));
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Conferences &amp; Presentations</div>
+        <div class="view-sub">Conference and workshop participation, talks, and posters.</div>
+      </div>
+      <button class="action-btn" onclick="openConferenceModal()">+ Log participation</button>
+    </div>
+    ${supervisorFilterBar()}
+    ${list.length===0 ? emptyState('Nothing logged yet', 'Log a conference, workshop, or presentation to start the record.') : list.map((c,i)=>conferenceCard(c,i,list.length)).join('')}
+  `;
+}
+function conferenceCard(c, i, total){
+  const isOwner = state.identity.role==='student' && c.studentId===state.identity.id;
+  const canManage = isSupervisorLike();
+  const locked = c.approvalStatus === 'approved' && isOwner;
+  const canEdit = canManage || (isOwner && !locked);
+  const st = conferenceStatusMap()[c.approvalStatus] || conferenceStatusMap().pending;
+  return `
+    <div class="entry-card">
+      <div class="entry-top">
+        <div>
+          <div class="entry-idx">C${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(c.studentId))}</div>
+          <div class="entry-title">${escapeHtml(c.eventName)}</div>
+          <div class="entry-meta">${escapeHtml(c.eventType)} · ${escapeHtml(c.role)}${c.location ? ' · '+escapeHtml(c.location) : ''}</div>
+        </div>
+        <span class="stamp ${st.cls}">${st.label}</span>
+      </div>
+      <div class="entry-grid">
+        <div class="entry-block"><span class="lbl">Dates</span>${fmtDate(c.startDate)}${c.endDate ? ' – '+fmtDate(c.endDate) : ''}</div>
+        ${c.presentationTitle ? `<div class="entry-block"><span class="lbl">Presentation title</span>${escapeHtml(c.presentationTitle)}</div>` : ''}
+        ${c.link ? `<div class="entry-block"><span class="lbl">Link</span><a href="${escapeHtml(c.link)}" target="_blank" rel="noopener">Open ↗</a></div>` : ''}
+        ${c.notes ? `<div class="entry-block" style="grid-column:1/-1;"><span class="lbl">Notes</span>${nl2br(c.notes)}</div>` : ''}
+      </div>
+      ${c.supervisorNote ? `<div class="comment-box"><span class="lbl">Supervisor note</span><div class="comment-existing">${nl2br(c.supervisorNote)}</div></div>` : ''}
+      ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
+      <div class="entry-actions">
+        ${isSupervisorLike() ? `<button class="small-btn" onclick="openConferenceReviewBox('${c.id}')">Review</button>` : ''}
+        ${canEdit ? `<button class="small-btn" onclick="openEditConferenceModal('${c.id}')">Edit</button>` : ''}
+        ${canEdit ? `<button class="small-btn danger" onclick="deleteConference('${c.id}')">Delete</button>` : ''}
+      </div>
+      <div id="conferenceReviewSlot-${c.id}"></div>
+    </div>
+  `;
+}
+function conferenceFormFields(c){
+  c = c || {};
+  return `
+    <label class="field-label">Event name</label>
+    <input class="text-input" id="f_confName" value="${escapeHtml(c.eventName||'')}" placeholder="e.g. MRS Fall Meeting 2026">
+    <div class="two-col">
+      <div><label class="field-label">Type</label>
+        <select class="text-input" id="f_confType">${CONFERENCE_TYPES.map(t=>`<option value="${t}" ${c.eventType===t?'selected':''}>${t}</option>`).join('')}</select>
+      </div>
+      <div><label class="field-label">Your role</label>
+        <select class="text-input" id="f_confRole">${CONFERENCE_ROLES.map(r=>`<option value="${r}" ${c.role===r?'selected':''}>${r}</option>`).join('')}</select>
+      </div>
+    </div>
+    <label class="field-label">Presentation title (if presenting)</label>
+    <input class="text-input" id="f_confPresTitle" value="${escapeHtml(c.presentationTitle||'')}" placeholder="Title of your talk or poster">
+    <div class="two-col">
+      <div><label class="field-label">Start date</label>
+        <input type="date" class="text-input" id="f_confStart" value="${c.startDate||todayStr()}">
+      </div>
+      <div><label class="field-label">End date (optional)</label>
+        <input type="date" class="text-input" id="f_confEnd" value="${c.endDate||''}">
+      </div>
+    </div>
+    <label class="field-label">Location (optional)</label>
+    <input class="text-input" id="f_confLocation" value="${escapeHtml(c.location||'')}" placeholder="City, country, or online">
+    <label class="field-label">Link (optional)</label>
+    <input class="text-input" id="f_confLink" value="${escapeHtml(c.link||'')}" placeholder="Conference site, proceedings, or certificate link">
+    <label class="field-label">Notes (optional)</label>
+    <textarea class="text-input" id="f_confNotes" rows="2">${escapeHtml(c.notes||'')}</textarea>
+  `;
+}
+function openConferenceModal(){
+  showModal('Log conference / workshop participation', conferenceFormFields(), submitConference);
+}
+async function submitConference(){
+  const eventName = document.getElementById('f_confName').value.trim();
+  const startDate = document.getElementById('f_confStart').value;
+  if(!eventName || !startDate){ alert('Please add an event name and start date.'); return; }
+  const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
+  if(!studentId){ alert('Add a student first.'); return; }
+  state.conferences.push({
+    id: uid('conf'), studentId, eventName,
+    eventType: document.getElementById('f_confType').value,
+    role: document.getElementById('f_confRole').value,
+    presentationTitle: document.getElementById('f_confPresTitle').value.trim(),
+    startDate, endDate: document.getElementById('f_confEnd').value,
+    location: document.getElementById('f_confLocation').value.trim(),
+    link: document.getElementById('f_confLink').value.trim(),
+    notes: document.getElementById('f_confNotes').value.trim(),
+    approvalStatus: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:''
+  });
+  await saveCollection('conferences', state.conferences);
+  if(!isSupervisorLike()){
+    apiNotify('conferenceSubmitted', { studentId, eventName });
+  }
+  closeModal(); renderView();
+}
+function openEditConferenceModal(id){
+  const c = state.conferences.find(x=>x.id===id);
+  showModal('Edit conference / workshop entry', conferenceFormFields(c) + (!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''), ()=>submitEditConference(id));
+}
+async function submitEditConference(id){
+  const c = state.conferences.find(x=>x.id===id);
+  const eventName = document.getElementById('f_confName').value.trim();
+  const startDate = document.getElementById('f_confStart').value;
+  if(!eventName || !startDate){ alert('Please add an event name and start date.'); return; }
+  c.eventName = eventName;
+  c.eventType = document.getElementById('f_confType').value;
+  c.role = document.getElementById('f_confRole').value;
+  c.presentationTitle = document.getElementById('f_confPresTitle').value.trim();
+  c.startDate = startDate;
+  c.endDate = document.getElementById('f_confEnd').value;
+  c.location = document.getElementById('f_confLocation').value.trim();
+  c.link = document.getElementById('f_confLink').value.trim();
+  c.notes = document.getElementById('f_confNotes').value.trim();
+  if(!isSupervisorLike()){
+    c.approvalStatus = 'pending';
+    await saveCollection('conferences', state.conferences);
+    apiNotify('conferenceSubmitted', { studentId: c.studentId, eventName: c.eventName });
+  } else {
+    await saveCollection('conferences', state.conferences);
+  }
+  closeModal(); renderView();
+}
+function openConferenceReviewBox(id){
+  const c = state.conferences.find(x=>x.id===id);
+  document.getElementById('conferenceReviewSlot-'+id).innerHTML = `
+    <div class="comment-box">
+      <span class="lbl">Note (required to request changes)</span>
+      <textarea id="conferenceReviewInput-${id}">${escapeHtml(c.supervisorNote || '')}</textarea>
+      <div class="entry-actions">
+        <button class="small-btn" onclick="reviewConference('${id}','approved')">Approve</button>
+        <button class="small-btn danger" onclick="reviewConference('${id}','changes_requested')">Request changes</button>
+      </div>
+    </div>`;
+}
+async function reviewConference(id, decision){
+  const c = state.conferences.find(x=>x.id===id);
+  const val = document.getElementById('conferenceReviewInput-'+id).value.trim();
+  if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
+  c.supervisorNote = val;
+  c.approvalStatus = decision;
+  await saveCollection('conferences', state.conferences);
+  apiNotify('conferenceReviewed', { studentId: c.studentId, eventName: c.eventName, decision, note: val });
+  renderView();
+}
+async function deleteConference(id){
+  if(!confirm('Delete this entry?')) return;
+  state.conferences = state.conferences.filter(x=>x.id!==id);
+  await saveCollection('conferences', state.conferences);
   renderView();
 }
 
