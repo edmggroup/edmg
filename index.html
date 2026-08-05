@@ -62,13 +62,24 @@
   a{ color:var(--navy); }
 
   /* ---------- Login ---------- */
-  #loginScreen{ min-height:100vh; display:flex; align-items:stretch; justify-content:center; padding:0; background:var(--bg); }
+  #loginScreen{
+    min-height:100vh; display:flex; align-items:stretch; justify-content:center; padding:0;
+    background-color:var(--bg);
+    background-image: radial-gradient(circle, rgba(31,58,95,0.05) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
   .login-hero{
-    flex:1 1 380px; max-width:460px; background:linear-gradient(155deg, var(--navy) 0%, var(--navy-dark) 100%);
-    color:#fff; padding:56px 48px; display:flex; flex-direction:column; justify-content:center; position:relative; overflow:hidden;
+    flex:1 1 380px; max-width:460px; color:#fff; padding:56px 48px; display:flex; flex-direction:column;
+    justify-content:center; position:relative; overflow:hidden;
+    background-color:var(--navy);
+    background-image:
+      radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px),
+      linear-gradient(155deg, var(--navy) 0%, var(--navy-dark) 100%);
+    background-size: 22px 22px, auto;
   }
   .login-hero:before{ content:""; position:absolute; width:340px; height:340px; border-radius:50%; background:rgba(255,255,255,0.05); top:-120px; right:-120px; }
   .login-hero:after{ content:""; position:absolute; width:220px; height:220px; border-radius:50%; background:rgba(255,255,255,0.04); bottom:-90px; left:-70px; }
+  .login-hero-illustration{ position:absolute; right:-6px; bottom:14px; display:flex; flex-direction:column; align-items:flex-end; gap:8px; opacity:0.55; pointer-events:none; }
   .login-hero-mark{ width:44px; height:44px; border-radius:10px; background:#fff; color:var(--navy-dark); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; margin-bottom:24px; position:relative; z-index:1; }
   .login-hero-title{ font-family:'Source Serif 4', serif; font-size:31px; font-weight:600; line-height:1.25; letter-spacing:-0.01em; margin-bottom:14px; position:relative; z-index:1; }
   .login-hero-tag{ font-size:14px; line-height:1.65; color:rgba(255,255,255,0.72); max-width:360px; margin-bottom:28px; position:relative; z-index:1; }
@@ -555,7 +566,7 @@ async function init(){
     if(!state.identity) renderLogin();
   }catch(e){
     console.error('Failed to load from backend', e);
-    if(!cached) renderBackendError(); // if we had cached data on screen already, a transient network hiccup shouldn't rip it away
+    if(!cached) renderBackendError(e); // if we had cached data on screen already, a transient network hiccup shouldn't rip it away
   }
 }
 function applyDataValues(values){
@@ -600,9 +611,22 @@ function loginShell(cardHtml){
         <li>Weekly progress with supervisor approval</li>
         <li>Characterization &amp; battery testing pipeline</li>
         <li>Paper pipeline with reference tracking</li>
-        <li>Automatic email updates</li>
       </ul>
       <div class="login-hero-foot">v1.0 · Internal tool</div>
+      <div class="login-hero-illustration">
+        <svg viewBox="0 0 220 46" width="210" height="44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <polyline points="0,36 20,14 42,36 64,10 86,36 108,8 130,36 152,12 174,36 196,10 220,36"
+            stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+        </svg>
+        <svg viewBox="0 0 84 40" width="96" height="46" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="2" y="6" width="72" height="28" rx="5" stroke="#ffffff" stroke-width="2.2" opacity="0.85"/>
+          <rect x="76" y="15" width="7" height="10" rx="2" fill="#ffffff" opacity="0.85"/>
+          <rect x="9" y="12" width="12" height="16" fill="#ffffff" opacity="0.9"/>
+          <rect x="24" y="12" width="12" height="16" fill="#ffffff" opacity="0.6"/>
+          <rect x="39" y="12" width="12" height="16" fill="#ffffff" opacity="0.35"/>
+          <rect x="54" y="12" width="12" height="16" fill="#ffffff" opacity="0.18"/>
+        </svg>
+      </div>
     </div>
     <div class="login-card-wrap">${cardHtml}</div>
   `;
@@ -624,15 +648,24 @@ function renderSetupNeeded(){
       </div>
     </div>`);
 }
-function renderBackendError(){
+function renderBackendError(err){
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('appShell').style.display='none';
+  const msg = err ? String(err.message || err) : '';
+  let guidance = 'Check your internet connection, and confirm the Apps Script Web App is still deployed with "Anyone" access.';
+  if(/unauthorized/i.test(msg)){
+    guidance = 'The backend responded with "Unauthorized" — this means the APP_KEY in this file no longer matches the APP_KEY in your Code.gs. Open both and make sure they are character-for-character identical, then redeploy if you change either.';
+  } else if(/returned \d{3}/i.test(msg)){
+    guidance = `The backend responded with an error (${escapeHtml(msg)}). Open the Apps Script editor → Executions (left sidebar) to see the full error from the most recent run.`;
+  } else if(msg){
+    guidance = `The connection attempt failed with: "${escapeHtml(msg)}". This usually means either your internet dropped, or the Web App URL in DATA_API_URL no longer points to a live deployment — check that the deployment still exists under Deploy → Manage deployments.`;
+  }
   document.getElementById('loginScreen').innerHTML = loginShell(`
     <div class="login-card">
       <div class="login-mark">RG</div>
       <div class="login-eyebrow">Connection problem</div>
       <div class="login-title">Couldn't reach the Drive backend</div>
-      <div class="login-sub">Check your internet connection, and confirm the Apps Script Web App is still deployed with "Anyone" access. Then reload this page.</div>
+      <div class="login-sub">${guidance}</div>
       <button class="primary-btn" onclick="init()">Try again</button>
     </div>`);
 }
@@ -745,7 +778,7 @@ function renderLogin(){
       <div class="login-mark">RG</div>
       <div class="login-eyebrow">Internal Tool</div>
       <div class="login-title">Research Group Management System</div>
-      <div class="login-sub">Weekly progress, characterization samples, and paper pipeline — tracked in one shared logbook. Each account is PIN-protected, and approvals send email updates automatically.</div>
+      <div class="login-sub">Weekly progress, characterization samples, and paper pipeline — tracked in one shared logbook. Each account is PIN-protected.</div>
       <label class="field-label">I am logging in as</label>
       <div class="role-row">
         <button class="role-btn ${role==='supervisor'?'active':''}" onclick="chooseRole('supervisor')">Supervisor <small>Review reports, track the group</small></button>
@@ -3569,6 +3602,17 @@ function weeklyCard(w, i, total){
         <div class="entry-block"><span class="lbl">Plan for next week</span>${nl2br(w.planNext) || '—'}</div>
         ${w.challenges ? `<div class="entry-block" style="grid-column:1/-1;"><span class="lbl">Challenges / blockers</span>${nl2br(w.challenges)}</div>` : ''}
       </div>
+      ${(w.linkedPaperIds && w.linkedPaperIds.length>0) ? `
+        <div class="entry-block" style="margin-top:8px;">
+          <span class="lbl">Relates to</span>
+          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+            ${w.linkedPaperIds.map(pid=>{
+              const p = state.papers.find(x=>x.id===pid);
+              return p ? `<span class="task-link stamp neutral" onclick="goToItem('paper','${p.id}','${w.studentId}')">${escapeHtml(p.title)}</span>` : '';
+            }).join('')}
+          </div>
+        </div>
+      ` : ''}
       ${w.supervisorComment ? `
         <div class="comment-box"><span class="lbl">Supervisor feedback</span><div class="comment-existing">${nl2br(w.supervisorComment)}</div></div>
       ` : ''}
@@ -3590,6 +3634,7 @@ function openWeeklyModal(){
   const monday = getMondayStr();
   const mine = state.weekly.filter(w=>w.studentId===state.identity.id).sort((a,b)=>b.weekStart.localeCompare(a.weekStart));
   const previous = mine.find(w=>w.weekStart < monday) || mine[0];
+  const myPapers = state.papers.filter(p=>p.studentId===state.identity.id);
   showModal("Log this week's plan", `
     ${previous && previous.planNext ? `<div class="comment-box" style="margin-bottom:14px;"><span class="lbl">You planned last time (week of ${fmtDate(previous.weekStart)})</span><div class="comment-existing">${nl2br(previous.planNext)}</div></div>` : ''}
     <label class="field-label">Week starting</label>
@@ -3600,6 +3645,16 @@ function openWeeklyModal(){
     <textarea id="f_planNext" class="text-input" rows="3" placeholder="e.g. Submit samples for SEM, start drafting methods section..."></textarea>
     <label class="field-label">Challenges / blockers (optional)</label>
     <textarea id="f_challenges" class="text-input" rows="2" placeholder="Anything blocking progress?"></textarea>
+    ${myPapers.length>0 ? `
+      <label class="field-label">Which paper(s) does this week's work relate to? (optional)</label>
+      <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+        ${myPapers.map(p=>`
+          <label style="display:flex; align-items:center; gap:8px; font-size:13.5px;">
+            <input type="checkbox" class="weeklyPaperLink" value="${p.id}"> ${escapeHtml(p.title)}
+          </label>
+        `).join('')}
+      </div>
+    ` : ''}
   `, submitWeekly);
 }
 function getMondayStr(){
@@ -3615,8 +3670,9 @@ async function submitWeekly(){
   const planNext = document.getElementById('f_planNext').value.trim();
   const challenges = document.getElementById('f_challenges').value.trim();
   if(!weekStart || !workDone){ alert('Please add the week and what you worked on.'); return; }
+  const linkedPaperIds = Array.from(document.querySelectorAll('.weeklyPaperLink:checked')).map(el=>el.value);
   state.weekly.push({
-    id: uid('wk'), studentId: state.identity.id, weekStart, workDone, planNext, challenges,
+    id: uid('wk'), studentId: state.identity.id, weekStart, workDone, planNext, challenges, linkedPaperIds,
     status:'pending', supervisorComment:''
   });
   await saveCollection('weekly-reports', state.weekly);
@@ -3653,6 +3709,8 @@ async function deleteWeekly(id){
 }
 function openEditWeeklyModal(id){
   const w = state.weekly.find(x=>x.id===id);
+  const myPapers = state.papers.filter(p=>p.studentId===w.studentId);
+  const linked = w.linkedPaperIds || [];
   showModal('Edit weekly report', `
     <label class="field-label">Week starting</label>
     <input type="date" id="f_editWeekStart" class="text-input" value="${w.weekStart}">
@@ -3662,6 +3720,16 @@ function openEditWeeklyModal(id){
     <textarea id="f_editPlanNext" class="text-input" rows="3">${escapeHtml(w.planNext)}</textarea>
     <label class="field-label">Challenges / blockers (optional)</label>
     <textarea id="f_editChallenges" class="text-input" rows="2">${escapeHtml(w.challenges||'')}</textarea>
+    ${myPapers.length>0 ? `
+      <label class="field-label">Which paper(s) does this week's work relate to? (optional)</label>
+      <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+        ${myPapers.map(p=>`
+          <label style="display:flex; align-items:center; gap:8px; font-size:13.5px;">
+            <input type="checkbox" class="weeklyPaperLinkEdit" value="${p.id}" ${linked.includes(p.id)?'checked':''}> ${escapeHtml(p.title)}
+          </label>
+        `).join('')}
+      </div>
+    ` : ''}
     ${!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''}
   `, ()=>submitEditWeekly(id));
 }
@@ -3676,6 +3744,7 @@ async function submitEditWeekly(id){
   w.workDone = workDone;
   w.planNext = planNext;
   w.challenges = challenges;
+  w.linkedPaperIds = Array.from(document.querySelectorAll('.weeklyPaperLinkEdit:checked')).map(el=>el.value);
   if(!isSupervisorLike()){
     w.status = 'pending';
     await saveCollection('weekly-reports', state.weekly);
@@ -3996,10 +4065,57 @@ function paperCard(p, i, total){
         ` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openEditPaperDetails('${p.id}')">Edit details</button>` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openAddReferenceLinkModal('${p.id}')">+ Add reference link</button>` : ''}
+        <button class="small-btn" onclick="openConsolidatedWeeklyModal('${p.id}')">Consolidate weekly updates</button>
         ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deletePaper('${p.id}')">Delete</button>` : ''}
       </div>
     </div>
   `;
+}
+function openConsolidatedWeeklyModal(paperId){
+  const p = state.papers.find(x=>x.id===paperId);
+  const linked = scopedList(state.weekly)
+    .filter(w => (w.linkedPaperIds||[]).includes(paperId))
+    .sort((a,b)=> a.weekStart.localeCompare(b.weekStart));
+
+  if(linked.length===0){
+    showModal(`Consolidated updates — ${p.title}`, `
+      <div class="empty-state" style="padding:20px 4px;">
+        <div class="em-title">No weekly updates linked yet</div>
+        <div class="em-sub">When logging a weekly plan, check this paper under "Which paper(s) does this week's work relate to?" and it will show up here.</div>
+      </div>
+    `);
+    document.getElementById('modalSubmitBtn').style.display = 'none';
+    return;
+  }
+
+  const bodyText = linked.map(w =>
+    `Week of ${fmtDate(w.weekStart)}\n${w.workDone}`
+  ).join('\n\n');
+
+  showModal(`Consolidated updates — ${p.title}`, `
+    <div class="view-sub" style="margin-bottom:14px;">${linked.length} weekly update${linked.length===1?'':'s'} linked to this paper, oldest first.</div>
+    <div style="display:flex; flex-direction:column; gap:10px; max-height:420px; overflow-y:auto;">
+      ${linked.map(w=>`
+        <div style="border:1px solid var(--border); border-radius:7px; padding:11px 14px;">
+          <div style="font-weight:600; font-size:13px; margin-bottom:4px;">Week of ${fmtDate(w.weekStart)}</div>
+          <div style="font-size:13.5px; line-height:1.55; color:var(--ink);">${nl2br(w.workDone)}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="entry-actions" style="margin-top:14px;">
+      <button class="small-btn" onclick="copyConsolidatedText(this)" data-text="${escapeHtml(bodyText)}">Copy as text</button>
+    </div>
+  `);
+  document.getElementById('modalSubmitBtn').style.display = 'none';
+}
+function copyConsolidatedText(btn){
+  const text = btn.getAttribute('data-text')
+    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'");
+  navigator.clipboard.writeText(text).then(()=>{
+    const original = btn.textContent;
+    btn.textContent = 'Copied ✓';
+    setTimeout(()=>{ btn.textContent = original; }, 1500);
+  }).catch(()=>{ alert('Could not copy automatically — please select and copy the text manually.'); });
 }
 function openPaperModal(){
   showModal('Add paper to pipeline', `
