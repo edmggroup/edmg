@@ -27,6 +27,14 @@
     --danger:#A32A24;
     --danger-wash:#FBEAE9;
     --neutral-wash:#EEF0F3;
+    --stat-blue:#2B5FA8;
+    --stat-blue-wash:#E7EEF8;
+    --stat-purple:#6E4A9E;
+    --stat-purple-wash:#EFE7F5;
+    --stat-teal:#0E7C86;
+    --stat-teal-wash:#E1F2F1;
+    --stat-indigo:#4A54A8;
+    --stat-indigo-wash:#ECEDF7;
     --shadow-sm: 0 1px 2px rgba(21,27,41,0.05);
     --shadow-md: 0 2px 6px rgba(21,27,41,0.06), 0 8px 24px rgba(21,27,41,0.05);
     --radius:8px;
@@ -48,20 +56,37 @@
   a{ color:var(--navy); }
 
   /* ---------- Login ---------- */
-  #loginScreen{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; background:
-    radial-gradient(circle at 15% 10%, rgba(31,58,95,0.05), transparent 45%),
-    radial-gradient(circle at 85% 90%, rgba(31,58,95,0.04), transparent 45%),
-    var(--bg);
+  #loginScreen{ min-height:100vh; display:flex; align-items:stretch; justify-content:center; padding:0; background:var(--bg); }
+  .login-hero{
+    flex:1 1 380px; max-width:460px; background:linear-gradient(155deg, var(--navy) 0%, var(--navy-dark) 100%);
+    color:#fff; padding:56px 48px; display:flex; flex-direction:column; justify-content:center; position:relative; overflow:hidden;
   }
+  .login-hero:before{ content:""; position:absolute; width:340px; height:340px; border-radius:50%; background:rgba(255,255,255,0.05); top:-120px; right:-120px; }
+  .login-hero:after{ content:""; position:absolute; width:220px; height:220px; border-radius:50%; background:rgba(255,255,255,0.04); bottom:-90px; left:-70px; }
+  .login-hero-mark{ width:44px; height:44px; border-radius:10px; background:#fff; color:var(--navy-dark); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; margin-bottom:24px; position:relative; z-index:1; }
+  .login-hero-title{ font-size:27px; font-weight:700; line-height:1.28; letter-spacing:-0.015em; margin-bottom:14px; position:relative; z-index:1; }
+  .login-hero-tag{ font-size:14px; line-height:1.65; color:rgba(255,255,255,0.72); max-width:360px; margin-bottom:28px; position:relative; z-index:1; }
+  .login-hero-list{ list-style:none; padding:0; margin:0 0 32px; display:flex; flex-direction:column; gap:11px; position:relative; z-index:1; }
+  .login-hero-list li{ font-size:13.5px; color:rgba(255,255,255,0.92); padding-left:24px; position:relative; }
+  .login-hero-list li:before{ content:"✓"; position:absolute; left:0; top:0; color:#8FD6C4; font-weight:700; }
+  .login-hero-foot{ font-size:11px; color:rgba(255,255,255,0.38); letter-spacing:.06em; text-transform:uppercase; position:relative; z-index:1; }
+  .login-card-wrap{ flex:1 1 480px; display:flex; align-items:center; justify-content:center; padding:40px 24px; }
+  @keyframes loginFadeIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
   .login-card{
     width:100%; max-width:440px; background:var(--surface); border:1px solid var(--border);
     border-radius:12px; box-shadow:var(--shadow-md); padding:40px 36px;
+    animation: loginFadeIn .4s cubic-bezier(.2,.7,.3,1);
+  }
+  @media (max-width: 860px){
+    .login-hero{ display:none; }
+    .login-card-wrap{ flex:1 1 100%; padding:24px 18px; }
   }
   .login-mark{ width:38px; height:38px; border-radius:8px; background:var(--navy); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; letter-spacing:0.02em; margin-bottom:18px; }
   .login-eyebrow{ font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; }
   .login-title{ font-size:24px; font-weight:700; margin:6px 0 6px; letter-spacing:-0.015em; }
   .login-sub{ color:var(--ink-soft); font-size:14px; margin-bottom:28px; line-height:1.55; }
-  .role-row{ display:flex; gap:10px; margin-bottom:16px; }
+  .role-row{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .role-row .role-btn{ flex:1 1 140px; }
   .role-btn{
     flex:1; padding:14px 14px; border-radius:8px; border:1px solid var(--border); background:var(--surface);
     font-weight:600; font-size:14px; color:var(--ink-soft); transition:all .12s ease; text-align:left;
@@ -126,17 +151,32 @@
 
   /* ---------- Dashboard cards ---------- */
   .stat-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(168px,1fr)); gap:14px; margin-bottom:30px; }
-  .stat-grid.compact{ grid-template-columns:repeat(auto-fit, minmax(128px,1fr)); gap:10px; margin-bottom:20px; }
-  .stat-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:17px 19px; box-shadow:var(--shadow-sm); }
-  .stat-card.compact{ padding:11px 13px; }
-  .stat-card.compact .stat-num{ font-size:20px; }
-  .stat-card.compact .stat-label{ font-size:11px; margin-top:1px; }
+  .stat-grid.compact{ grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:12px; margin-bottom:22px; }
+  .stat-card{ background:var(--surface); border:1px solid var(--border); border-top:3px solid var(--border-strong); border-radius:var(--radius); padding:17px 19px; box-shadow:var(--shadow-sm); transition:box-shadow .15s, transform .15s; }
+  .stat-card:hover{ box-shadow:var(--shadow-md); transform:translateY(-1px); }
+  .stat-card.compact{ padding:13px 15px; }
+  .stat-card.compact .stat-num{ font-size:22px; }
+  .stat-card.compact .stat-label{ font-size:11px; margin-top:2px; }
   .stat-num{ font-size:27px; font-weight:700; letter-spacing:-0.02em; color:var(--ink); }
-  .stat-label{ font-size:12px; color:var(--ink-soft); margin-top:3px; font-weight:500; }
+  .stat-label{ font-size:12px; color:var(--ink-soft); margin-top:3px; font-weight:500; display:flex; align-items:center; gap:6px; }
+  .stat-label .dot{ width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .stat-card.warn{ border-top-color:var(--danger); }
   .stat-card.warn .stat-num{ color:var(--danger); }
+  .stat-card.ok{ border-top-color:var(--success); }
   .stat-card.ok .stat-num{ color:var(--success); }
+  .stat-card.accent-blue{ border-top-color:var(--stat-blue); }
+  .stat-card.accent-blue .dot{ background:var(--stat-blue); }
+  .stat-card.accent-purple{ border-top-color:var(--stat-purple); }
+  .stat-card.accent-purple .dot{ background:var(--stat-purple); }
+  .stat-card.accent-teal{ border-top-color:var(--stat-teal); }
+  .stat-card.accent-teal .dot{ background:var(--stat-teal); }
+  .stat-card.accent-indigo{ border-top-color:var(--stat-indigo); }
+  .stat-card.accent-indigo .dot{ background:var(--stat-indigo); }
+  .stat-card.warn .dot{ background:var(--danger); }
+  .stat-card.ok .dot{ background:var(--success); }
 
-  .panel-title{ font-size:12.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); font-weight:600; margin:0 0 8px; }
+  .panel-title{ font-size:12.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); font-weight:600; margin:0 0 8px; display:flex; align-items:center; gap:7px; }
+  .panel-title .dot{ width:7px; height:7px; border-radius:50%; }
   .two-col-panels{ display:grid; grid-template-columns:1.3fr 1fr; gap:18px; align-items:start; }
   .compact-card{ padding:8px 16px; margin-bottom:0; }
 
@@ -262,19 +302,22 @@
 <script>
 /* ============================ STATE ============================ */
 const state = {
-  identity: null,        // {role:'supervisor'|'student', id, name}
+  identity: null,        // {role:'supervisor'|'cosupervisor'|'student', id, name}
   students: [],
   weekly: [],
   samples: [],
   papers: [],
   instructions: [],
   meetings: [],
+  coSupervisors: [],
+  readings: [],
   view: 'overview',
   filterStudentId: 'all',
   filterMeetingType: 'all',
   loginRole: null,
   loginPickId: null,
   supervisorPinHash: null, // null = no supervisor passcode set yet
+  supervisorEmail: null,
   loginError: '',
   reportStudentId: null,
   reportFrom: '',
@@ -310,26 +353,39 @@ async function hashPin(pin){
 
 /* ============================ DATA BACKEND (Google Sheet via Apps Script) ============================ */
 // Paste the "Web app URL" you get after deploying the companion Apps Script
-// (logbook-backend-Code.gs) here. Until this is set, the app shows a setup screen.
+// (backend/Code.gs) here. Until this is set, the app shows a setup screen.
 const DATA_API_URL = 'https://script.google.com/macros/s/AKfycbyxhygXRw3Dx_u48TXyXdQc7l7YFqjBFeq65BSi7wMLlSwzgk8bW5SSeKVPzP9Rme4KMA/exec';
+
+// Must exactly match the APP_KEY constant in backend/Code.gs.
+const APP_KEY = 'change-this-to-your-own-random-string-2026';
 
 function backendConfigured(){
   return typeof DATA_API_URL === 'string' && DATA_API_URL.startsWith('http');
 }
 async function apiGetRaw(key){
-  const res = await fetch(DATA_API_URL + '?action=get&key=' + encodeURIComponent(key));
+  const res = await fetch(DATA_API_URL + '?action=get&key=' + encodeURIComponent(key) + '&key_check=' + encodeURIComponent(APP_KEY));
   if(!res.ok) throw new Error('Backend returned ' + res.status);
   const json = await res.json();
+  if(json && json.error) throw new Error(json.error);
   return (json && json.value !== undefined && json.value !== null && json.value !== '') ? json.value : null;
 }
 async function apiSetRaw(key, value){
   const res = await fetch(DATA_API_URL, {
     method: 'POST',
-    body: JSON.stringify({ key, value }) // no custom Content-Type — keeps this a "simple" request, avoiding CORS preflight issues with Apps Script
+    body: JSON.stringify({ key, value, appKey: APP_KEY }) // no custom Content-Type — keeps this a "simple" request, avoiding CORS preflight issues with Apps Script
   });
   if(!res.ok) throw new Error('Backend returned ' + res.status);
   return true;
 }
+async function apiNotify(type, payload){
+  try{
+    await fetch(DATA_API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action:'notify', type, payload, appKey: APP_KEY })
+    });
+  }catch(e){ console.error('Notification failed to send', type, e); }
+}
+function isValidEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v||'').trim()); }
 
 /* ============================ STORAGE ============================ */
 async function loadCollection(key){
@@ -343,14 +399,14 @@ async function saveCollection(key, arr){
     await apiSetRaw(key, JSON.stringify(arr));
   }catch(e){ console.error('Storage save failed', key, e); alert('Could not save your change — check your internet connection and try again. If this keeps happening, the Drive backend link may need to be reconnected.'); }
 }
-async function loadSupervisorPinHash(){
+async function loadSupervisorProfile(){
   try{
     const raw = await apiGetRaw('supervisor-pin');
-    return raw ? JSON.parse(raw).hash : null;
-  }catch(e){ console.error('Load supervisor pin failed', e); return null; }
+    return raw ? JSON.parse(raw) : { hash:null, email:null };
+  }catch(e){ console.error('Load supervisor profile failed', e); return { hash:null, email:null }; }
 }
-async function saveSupervisorPinHash(hash){
-  try{ await apiSetRaw('supervisor-pin', JSON.stringify({hash})); }catch(e){ console.error('Save supervisor pin failed', e); }
+async function saveSupervisorProfile(profile){
+  try{ await apiSetRaw('supervisor-pin', JSON.stringify(profile)); }catch(e){ console.error('Save supervisor profile failed', e); }
 }
 
 /* ============================ INIT ============================ */
@@ -361,14 +417,16 @@ async function init(){
   }
   renderLoginLoading();
   try{
-    const [students, weekly, samples, papers, instructions, meetings, supervisorPinHash] = await Promise.all([
+    const [students, weekly, samples, papers, instructions, meetings, coSupervisors, readings, supervisorProfile] = await Promise.all([
       loadCollection('students'),
       loadCollection('weekly-reports'),
       loadCollection('samples'),
       loadCollection('papers'),
       loadCollection('instructions'),
       loadCollection('meetings'),
-      loadSupervisorPinHash()
+      loadCollection('co-supervisors'),
+      loadCollection('readings'),
+      loadSupervisorProfile()
     ]);
     state.students = students;
     state.weekly = weekly;
@@ -376,46 +434,68 @@ async function init(){
     state.papers = papers;
     state.instructions = instructions;
     state.meetings = meetings;
-    state.supervisorPinHash = supervisorPinHash;
+    state.coSupervisors = coSupervisors;
+    state.readings = readings;
+    state.supervisorPinHash = supervisorProfile.hash || null;
+    state.supervisorEmail = supervisorProfile.email || null;
     renderLogin();
   }catch(e){
     console.error('Failed to load from backend', e);
     renderBackendError();
   }
 }
+function loginShell(cardHtml){
+  return `
+    <div class="login-hero">
+      <div class="login-hero-mark">RG</div>
+      <div class="login-hero-title">Research Group<br>Management System</div>
+      <div class="login-hero-tag">A shared, live workspace for weekly progress, characterization tracking, and the paper pipeline — built for supervisors, co-supervisors, and research scholars.</div>
+      <ul class="login-hero-list">
+        <li>Weekly progress with supervisor approval</li>
+        <li>Characterization &amp; battery testing pipeline</li>
+        <li>Paper pipeline with reference tracking</li>
+        <li>Automatic email updates</li>
+      </ul>
+      <div class="login-hero-foot">v1.0 · Internal tool</div>
+    </div>
+    <div class="login-card-wrap">${cardHtml}</div>
+  `;
+}
+
 function renderSetupNeeded(){
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('appShell').style.display='none';
-  document.getElementById('loginScreen').innerHTML = `
+  document.getElementById('loginScreen').innerHTML = loginShell(`
     <div class="login-card">
       <div class="login-mark">RG</div>
       <div class="login-eyebrow">Setup needed</div>
       <div class="login-title">Connect your Drive backend</div>
       <div class="login-sub">
         This app stores its data in a Google Sheet in your Drive. Before it can be used, deploy the companion
-        Apps Script (logbook-backend-Code.gs) as a Web App, then paste the Web app URL into the
-        <code class="mono">DATA_API_URL</code> constant near the top of this file's &lt;script&gt; section, save, and reopen it.
+        Apps Script (backend/Code.gs) as a Web App, then paste the Web app URL into the
+        <code class="mono">DATA_API_URL</code> constant near the top of this file's &lt;script&gt; section — and make sure
+        <code class="mono">APP_KEY</code> matches the one in Code.gs. Save, and reopen this page. See SETUP.md for full steps.
       </div>
-    </div>`;
+    </div>`);
 }
 function renderBackendError(){
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('appShell').style.display='none';
-  document.getElementById('loginScreen').innerHTML = `
+  document.getElementById('loginScreen').innerHTML = loginShell(`
     <div class="login-card">
       <div class="login-mark">RG</div>
       <div class="login-eyebrow">Connection problem</div>
       <div class="login-title">Couldn't reach the Drive backend</div>
       <div class="login-sub">Check your internet connection, and confirm the Apps Script Web App is still deployed with "Anyone" access. Then reload this page.</div>
       <button class="primary-btn" onclick="init()">Try again</button>
-    </div>`;
+    </div>`);
 }
 
 /* ============================ LOGIN ============================ */
 function renderLoginLoading(){
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('appShell').style.display='none';
-  document.getElementById('loginScreen').innerHTML = `<div class="login-card"><div class="login-eyebrow">Research Group Management System</div><div class="login-title">Loading group data…</div></div>`;
+  document.getElementById('loginScreen').innerHTML = loginShell(`<div class="login-card"><div class="login-eyebrow">Research Group Management System</div><div class="login-title">Loading group data…</div></div>`);
 }
 
 function renderLogin(){
@@ -434,6 +514,8 @@ function renderLogin(){
       ${state.loginPickId==='__new__' ? `
         <label class="field-label">Your name</label>
         <input class="text-input" id="newStudentName" placeholder="e.g. Priya Nair" />
+        <label class="field-label">Your email <span style="text-transform:none; font-weight:400;">(for update notifications)</span></label>
+        <input class="text-input" id="newStudentEmail" type="email" placeholder="you@university.edu">
         <label class="field-label">Create a PIN</label>
         <input class="text-input" id="newStudentPin" type="password" inputmode="numeric" placeholder="4+ digits — you'll use this to log in next time">
         <label class="field-label">Confirm PIN</label>
@@ -451,14 +533,25 @@ function renderLogin(){
         <label class="field-label">Confirm PIN</label>
         <input class="text-input" id="firstTimeStudentPinConfirm" type="password" inputmode="numeric" placeholder="Re-enter PIN">
       ` : ''}
+      ${picked && !picked.email ? `
+        <label class="field-label">Your email <span style="text-transform:none; font-weight:400;">(for update notifications)</span></label>
+        <input class="text-input" id="studentEmailBackfill" type="email" placeholder="you@university.edu">
+      ` : ''}
     `;
   }
   let supervisorPinHtml = '';
   if(role === 'supervisor'){
-    if(state.supervisorPinHash){
+    if(state.supervisorPinHash && state.supervisorEmail){
       supervisorPinHtml = `
         <label class="field-label">Supervisor passcode</label>
         <input class="text-input" id="supervisorPin" type="password" placeholder="Enter passcode">
+      `;
+    } else if(state.supervisorPinHash && !state.supervisorEmail){
+      supervisorPinHtml = `
+        <label class="field-label">Supervisor passcode</label>
+        <input class="text-input" id="supervisorPin" type="password" placeholder="Enter passcode">
+        <label class="field-label">Your email <span style="text-transform:none; font-weight:400;">(needed once, for update notifications)</span></label>
+        <input class="text-input" id="supervisorEmailInput" type="email" placeholder="you@university.edu">
       `;
     } else {
       supervisorPinHtml = `
@@ -466,19 +559,51 @@ function renderLogin(){
         <input class="text-input" id="supervisorPin" type="password" placeholder="This will be required for supervisor access">
         <label class="field-label">Confirm passcode</label>
         <input class="text-input" id="supervisorPinConfirm" type="password" placeholder="Re-enter passcode">
+        <label class="field-label">Your email <span style="text-transform:none; font-weight:400;">(for update notifications)</span></label>
+        <input class="text-input" id="supervisorEmailInput" type="email" placeholder="you@university.edu">
         <div class="view-sub" style="margin-top:8px;">This is the first supervisor login for this group — the passcode you set here will protect supervisor access from now on.</div>
       `;
     }
   }
-  document.getElementById('loginScreen').innerHTML = `
+  let coSupPickerHtml = '';
+  if(role === 'cosupervisor'){
+    const picked = state.loginPickId ? state.coSupervisors.find(x=>x.id===state.loginPickId) : null;
+    if(state.coSupervisors.length === 0){
+      coSupPickerHtml = `<div class="view-sub" style="margin-top:10px;">No co-supervisors have been added yet. Ask the supervisor to add you from Overview → Account → Co-supervisors.</div>`;
+    } else {
+      coSupPickerHtml = `
+        <label class="field-label">Who are you?</label>
+        <div class="student-pick-list" id="coSupPickList">
+          ${state.coSupervisors.map(c => `<button type="button" class="pick-chip ${state.loginPickId===c.id?'active':''}" onclick="pickCoSupervisor('${c.id}')">${escapeHtml(c.name)}</button>`).join('')}
+        </div>
+        ${picked && picked.pinHash ? `
+          <label class="field-label">Enter your PIN</label>
+          <input class="text-input" id="existingCoSupPin" type="password" inputmode="numeric" placeholder="Your PIN" autofocus>
+        ` : ''}
+        ${picked && !picked.pinHash ? `
+          <label class="field-label">Set a PIN for ${escapeHtml(picked.name)}'s account</label>
+          <div class="view-sub" style="margin:0 0 6px;">No PIN has been set yet — create one now.</div>
+          <input class="text-input" id="firstTimeCoSupPin" type="password" inputmode="numeric" placeholder="4+ digits">
+          <label class="field-label">Confirm PIN</label>
+          <input class="text-input" id="firstTimeCoSupPinConfirm" type="password" inputmode="numeric" placeholder="Re-enter PIN">
+        ` : ''}
+        ${picked && !picked.email ? `
+          <label class="field-label">Your email <span style="text-transform:none; font-weight:400;">(for update notifications)</span></label>
+          <input class="text-input" id="coSupEmailBackfill" type="email" placeholder="you@university.edu">
+        ` : ''}
+      `;
+    }
+  }
+  document.getElementById('loginScreen').innerHTML = loginShell(`
     <div class="login-card">
       <div class="login-mark">RG</div>
       <div class="login-eyebrow">Internal Tool</div>
       <div class="login-title">Research Group Management System</div>
-      <div class="login-sub">Weekly progress, characterization samples, and paper pipeline — tracked in one shared logbook. Each account is PIN-protected so students can only see their own work.</div>
+      <div class="login-sub">Weekly progress, characterization samples, and paper pipeline — tracked in one shared logbook. Each account is PIN-protected, and approvals send email updates automatically.</div>
       <label class="field-label">I am logging in as</label>
       <div class="role-row">
         <button class="role-btn ${role==='supervisor'?'active':''}" onclick="chooseRole('supervisor')">Supervisor <small>Review reports, track the group</small></button>
+        <button class="role-btn ${role==='cosupervisor'?'active':''}" onclick="chooseRole('cosupervisor')">Co-Supervisor <small>Review your assigned students</small></button>
         <button class="role-btn ${role==='student'?'active':''}" onclick="chooseRole('student')">Student <small>Log progress, samples, papers</small></button>
       </div>
       ${role==='supervisor' ? `
@@ -486,14 +611,16 @@ function renderLogin(){
         <input class="text-input" id="supervisorName" placeholder="e.g. Dr. Rao">
         ${supervisorPinHtml}
       ` : ''}
+      ${coSupPickerHtml}
       ${studentPickerHtml}
       ${state.loginError ? `<div class="view-sub" style="color:var(--danger); margin-top:10px;">${escapeHtml(state.loginError)}</div>` : ''}
       <button class="primary-btn" onclick="doLogin()">Enter logbook</button>
     </div>
-  `;
+  `);
 }
 function chooseRole(r){ state.loginRole = r; state.loginPickId = null; state.loginError=''; renderLogin(); }
 function pickStudent(id){ state.loginPickId = id; state.loginError=''; renderLogin(); setTimeout(()=>{ const el=document.getElementById('newStudentName') || document.getElementById('existingStudentPin') || document.getElementById('firstTimeStudentPin'); if(el) el.focus(); },0); }
+function pickCoSupervisor(id){ state.loginPickId = id; state.loginError=''; renderLogin(); }
 
 async function doLogin(){
   state.loginError = '';
@@ -504,29 +631,41 @@ async function doLogin(){
     if(state.supervisorPinHash){
       const hash = await hashPin(pin);
       if(hash !== state.supervisorPinHash){ state.loginError = 'Incorrect passcode.'; renderLogin(); return; }
+      if(!state.supervisorEmail){
+        const email = (document.getElementById('supervisorEmailInput')?.value || '').trim();
+        if(!isValidEmail(email)){ state.loginError = 'Please enter a valid email address.'; renderLogin(); return; }
+        state.supervisorEmail = email;
+        await saveSupervisorProfile({ hash: state.supervisorPinHash, email });
+      }
     } else {
       const confirmPin = document.getElementById('supervisorPinConfirm')?.value || '';
+      const email = (document.getElementById('supervisorEmailInput')?.value || '').trim();
       if(pin.length < 4){ state.loginError = 'Passcode must be at least 4 characters.'; renderLogin(); return; }
       if(pin !== confirmPin){ state.loginError = 'Passcodes do not match.'; renderLogin(); return; }
+      if(!isValidEmail(email)){ state.loginError = 'Please enter a valid email address.'; renderLogin(); return; }
       const hash = await hashPin(pin);
       state.supervisorPinHash = hash;
-      await saveSupervisorPinHash(hash);
+      state.supervisorEmail = email;
+      await saveSupervisorProfile({ hash, email });
     }
     state.identity = { role:'supervisor', id:'supervisor', name };
     showApp();
   } else if(state.loginRole === 'student'){
     if(state.loginPickId === '__new__'){
       const name = (document.getElementById('newStudentName')?.value || '').trim();
+      const email = (document.getElementById('newStudentEmail')?.value || '').trim();
       const pin = document.getElementById('newStudentPin')?.value || '';
       const pinConfirm = document.getElementById('newStudentPinConfirm')?.value || '';
       if(!name){ state.loginError = 'Please enter your name.'; renderLogin(); return; }
       if(state.students.some(s=>s.name.toLowerCase()===name.toLowerCase())){ state.loginError = 'That name already exists — select it from the list above instead.'; renderLogin(); return; }
+      if(!isValidEmail(email)){ state.loginError = 'Please enter a valid email address.'; renderLogin(); return; }
       if(pin.length < 4){ state.loginError = 'PIN must be at least 4 characters.'; renderLogin(); return; }
       if(pin !== pinConfirm){ state.loginError = 'PINs do not match.'; renderLogin(); return; }
       const pinHash = await hashPin(pin);
-      const newS = { id: uid('stu'), name, pinHash };
+      const newS = { id: uid('stu'), name, email, pinHash };
       state.students.push(newS);
       await saveCollection('students', state.students);
+      apiNotify('newStudent', { name });
       state.identity = { role:'student', id:newS.id, name:newS.name };
       showApp();
     } else if(state.loginPickId){
@@ -542,16 +681,49 @@ async function doLogin(){
         if(pin.length < 4){ state.loginError = 'PIN must be at least 4 characters.'; renderLogin(); return; }
         if(pin !== pinConfirm){ state.loginError = 'PINs do not match.'; renderLogin(); return; }
         s.pinHash = await hashPin(pin);
-        await saveCollection('students', state.students);
       }
+      if(!s.email){
+        const email = (document.getElementById('studentEmailBackfill')?.value || '').trim();
+        if(!isValidEmail(email)){ state.loginError = 'Please enter a valid email address.'; renderLogin(); return; }
+        s.email = email;
+      }
+      await saveCollection('students', state.students);
       state.identity = { role:'student', id:s.id, name:s.name };
       showApp();
     } else {
       state.loginError = 'Please select who you are, or add yourself as a new student.';
       renderLogin();
     }
+  } else if(state.loginRole === 'cosupervisor'){
+    if(!state.loginPickId){
+      state.loginError = 'Please select who you are.';
+      renderLogin();
+      return;
+    }
+    const c = state.coSupervisors.find(x=>x.id===state.loginPickId);
+    if(!c){ state.loginError = 'That account could not be found.'; renderLogin(); return; }
+    if(c.pinHash){
+      const pin = document.getElementById('existingCoSupPin')?.value || '';
+      if(!pin){ state.loginError = 'Please enter your PIN.'; renderLogin(); return; }
+      const hash = await hashPin(pin);
+      if(hash !== c.pinHash){ state.loginError = 'Incorrect PIN.'; renderLogin(); return; }
+    } else {
+      const pin = document.getElementById('firstTimeCoSupPin')?.value || '';
+      const pinConfirm = document.getElementById('firstTimeCoSupPinConfirm')?.value || '';
+      if(pin.length < 4){ state.loginError = 'PIN must be at least 4 characters.'; renderLogin(); return; }
+      if(pin !== pinConfirm){ state.loginError = 'PINs do not match.'; renderLogin(); return; }
+      c.pinHash = await hashPin(pin);
+    }
+    if(!c.email){
+      const email = (document.getElementById('coSupEmailBackfill')?.value || '').trim();
+      if(!isValidEmail(email)){ state.loginError = 'Please enter a valid email address.'; renderLogin(); return; }
+      c.email = email;
+    }
+    await saveCollection('co-supervisors', state.coSupervisors);
+    state.identity = { role:'cosupervisor', id:c.id, name:c.name };
+    showApp();
   } else {
-    state.loginError = 'Please choose whether you are the supervisor or a student.';
+    state.loginError = 'Please choose whether you are the supervisor, a co-supervisor, or a student.';
     renderLogin();
   }
 }
@@ -567,9 +739,8 @@ function switchUser(){
 function showApp(){
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appShell').style.display='block';
-  document.getElementById('identityBadge').innerHTML = state.identity.role === 'supervisor'
-    ? `<b>${escapeHtml(state.identity.name)}</b> · Supervisor`
-    : `<b>${escapeHtml(state.identity.name)}</b> · Student`;
+  const roleLabel = state.identity.role === 'supervisor' ? 'Supervisor' : state.identity.role === 'cosupervisor' ? 'Co-Supervisor' : 'Student';
+  document.getElementById('identityBadge').innerHTML = `<b>${escapeHtml(state.identity.name)}</b> · ${roleLabel}`;
   renderSidebar();
   renderView();
 }
@@ -605,20 +776,58 @@ function renderView(){
   else if(state.view==='account') main.innerHTML = viewAccount();
 }
 
+function isSupervisorLike(){
+  return state.identity.role === 'supervisor' || state.identity.role === 'cosupervisor';
+}
+function myCoSupervisorRecord(){
+  return state.coSupervisors.find(c=>c.id===state.identity.id) || null;
+}
+function assignedStudentIds(){
+  const cs = myCoSupervisorRecord();
+  return cs ? cs.assignedStudentIds : [];
+}
+function visibleStudentsForIdentity(){
+  if(state.identity.role === 'supervisor') return state.students;
+  if(state.identity.role === 'cosupervisor'){
+    const ids = assignedStudentIds();
+    return state.students.filter(s=>ids.includes(s.id));
+  }
+  return state.students.filter(s=>s.id===state.identity.id);
+}
+
 function supervisorFilterBar(){
-  if(state.identity.role !== 'supervisor') return '';
-  return `
-    <div class="filter-row">
-      <select onchange="setFilterStudent(this.value)">
-        <option value="all" ${state.filterStudentId==='all'?'selected':''}>All students</option>
-        ${state.students.map(s=>`<option value="${s.id}" ${state.filterStudentId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}
-      </select>
-    </div>`;
+  if(state.identity.role === 'supervisor'){
+    return `
+      <div class="filter-row">
+        <select onchange="setFilterStudent(this.value)">
+          <option value="all" ${state.filterStudentId==='all'?'selected':''}>All students</option>
+          ${state.students.map(s=>`<option value="${s.id}" ${state.filterStudentId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}
+        </select>
+      </div>`;
+  }
+  if(state.identity.role === 'cosupervisor'){
+    const assigned = visibleStudentsForIdentity();
+    if(assigned.length <= 1) return '';
+    return `
+      <div class="filter-row">
+        <select onchange="setFilterStudent(this.value)">
+          <option value="all" ${state.filterStudentId==='all'?'selected':''}>All my assigned students</option>
+          ${assigned.map(s=>`<option value="${s.id}" ${state.filterStudentId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}
+        </select>
+      </div>`;
+  }
+  return '';
 }
 function setFilterStudent(v){ state.filterStudentId = v; renderView(); }
 
 function scopedList(arr){
   if(state.identity.role === 'student') return arr.filter(x => x.studentId === state.identity.id);
+  if(state.identity.role === 'cosupervisor'){
+    const ids = assignedStudentIds();
+    const base = arr.filter(x => ids.includes(x.studentId));
+    if(state.filterStudentId === 'all') return base;
+    return base.filter(x => x.studentId === state.filterStudentId);
+  }
   if(state.filterStudentId === 'all') return arr;
   return arr.filter(x => x.studentId === state.filterStudentId);
 }
@@ -630,12 +839,12 @@ function viewInstructions(){
     <div class="view-header">
       <div>
         <div class="view-title">Supervisor Instructions</div>
-        <div class="view-sub">${state.identity.role==='supervisor' ? 'A dated log of instructions and directives given to each student.' : 'Instructions your supervisor has logged for you.'}</div>
+        <div class="view-sub">${isSupervisorLike() ? 'A dated log of instructions and directives given to each student.' : 'Instructions your supervisor has logged for you.'}</div>
       </div>
-      ${state.identity.role==='supervisor' ? `<button class="action-btn" onclick="openInstructionModal()">+ Log instruction</button>` : ''}
+      ${isSupervisorLike() ? `<button class="action-btn" onclick="openInstructionModal()">+ Log instruction</button>` : ''}
     </div>
     ${supervisorFilterBar()}
-    ${list.length===0 ? emptyState('No instructions logged yet', state.identity.role==='supervisor' ? 'Log a directive or instruction here to keep a dated record for each student.' : "Your supervisor hasn't logged any instructions yet.") : list.map((ins,i)=>instructionCard(ins,i,list.length)).join('')}
+    ${list.length===0 ? emptyState('No instructions logged yet', isSupervisorLike() ? 'Log a directive or instruction here to keep a dated record for each student.' : "Your supervisor hasn't logged any instructions yet.") : list.map((ins,i)=>instructionCard(ins,i,list.length)).join('')}
   `;
 }
 function instructionCard(ins, i, total){
@@ -649,19 +858,20 @@ function instructionCard(ins, i, total){
         <span class="stamp neutral">Logged by ${escapeHtml(ins.addedByName)}</span>
       </div>
       <div class="entry-block">${nl2br(ins.text)}</div>
-      ${state.identity.role==='supervisor' ? `
+      ${isSupervisorLike() ? `
         <div class="entry-actions"><button class="small-btn danger" onclick="deleteInstruction('${ins.id}')">Delete</button></div>
       ` : ''}
     </div>
   `;
 }
 function openInstructionModal(){
-  const targetId = state.filterStudentId!=='all' ? state.filterStudentId : (state.students[0]?.id || '');
+  const visible = visibleStudentsForIdentity();
+  const targetId = state.filterStudentId!=='all' ? state.filterStudentId : (visible[0]?.id || '');
   if(!targetId){ alert('Add a student first.'); return; }
   showModal('Log an instruction', `
     <label class="field-label">For</label>
     <select class="text-input" id="f_insStudent">
-      ${state.students.map(s=>`<option value="${s.id}" ${s.id===targetId?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}
+      ${visible.map(s=>`<option value="${s.id}" ${s.id===targetId?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}
     </select>
     <label class="field-label">Date</label>
     <input type="date" class="text-input" id="f_insDate" value="${todayStr()}">
@@ -712,28 +922,33 @@ function viewOverview(){
     ...meetings.map(m=>({ type:'Meeting', date:m.lastUpdate, text:`<b>${escapeHtml(studentName(m.studentId))}</b> — ${escapeHtml(m.type)}: "${escapeHtml(m.title)}" (${m.status})`, sortDate:m.lastUpdate }))
   ].filter(f=>f.sortDate).sort((a,b)=> b.sortDate.localeCompare(a.sortDate)).slice(0,8);
 
+  const roleTitle = { supervisor:'Group Overview', cosupervisor:'My Assigned Students', student:'My Overview' }[state.identity.role];
+  const roleSub = { supervisor:'Everything here is final only once you approve it.', cosupervisor:'A view of the students assigned to you — everything here is final only once approved.', student:'A snapshot of your progress, samples, and papers.' }[state.identity.role];
+
   return `
     ${supervisorFilterBar()}
     <div class="view-header" style="margin-bottom:14px; padding-bottom:12px;">
       <div>
-        <div class="view-title">${state.identity.role==='supervisor' ? 'Group Overview' : 'My Overview'}</div>
-        <div class="view-sub">${state.identity.role==='supervisor' ? 'Everything here is final only once you approve it.' : 'A snapshot of your progress, samples, and papers.'}</div>
+        <div class="view-title">${roleTitle}</div>
+        <div class="view-sub">${roleSub}</div>
       </div>
     </div>
     <div class="stat-grid compact">
-      ${state.identity.role==='supervisor' ? `<div class="stat-card compact ${totalPendingApproval>0?'warn':'ok'}"><div class="stat-num">${totalPendingApproval}</div><div class="stat-label">Awaiting approval</div></div>` : `<div class="stat-card compact ${pendingReports>0?'warn':''}"><div class="stat-num">${pendingReports}</div><div class="stat-label">Reports pending</div></div>`}
-      <div class="stat-card compact ${overdueSamples>0?'warn':'ok'}"><div class="stat-num">${awaitingSamples}</div><div class="stat-label">Awaiting results</div></div>
-      <div class="stat-card compact ${overdueSamples>0?'warn':''}"><div class="stat-num">${overdueSamples}</div><div class="stat-label">Overdue</div></div>
-      <div class="stat-card compact"><div class="stat-num">${activePapers}</div><div class="stat-label">Papers active</div></div>
-      <div class="stat-card compact ok"><div class="stat-num">${publishedPapers}</div><div class="stat-label">Published</div></div>
-      <div class="stat-card compact ${upcoming.length>0?'':''}"><div class="stat-num">${upcoming.length}</div><div class="stat-label">Upcoming meetings</div></div>
+      ${isSupervisorLike()
+        ? `<div class="stat-card compact accent-blue ${totalPendingApproval>0?'warn':'ok'}"><div class="stat-num">${totalPendingApproval}</div><div class="stat-label"><span class="dot"></span>Awaiting approval</div></div>`
+        : `<div class="stat-card compact accent-blue ${pendingReports>0?'warn':''}"><div class="stat-num">${pendingReports}</div><div class="stat-label"><span class="dot"></span>Reports pending</div></div>`}
+      <div class="stat-card compact accent-teal ${overdueSamples>0?'warn':'ok'}"><div class="stat-num">${awaitingSamples}</div><div class="stat-label"><span class="dot"></span>Awaiting results</div></div>
+      <div class="stat-card compact ${overdueSamples>0?'warn':''}"><div class="stat-num">${overdueSamples}</div><div class="stat-label"><span class="dot" style="background:var(--danger);"></span>Overdue</div></div>
+      <div class="stat-card compact accent-purple"><div class="stat-num">${activePapers}</div><div class="stat-label"><span class="dot"></span>Papers active</div></div>
+      <div class="stat-card compact ok"><div class="stat-num">${publishedPapers}</div><div class="stat-label"><span class="dot"></span>Published</div></div>
+      <div class="stat-card compact accent-indigo"><div class="stat-num">${upcoming.length}</div><div class="stat-label"><span class="dot"></span>Upcoming meetings</div></div>
     </div>
 
-    ${state.identity.role==='supervisor' ? studentSummaryTable() : ''}
+    ${isSupervisorLike() ? studentSummaryTable() : ''}
 
     <div class="two-col-panels">
       <div>
-        <h3 class="panel-title">Recent activity</h3>
+        <h3 class="panel-title"><span class="dot" style="background:var(--navy);"></span>Recent activity</h3>
         <div class="entry-card compact-card">
           ${feed.length===0 ? `<div class="empty-state"><div class="em-title">The logbook is empty</div><div class="em-sub">Once progress, samples, or papers are logged, they'll show up here.</div></div>` :
             feed.map((f,i)=>`
@@ -744,7 +959,7 @@ function viewOverview(){
         </div>
       </div>
       <div>
-        <h3 class="panel-title">Upcoming meetings &amp; presentations</h3>
+        <h3 class="panel-title"><span class="dot" style="background:var(--stat-indigo);"></span>Upcoming meetings</h3>
         <div class="entry-card compact-card">
           ${upcoming.length===0 ? `<div class="empty-state"><div class="em-title">Nothing scheduled</div><div class="em-sub">Planned reviews and presentations will show up here.</div></div>` :
             upcoming.map(m=>`
@@ -759,14 +974,15 @@ function viewOverview(){
 }
 
 function studentSummaryTable(){
-  if(state.students.length===0) return '';
+  const visible = visibleStudentsForIdentity();
+  if(visible.length===0) return '';
   return `
-    <h3 class="panel-title">By student</h3>
+    <h3 class="panel-title"><span class="dot" style="background:var(--stat-purple);"></span>By student</h3>
     <div class="entry-card compact-card" style="margin-bottom:22px; padding:0;">
       <table class="report-table" style="margin:0;">
         <thead><tr><th style="padding-left:18px;">Student</th><th>Pending approval</th><th>Samples awaiting results</th><th>Active papers</th><th>Next meeting</th></tr></thead>
         <tbody>
-          ${state.students.map(s=>{
+          ${visible.map(s=>{
             const w = state.weekly.filter(x=>x.studentId===s.id);
             const sm = state.samples.filter(x=>x.studentId===s.id);
             const p = state.papers.filter(x=>x.studentId===s.id);
@@ -790,11 +1006,16 @@ function studentSummaryTable(){
 }
 
 function viewAccount(){
+  const subMap = {
+    supervisor: 'Passcode, student access, co-supervisors, and backups.',
+    cosupervisor: 'Your PIN, your assigned students, and a backup of what you can see.',
+    student: 'Your PIN and a backup of your own data.'
+  };
   return `
     <div class="view-header">
       <div>
         <div class="view-title">Account</div>
-        <div class="view-sub">${state.identity.role==='supervisor' ? 'Passcode, student access, and backups.' : 'Your PIN and a backup of your own data.'}</div>
+        <div class="view-sub">${subMap[state.identity.role] || ''}</div>
       </div>
     </div>
     ${accessSection()}
@@ -803,34 +1024,205 @@ function viewAccount(){
 
 function accessSection(){
   if(state.identity.role === 'student'){
+    const me = state.students.find(x=>x.id===state.identity.id);
     return `
       <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin-bottom:6px;">Account</h3>
       <div class="entry-card">
         <div class="entry-block">Your entries are only visible to you and your supervisor. Other students can't see your reports, samples, or papers.</div>
-        <div class="entry-actions"><button class="small-btn" onclick="openChangePinModal()">Change my PIN</button></div>
+        <div class="entry-block" style="margin-top:8px;">Update emails go to: <b>${escapeHtml(me?.email || 'not set')}</b></div>
+        <div class="entry-actions">
+          <button class="small-btn" onclick="openChangePinModal()">Change my PIN</button>
+          <button class="small-btn" onclick="openChangeStudentEmailModal()">Change my email</button>
+        </div>
       </div>
       ${backupSection()}
     `;
   }
+
+  if(state.identity.role === 'cosupervisor'){
+    const me = myCoSupervisorRecord();
+    const assigned = visibleStudentsForIdentity();
+    return `
+      <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin-bottom:6px;">Your access</h3>
+      <div class="entry-card">
+        <div class="entry-block" style="margin-bottom:10px;">You can view and review entries for:</div>
+        ${assigned.length===0 ? `<div class="entry-meta">No students are currently assigned to you. Ask the supervisor to assign you.</div>` :
+          `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px;">${assigned.map(s=>`<span class="stamp neutral">${escapeHtml(s.name)}</span>`).join('')}</div>`}
+        <div class="entry-block" style="margin-top:10px;">Update emails go to: <b>${escapeHtml(me?.email || 'not set')}</b></div>
+        <div class="entry-meta" style="margin-top:8px;">Only the supervisor can change your assignment or reset your PIN if you're locked out — ask them directly.</div>
+        <div class="entry-actions">
+          <button class="small-btn" onclick="openChangeCoSupPinModal()">Change my PIN</button>
+          <button class="small-btn" onclick="openChangeCoSupEmailModal()">Change my email</button>
+        </div>
+      </div>
+      ${backupSection()}
+    `;
+  }
+
+  // True supervisor — the only role with full admin controls.
   return `
     <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin-bottom:6px;">Access &amp; privacy</h3>
     <div class="entry-card">
       <div class="entry-block" style="margin-bottom:14px;">Each student's account is PIN-protected, so students can only view and enter data under their own name. As supervisor, you can see everyone's records and reset a student's PIN if they forget it.</div>
+      <div class="entry-block" style="margin-bottom:10px;">Update emails go to: <b>${escapeHtml(state.supervisorEmail || 'not set')}</b></div>
       ${state.students.length===0 ? `<div class="entry-meta">No students have signed up yet.</div>` :
         state.students.map(s=>`
           <div style="display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-top:1px solid var(--border);">
-            <span style="font-size:13.5px;">${escapeHtml(s.name)}</span>
+            <span style="font-size:13.5px;">${escapeHtml(s.name)} <span class="entry-meta">${escapeHtml(s.email || 'no email on file')}</span></span>
             <button class="small-btn" onclick="openResetStudentPinModal('${s.id}')">Reset PIN</button>
           </div>
         `).join('')}
-      <div class="entry-actions"><button class="small-btn" onclick="openChangeSupervisorPinModal()">Change supervisor passcode</button></div>
+      <div class="entry-actions">
+        <button class="small-btn" onclick="openChangeSupervisorPinModal()">Change supervisor passcode</button>
+        <button class="small-btn" onclick="openChangeSupervisorEmailModal()">Update my email</button>
+      </div>
     </div>
+    ${coSupervisorAdminSection()}
     ${backupSection()}
   `;
 }
 
+function coSupervisorAdminSection(){
+  return `
+    <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Co-supervisors</h3>
+    <div class="entry-card">
+      <div class="entry-block" style="margin-bottom:14px;">Add a co-supervisor and assign them to specific students — they'll see and can review only those students' entries, nothing else in the group.</div>
+      ${state.coSupervisors.length===0 ? `<div class="entry-meta" style="margin-bottom:10px;">No co-supervisors added yet.</div>` :
+        state.coSupervisors.map(c=>`
+          <div style="padding:10px 0; border-top:1px solid var(--border);">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+              <span style="font-size:13.5px; font-weight:600;">${escapeHtml(c.name)} <span class="entry-meta" style="font-weight:400;">${escapeHtml(c.email||'no email on file')}</span></span>
+              <div style="display:flex; gap:6px;">
+                <button class="small-btn" onclick="openEditCoSupAssignmentModal('${c.id}')">Edit students</button>
+                <button class="small-btn" onclick="openResetCoSupPinModal('${c.id}')">Reset PIN</button>
+                <button class="small-btn danger" onclick="removeCoSupervisor('${c.id}')">Remove</button>
+              </div>
+            </div>
+            <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px;">
+              ${(c.assignedStudentIds||[]).length===0 ? `<span class="entry-meta">No students assigned yet</span>` :
+                c.assignedStudentIds.map(sid=>`<span class="stamp neutral">${escapeHtml(studentName(sid))}</span>`).join('')}
+            </div>
+          </div>
+        `).join('')}
+      <div class="entry-actions" style="margin-top:10px;">
+        <button class="action-btn ghost" onclick="openAddCoSupervisorModal()">+ Add co-supervisor</button>
+      </div>
+    </div>
+  `;
+}
+function openAddCoSupervisorModal(){
+  if(state.students.length===0){ alert('Add at least one student before assigning a co-supervisor.'); return; }
+  showModal('Add co-supervisor', `
+    <label class="field-label">Name</label>
+    <input class="text-input" id="f_coSupName" placeholder="e.g. Dr. Sharma">
+    <label class="field-label">Email</label>
+    <input class="text-input" id="f_coSupEmail" type="email" placeholder="e.g. sharma@university.edu">
+    <label class="field-label">Assign to students</label>
+    <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+      ${state.students.map(s=>`
+        <label style="display:flex; align-items:center; gap:8px; font-size:13.5px;">
+          <input type="checkbox" class="coSupStudentCheck" value="${s.id}"> ${escapeHtml(s.name)}
+        </label>
+      `).join('')}
+    </div>
+  `, submitAddCoSupervisor);
+}
+async function submitAddCoSupervisor(){
+  const name = document.getElementById('f_coSupName').value.trim();
+  const email = document.getElementById('f_coSupEmail').value.trim();
+  const assignedStudentIds = Array.from(document.querySelectorAll('.coSupStudentCheck:checked')).map(el=>el.value);
+  if(!name){ alert('Please enter a name.'); return; }
+  if(!isValidEmail(email)){ alert('Please enter a valid email address.'); return; }
+  state.coSupervisors.push({ id: uid('cos'), name, email, pinHash: null, assignedStudentIds });
+  await saveCollection('co-supervisors', state.coSupervisors);
+  closeModal(); renderView();
+}
+function openEditCoSupAssignmentModal(id){
+  const c = state.coSupervisors.find(x=>x.id===id);
+  showModal(`Edit students assigned to ${c.name}`, `
+    <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+      ${state.students.map(s=>`
+        <label style="display:flex; align-items:center; gap:8px; font-size:13.5px;">
+          <input type="checkbox" class="coSupEditCheck" value="${s.id}" ${(c.assignedStudentIds||[]).includes(s.id)?'checked':''}> ${escapeHtml(s.name)}
+        </label>
+      `).join('')}
+    </div>
+  `, ()=>submitEditCoSupAssignment(id));
+}
+async function submitEditCoSupAssignment(id){
+  const c = state.coSupervisors.find(x=>x.id===id);
+  c.assignedStudentIds = Array.from(document.querySelectorAll('.coSupEditCheck:checked')).map(el=>el.value);
+  await saveCollection('co-supervisors', state.coSupervisors);
+  closeModal(); renderView();
+}
+async function removeCoSupervisor(id){
+  const c = state.coSupervisors.find(x=>x.id===id);
+  if(!confirm(`Remove ${c.name} as a co-supervisor? They will no longer be able to log in.`)) return;
+  state.coSupervisors = state.coSupervisors.filter(x=>x.id!==id);
+  await saveCollection('co-supervisors', state.coSupervisors);
+  renderView();
+}
+function openResetCoSupPinModal(id){
+  const c = state.coSupervisors.find(x=>x.id===id);
+  showModal(`Reset PIN for ${c.name}`, `
+    <div class="view-sub" style="margin-bottom:6px;">This immediately replaces their current PIN. Share the new PIN with ${escapeHtml(c.name)} directly.</div>
+    <label class="field-label">New PIN</label>
+    <input class="text-input" id="f_coSupResetPin" type="password" placeholder="4+ digits">
+    <label class="field-label">Confirm new PIN</label>
+    <input class="text-input" id="f_coSupResetPinConfirm" type="password">
+  `, ()=>submitResetCoSupPin(id));
+}
+async function submitResetCoSupPin(id){
+  const next = document.getElementById('f_coSupResetPin').value;
+  const confirmNext = document.getElementById('f_coSupResetPinConfirm').value;
+  if(next.length < 4){ alert('New PIN must be at least 4 characters.'); return; }
+  if(next !== confirmNext){ alert('New PINs do not match.'); return; }
+  const c = state.coSupervisors.find(x=>x.id===id);
+  c.pinHash = await hashPin(next);
+  await saveCollection('co-supervisors', state.coSupervisors);
+  closeModal(); renderView();
+}
+function openChangeCoSupPinModal(){
+  showModal('Change my PIN', `
+    <label class="field-label">Current PIN</label>
+    <input class="text-input" id="f_curCoSupPin" type="password">
+    <label class="field-label">New PIN</label>
+    <input class="text-input" id="f_newCoSupPin" type="password" placeholder="4+ digits">
+    <label class="field-label">Confirm new PIN</label>
+    <input class="text-input" id="f_newCoSupPinConfirm" type="password">
+  `, submitChangeCoSupPin);
+}
+async function submitChangeCoSupPin(){
+  const me = myCoSupervisorRecord();
+  const cur = document.getElementById('f_curCoSupPin').value;
+  const next = document.getElementById('f_newCoSupPin').value;
+  const confirmNext = document.getElementById('f_newCoSupPinConfirm').value;
+  if(me.pinHash && (await hashPin(cur)) !== me.pinHash){ alert('Current PIN is incorrect.'); return; }
+  if(next.length < 4){ alert('New PIN must be at least 4 characters.'); return; }
+  if(next !== confirmNext){ alert('New PINs do not match.'); return; }
+  me.pinHash = await hashPin(next);
+  await saveCollection('co-supervisors', state.coSupervisors);
+  closeModal(); renderView();
+}
+function openChangeCoSupEmailModal(){
+  const me = myCoSupervisorRecord();
+  showModal('Change my email', `
+    <label class="field-label">Email</label>
+    <input class="text-input" id="f_coSupEmailChange" type="email" value="${escapeHtml(me?.email || '')}">
+  `, submitChangeCoSupEmail);
+}
+async function submitChangeCoSupEmail(){
+  const email = document.getElementById('f_coSupEmailChange').value.trim();
+  if(!isValidEmail(email)){ alert('Please enter a valid email address.'); return; }
+  const me = myCoSupervisorRecord();
+  me.email = email;
+  await saveCollection('co-supervisors', state.coSupervisors);
+  closeModal(); renderView();
+}
+
 function backupSection(){
-  const isSupervisor = state.identity.role === 'supervisor';
+  const role = state.identity.role;
+  const isSupervisor = role === 'supervisor';
   return `
     <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Backup &amp; Google Drive</h3>
     <div class="entry-card">
@@ -838,7 +1230,7 @@ function backupSection(){
         This logbook saves automatically as you go, but that storage lives with the app, not in your Drive. To keep a real copy in Google Drive:
         <br>1. Download a backup file below.
         <br>2. Drag it into a folder in Drive — or upload it in a chat with Claude and ask Claude to save it to your Drive for you.
-        ${isSupervisor ? `<br><br>As supervisor, your download includes every student's records. Student downloads only include their own.` : ''}
+        ${isSupervisor ? `<br><br>As supervisor, your download includes every student's records. Others only get what they can see.` : ''}
       </div>
       <div class="entry-actions">
         <button class="action-btn ghost" onclick="downloadBackup()">Download backup (.json)</button>
@@ -847,17 +1239,20 @@ function backupSection(){
           <button class="action-btn ghost" onclick="document.getElementById('restoreFileInput').click()">Restore from backup file…</button>
         ` : ''}
       </div>
-      ${isSupervisor ? `<div class="entry-meta" style="margin-top:10px;">Restoring replaces the group's current data with what's in the file — use it to recover a backup, not to merge two copies.</div>` : ''}
+      ${isSupervisor ? `<div class="entry-meta" style="margin-top:10px;">Restoring replaces the group's current data with what's in the file — use it to recover a backup, not to merge two copies. Restoring is limited to the supervisor account.</div>` : ''}
     </div>
   `;
 }
 function downloadBackup(){
-  const isSupervisor = state.identity.role === 'supervisor';
+  const role = state.identity.role;
+  const isSupervisor = role === 'supervisor';
+  const visible = visibleStudentsForIdentity();
+  const scope = isSupervisor ? 'full-group' : role === 'cosupervisor' ? 'assigned-students-only' : 'own-records-only';
   const data = {
     exportedAt: new Date().toISOString(),
     exportedBy: state.identity.name,
-    scope: isSupervisor ? 'full-group' : 'own-records-only',
-    students: isSupervisor ? state.students.map(s=>({id:s.id, name:s.name})) : state.students.filter(s=>s.id===state.identity.id).map(s=>({id:s.id, name:s.name})),
+    scope,
+    students: visible.map(s=>({id:s.id, name:s.name, email:s.email||''})),
     weeklyReports: scopedList(state.weekly),
     samples: scopedList(state.samples),
     papers: scopedList(state.papers)
@@ -885,7 +1280,10 @@ function handleRestoreFile(event){
       return;
     }
     if(!confirm(`This will replace the group's current data with the contents of "${file.name}". This cannot be undone. Continue?`)) return;
-    state.students = parsed.students.map(s => ({ ...s, pinHash: state.students.find(x=>x.id===s.id)?.pinHash || s.pinHash || null }));
+    state.students = parsed.students.map(s => {
+      const existing = state.students.find(x=>x.id===s.id);
+      return { ...s, pinHash: existing?.pinHash || s.pinHash || null, email: s.email || existing?.email || '' };
+    });
     state.weekly = parsed.weeklyReports;
     state.samples = parsed.samples;
     state.papers = parsed.papers;
@@ -962,7 +1360,35 @@ async function submitChangeSupervisorPin(){
   if(next.length < 4){ alert('New passcode must be at least 4 characters.'); return; }
   if(next !== confirmNext){ alert('New passcodes do not match.'); return; }
   state.supervisorPinHash = await hashPin(next);
-  await saveSupervisorPinHash(state.supervisorPinHash);
+  await saveSupervisorProfile({ hash: state.supervisorPinHash, email: state.supervisorEmail });
+  closeModal(); renderView();
+}
+function openChangeStudentEmailModal(){
+  const me = state.students.find(x=>x.id===state.identity.id);
+  showModal('Change my email', `
+    <label class="field-label">Email</label>
+    <input class="text-input" id="f_studentEmail" type="email" value="${escapeHtml(me?.email || '')}">
+  `, submitChangeStudentEmail);
+}
+async function submitChangeStudentEmail(){
+  const email = document.getElementById('f_studentEmail').value.trim();
+  if(!isValidEmail(email)){ alert('Please enter a valid email address.'); return; }
+  const me = state.students.find(x=>x.id===state.identity.id);
+  me.email = email;
+  await saveCollection('students', state.students);
+  closeModal(); renderView();
+}
+function openChangeSupervisorEmailModal(){
+  showModal('Update supervisor email', `
+    <label class="field-label">Email</label>
+    <input class="text-input" id="f_supEmail" type="email" value="${escapeHtml(state.supervisorEmail || '')}">
+  `, submitChangeSupervisorEmail);
+}
+async function submitChangeSupervisorEmail(){
+  const email = document.getElementById('f_supEmail').value.trim();
+  if(!isValidEmail(email)){ alert('Please enter a valid email address.'); return; }
+  state.supervisorEmail = email;
+  await saveSupervisorProfile({ hash: state.supervisorPinHash, email });
   closeModal(); renderView();
 }
 
@@ -973,17 +1399,20 @@ function viewWeekly(){
     <div class="view-header">
       <div>
         <div class="view-title">Weekly Progress</div>
-        <div class="view-sub">${state.identity.role==='supervisor' ? 'Review weekly logs and leave feedback.' : "Log what you did this week and what's next."}</div>
+        <div class="view-sub">${isSupervisorLike() ? 'Review weekly logs and leave feedback.' : "Log what you did this week and what's next."}</div>
       </div>
       ${state.identity.role==='student' ? `<button class="action-btn" onclick="openWeeklyModal()">+ Log this week</button>` : ''}
     </div>
     ${supervisorFilterBar()}
-    ${list.length===0 ? emptyState('No progress logged yet', state.identity.role==='supervisor' ? 'Weekly logs from students will appear here once submitted.' : 'Log your first week to start the record.') : list.map((w,i)=>weeklyCard(w,i,list.length)).join('')}
+    ${list.length===0 ? emptyState('No progress logged yet', isSupervisorLike() ? 'Weekly logs from students will appear here once submitted.' : 'Log your first week to start the record.') : list.map((w,i)=>weeklyCard(w,i,list.length)).join('')}
   `;
 }
 function weeklyCard(w, i, total){
   const isOwner = state.identity.role==='student' && w.studentId===state.identity.id;
-  const canDelete = isOwner || state.identity.role==='supervisor';
+  const canManage = isSupervisorLike();
+  const locked = w.status === 'approved' && isOwner;
+  const canEdit = canManage || (isOwner && !locked);
+  const canDelete = canManage || (isOwner && !locked);
   const statusMap = {
     pending: { label:'Pending Approval', cls:'warn' },
     approved: { label:'Approved', cls:'good' },
@@ -1007,8 +1436,10 @@ function weeklyCard(w, i, total){
       ${w.supervisorComment ? `
         <div class="comment-box"><span class="lbl">Supervisor feedback</span><div class="comment-existing">${nl2br(w.supervisorComment)}</div></div>
       ` : ''}
+      ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
-        ${state.identity.role==='supervisor' ? `<button class="small-btn" onclick="openReviewBox('${w.id}')">Review</button>` : ''}
+        ${isSupervisorLike() ? `<button class="small-btn" onclick="openReviewBox('${w.id}')">Review</button>` : ''}
+        ${canEdit ? `<button class="small-btn" onclick="openEditWeeklyModal('${w.id}')">Edit</button>` : ''}
         ${canDelete ? `<button class="small-btn danger" onclick="deleteWeekly('${w.id}')">Delete</button>` : ''}
       </div>
       <div id="commentSlot-${w.id}"></div>
@@ -1050,6 +1481,7 @@ async function submitWeekly(){
     status:'pending', supervisorComment:''
   });
   await saveCollection('weekly-reports', state.weekly);
+  apiNotify('weeklySubmitted', { studentId: state.identity.id, weekStart, workDone });
   closeModal(); renderView();
 }
 function openReviewBox(id){
@@ -1071,6 +1503,7 @@ async function reviewWeekly(id, decision){
   w.supervisorComment = val;
   w.status = decision;
   await saveCollection('weekly-reports', state.weekly);
+  apiNotify('weeklyReviewed', { studentId: w.studentId, weekStart: w.weekStart, decision, note: val });
   renderView();
 }
 async function deleteWeekly(id){
@@ -1078,6 +1511,40 @@ async function deleteWeekly(id){
   state.weekly = state.weekly.filter(x=>x.id!==id);
   await saveCollection('weekly-reports', state.weekly);
   renderView();
+}
+function openEditWeeklyModal(id){
+  const w = state.weekly.find(x=>x.id===id);
+  showModal('Edit weekly report', `
+    <label class="field-label">Week starting</label>
+    <input type="date" id="f_editWeekStart" class="text-input" value="${w.weekStart}">
+    <label class="field-label">What did you do this week?</label>
+    <textarea id="f_editWorkDone" class="text-input" rows="3">${escapeHtml(w.workDone)}</textarea>
+    <label class="field-label">Plan for next week</label>
+    <textarea id="f_editPlanNext" class="text-input" rows="3">${escapeHtml(w.planNext)}</textarea>
+    <label class="field-label">Challenges / blockers (optional)</label>
+    <textarea id="f_editChallenges" class="text-input" rows="2">${escapeHtml(w.challenges||'')}</textarea>
+    ${!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''}
+  `, ()=>submitEditWeekly(id));
+}
+async function submitEditWeekly(id){
+  const w = state.weekly.find(x=>x.id===id);
+  const weekStart = document.getElementById('f_editWeekStart').value;
+  const workDone = document.getElementById('f_editWorkDone').value.trim();
+  const planNext = document.getElementById('f_editPlanNext').value.trim();
+  const challenges = document.getElementById('f_editChallenges').value.trim();
+  if(!weekStart || !workDone){ alert('Please add the week and what you worked on.'); return; }
+  w.weekStart = weekStart;
+  w.workDone = workDone;
+  w.planNext = planNext;
+  w.challenges = challenges;
+  if(!isSupervisorLike()){
+    w.status = 'pending';
+    await saveCollection('weekly-reports', state.weekly);
+    apiNotify('weeklySubmitted', { studentId: w.studentId, weekStart, workDone });
+  } else {
+    await saveCollection('weekly-reports', state.weekly);
+  }
+  closeModal(); renderView();
 }
 
 /* ============================ SAMPLES / CHARACTERIZATION ============================ */
@@ -1103,7 +1570,11 @@ function viewSamples(){
 function sampleCard(s, i, total){
   const st = sampleStatus(s);
   const isOwner = state.identity.role==='student' && s.studentId===state.identity.id;
-  const canEdit = isOwner || state.identity.role==='supervisor';
+  const canManage = isSupervisorLike();
+  const locked = s.approvalStatus === 'approved' && isOwner;
+  const canEditSubmission = canManage || (isOwner && !locked);
+  const canDelete = canManage || (isOwner && !locked);
+  const canMarkResults = canManage || isOwner; // adding results/data link is allowed even after approval
   const approvalMap = {
     pending: { label:'Pending Approval', cls:'warn' },
     approved: { label:'Approved', cls:'good' },
@@ -1131,11 +1602,13 @@ function sampleCard(s, i, total){
         ${s.notes ? `<div class="entry-block" style="grid-column:1/-1;"><span class="lbl">Notes</span>${nl2br(s.notes)}</div>` : ''}
       </div>
       ${s.supervisorNote ? `<div class="comment-box"><span class="lbl">Supervisor note</span><div class="comment-existing">${nl2br(s.supervisorNote)}</div></div>` : ''}
+      ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved submissions are locked — you can still log results, but contact your supervisor to change the submission details.</div>` : ''}
       <div class="entry-actions">
-        ${canEdit && !s.resultsReceivedDate ? `<button class="small-btn" onclick="openReceiveModal('${s.id}')">Mark results received</button>` : ''}
-        ${canEdit && s.resultsReceivedDate ? `<button class="small-btn" onclick="openReceiveModal('${s.id}')">${s.dataLink ? 'Edit data entry' : 'Add data entry'}</button>` : ''}
-        ${state.identity.role==='supervisor' ? `<button class="small-btn" onclick="openSampleReviewBox('${s.id}')">Review</button>` : ''}
-        ${canEdit ? `<button class="small-btn danger" onclick="deleteSample('${s.id}')">Delete</button>` : ''}
+        ${canEditSubmission ? `<button class="small-btn" onclick="openEditSampleModal('${s.id}')">Edit submission</button>` : ''}
+        ${canMarkResults && !s.resultsReceivedDate ? `<button class="small-btn" onclick="openReceiveModal('${s.id}')">Mark results received</button>` : ''}
+        ${canMarkResults && s.resultsReceivedDate ? `<button class="small-btn" onclick="openReceiveModal('${s.id}')">${s.dataLink ? 'Edit data entry' : 'Add data entry'}</button>` : ''}
+        ${isSupervisorLike() ? `<button class="small-btn" onclick="openSampleReviewBox('${s.id}')">Review</button>` : ''}
+        ${canDelete ? `<button class="small-btn danger" onclick="deleteSample('${s.id}')">Delete</button>` : ''}
       </div>
       <div id="sampleReviewSlot-${s.id}"></div>
     </div>
@@ -1173,13 +1646,16 @@ async function submitSample(){
   const expectedDate = document.getElementById('f_expectedDate').value;
   const notes = document.getElementById('f_sampleNotes').value.trim();
   if(!sampleName || !submittedDate){ alert('Please add a sample name and submission date.'); return; }
-  const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : state.students[0]?.id);
+  const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
   if(!studentId){ alert('Add a student first.'); return; }
   state.samples.push({
     id: uid('smp'), studentId, sampleName, technique, facility, submittedDate, expectedDate, resultsReceivedDate:'', notes, dataLink:'',
-    approvalStatus: state.identity.role==='supervisor' ? 'approved' : 'pending', supervisorNote:''
+    approvalStatus: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:''
   });
   await saveCollection('samples', state.samples);
+  if(state.identity.role==='student'){
+    apiNotify('sampleSubmitted', { studentId, sampleName, technique });
+  }
   closeModal(); renderView();
 }
 function openReceiveModal(id){
@@ -1224,6 +1700,7 @@ async function reviewSample(id, decision){
   s.supervisorNote = val;
   s.approvalStatus = decision;
   await saveCollection('samples', state.samples);
+  apiNotify('sampleReviewed', { studentId: s.studentId, sampleName: s.sampleName, decision, note: val });
   renderView();
 }
 async function deleteSample(id){
@@ -1231,6 +1708,52 @@ async function deleteSample(id){
   state.samples = state.samples.filter(x=>x.id!==id);
   await saveCollection('samples', state.samples);
   renderView();
+}
+function openEditSampleModal(id){
+  const s = state.samples.find(x=>x.id===id);
+  showModal('Edit sample submission', `
+    <label class="field-label">Sample name / ID</label>
+    <input class="text-input" id="f_editSampleName" value="${escapeHtml(s.sampleName)}">
+    <div class="two-col">
+      <div><label class="field-label">Technique</label>
+        <select class="text-input" id="f_editTechnique">${TECHNIQUES.map(t=>`<option value="${t}" ${s.technique===t?'selected':''}>${t}</option>`).join('')}</select>
+      </div>
+      <div><label class="field-label">Facility (optional)</label>
+        <input class="text-input" id="f_editFacility" value="${escapeHtml(s.facility||'')}">
+      </div>
+    </div>
+    <div class="two-col">
+      <div><label class="field-label">Submitted on</label>
+        <input type="date" class="text-input" id="f_editSubmittedDate" value="${s.submittedDate}">
+      </div>
+      <div><label class="field-label">Expected by (optional)</label>
+        <input type="date" class="text-input" id="f_editExpectedDate" value="${s.expectedDate||''}">
+      </div>
+    </div>
+    <label class="field-label">Notes (optional)</label>
+    <textarea class="text-input" id="f_editSampleNotes" rows="2">${escapeHtml(s.notes||'')}</textarea>
+    ${!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''}
+  `, ()=>submitEditSample(id));
+}
+async function submitEditSample(id){
+  const s = state.samples.find(x=>x.id===id);
+  const sampleName = document.getElementById('f_editSampleName').value.trim();
+  const submittedDate = document.getElementById('f_editSubmittedDate').value;
+  if(!sampleName || !submittedDate){ alert('Please add a sample name and submission date.'); return; }
+  s.sampleName = sampleName;
+  s.technique = document.getElementById('f_editTechnique').value;
+  s.facility = document.getElementById('f_editFacility').value.trim();
+  s.submittedDate = submittedDate;
+  s.expectedDate = document.getElementById('f_editExpectedDate').value;
+  s.notes = document.getElementById('f_editSampleNotes').value.trim();
+  if(!isSupervisorLike()){
+    s.approvalStatus = 'pending';
+    await saveCollection('samples', state.samples);
+    apiNotify('sampleSubmitted', { studentId: s.studentId, sampleName: s.sampleName, technique: s.technique });
+  } else {
+    await saveCollection('samples', state.samples);
+  }
+  closeModal(); renderView();
 }
 
 /* ============================ PAPERS ============================ */
@@ -1257,7 +1780,9 @@ function viewPapers(){
 }
 function paperCard(p, i, total){
   const isOwner = state.identity.role==='student' && p.studentId===state.identity.id;
-  const canEdit = isOwner || state.identity.role==='supervisor';
+  const canManage = isSupervisorLike();
+  const locked = p.stage === 'Published' && isOwner;
+  const canEdit = canManage || (isOwner && !locked);
   const hasPending = !!p.pendingStage;
   const refLinks = p.referenceLinks || [];
   return `
@@ -1290,9 +1815,10 @@ function paperCard(p, i, total){
       </div>
       ${p.supervisorNote ? `<div class="comment-box"><span class="lbl">Supervisor note</span><div class="comment-existing">${nl2br(p.supervisorNote)}</div></div>` : ''}
       <div class="entry-meta" style="margin-top:8px;">Last updated ${fmtDate(p.lastUpdate)}</div>
+      ${locked ? `<div class="entry-meta" style="margin-top:6px;">Published papers are locked — contact your supervisor for any changes.</div>` : ''}
       ${hasPending ? `
         <div class="entry-actions">
-          ${state.identity.role==='supervisor' ? `
+          ${canManage ? `
             <button class="small-btn" onclick="approvePendingStage('${p.id}')">Approve → ${escapeHtml(p.pendingStage)}</button>
             <button class="small-btn danger" onclick="rejectPendingStage('${p.id}')">Reject</button>
           ` : `<div class="entry-meta">Waiting on supervisor approval to move to <b>${escapeHtml(p.pendingStage)}</b>.</div>`}
@@ -1329,7 +1855,7 @@ async function submitPaper(){
   const manuscriptLink = document.getElementById('f_manuscriptLink').value.trim();
   const notes = document.getElementById('f_paperNotes').value.trim();
   if(!title){ alert('Please add a title.'); return; }
-  const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : state.students[0]?.id);
+  const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
   if(!studentId){ alert('Add a student first.'); return; }
   state.papers.push({
     id: uid('pap'), studentId, title, targetJournal, manuscriptLink, referenceLinks: [], stage: 'Planning', pendingStage: null,
@@ -1341,17 +1867,19 @@ async function submitPaper(){
 async function requestStageChange(id, newStage){
   const p = state.papers.find(x=>x.id===id);
   if(newStage === p.stage) return;
-  if(state.identity.role==='supervisor'){
-    // Supervisor changes are final immediately — no approval needed on their own call.
+  if(isSupervisorLike()){
+    // Supervisor/co-supervisor changes are final immediately — no approval needed on their own call.
     p.stage = newStage;
     p.pendingStage = null;
     p.lastUpdate = todayStr();
+    await saveCollection('papers', state.papers);
   } else {
     // Student proposals wait for supervisor approval before they become official.
     p.pendingStage = newStage;
     p.lastUpdate = todayStr();
+    await saveCollection('papers', state.papers);
+    apiNotify('paperStageProposed', { studentId: p.studentId, title: p.title, proposedStage: newStage });
   }
-  await saveCollection('papers', state.papers);
   renderView();
 }
 async function approvePendingStage(id){
@@ -1360,6 +1888,7 @@ async function approvePendingStage(id){
   p.pendingStage = null;
   p.lastUpdate = todayStr();
   await saveCollection('papers', state.papers);
+  apiNotify('paperStageDecided', { studentId: p.studentId, title: p.title, decision:'approved', stage: p.stage });
   renderView();
 }
 async function rejectPendingStage(id){
@@ -1369,6 +1898,7 @@ async function rejectPendingStage(id){
   p.supervisorNote = note.trim();
   p.pendingStage = null;
   await saveCollection('papers', state.papers);
+  apiNotify('paperStageDecided', { studentId: p.studentId, title: p.title, decision:'rejected', note: note.trim() });
   renderView();
 }
 function openEditPaperDetails(id){
@@ -1446,7 +1976,7 @@ function viewMeetings(){
   return `
     <div class="view-header">
       <div>
-        <div class="view-title">Meetings &amp; Presentations</div>
+        <div class="view-title">Meetings</div>
         <div class="view-sub">Weekly reviews, monthly presentations, and topic discussions — planned and tracked in one place.</div>
       </div>
       <button class="action-btn" onclick="openMeetingModal()">+ Schedule</button>
@@ -1457,7 +1987,8 @@ function viewMeetings(){
 }
 function meetingCard(m, i, total){
   const isOwner = state.identity.role==='student' && m.studentId===state.identity.id;
-  const canDelete = isOwner || state.identity.role==='supervisor';
+  const canManage = isSupervisorLike();
+  const canDelete = canManage || (isOwner && m.status==='proposed');
   const st = MEETING_STATUS[m.status] || MEETING_STATUS.proposed;
   const isPast = m.plannedDate < todayStr();
   return `
@@ -1472,10 +2003,11 @@ function meetingCard(m, i, total){
       </div>
       ${m.agenda ? `<div class="entry-block"><span class="lbl">Agenda / discussion points</span>${nl2br(m.agenda)}</div>` : ''}
       ${m.outcomeNotes ? `<div class="comment-box"><span class="lbl">${m.status==='cancelled'?'Reason':'Outcome notes'}</span><div class="comment-existing">${nl2br(m.outcomeNotes)}</div></div>` : ''}
+      ${isOwner && m.status!=='proposed' ? `<div class="entry-meta" style="margin-top:6px;">Confirmed items can only be changed or cancelled by your supervisor.</div>` : ''}
       <div class="entry-actions">
-        ${state.identity.role==='supervisor' && m.status==='proposed' ? `<button class="small-btn" onclick="confirmMeeting('${m.id}')">Confirm</button>` : ''}
-        ${state.identity.role==='supervisor' && (m.status==='proposed'||m.status==='confirmed') ? `<button class="small-btn" onclick="openCompleteMeetingModal('${m.id}')">Mark completed</button>` : ''}
-        ${state.identity.role==='supervisor' && (m.status==='proposed'||m.status==='confirmed') ? `<button class="small-btn danger" onclick="openCancelMeetingModal('${m.id}')">Cancel</button>` : ''}
+        ${canManage && m.status==='proposed' ? `<button class="small-btn" onclick="confirmMeeting('${m.id}')">Confirm</button>` : ''}
+        ${canManage && (m.status==='proposed'||m.status==='confirmed') ? `<button class="small-btn" onclick="openCompleteMeetingModal('${m.id}')">Mark completed</button>` : ''}
+        ${canManage && (m.status==='proposed'||m.status==='confirmed') ? `<button class="small-btn danger" onclick="openCancelMeetingModal('${m.id}')">Cancel</button>` : ''}
         ${canDelete ? `<button class="small-btn danger" onclick="deleteMeeting('${m.id}')">Delete</button>` : ''}
       </div>
     </div>
@@ -1499,11 +2031,11 @@ async function submitMeeting(){
   const plannedDate = document.getElementById('f_meetDate').value;
   const agenda = document.getElementById('f_meetAgenda').value.trim();
   if(!title || !plannedDate){ alert('Please add a title and planned date.'); return; }
-  const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : state.students[0]?.id);
+  const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
   if(!studentId){ alert('Add a student first.'); return; }
   state.meetings.push({
     id: uid('mtg'), studentId, type, title, plannedDate, agenda, outcomeNotes:'',
-    status: state.identity.role==='supervisor' ? 'confirmed' : 'proposed',
+    status: isSupervisorLike() ? 'confirmed' : 'proposed',
     lastUpdate: todayStr()
   });
   await saveCollection('meetings', state.meetings);
@@ -1553,12 +2085,14 @@ async function deleteMeeting(id){
 /* ============================ REPORTS ============================ */
 function viewReports(){
   const isSupervisor = state.identity.role==='supervisor';
+  const isCoSup = state.identity.role==='cosupervisor';
+  const visible = visibleStudentsForIdentity();
   if(!state.reportStudentId){
-    state.reportStudentId = isSupervisor ? 'all' : state.identity.id;
+    state.reportStudentId = (isSupervisor || isCoSup) ? 'all' : state.identity.id;
   }
-  const studentOptions = isSupervisor
-    ? `<option value="all" ${state.reportStudentId==='all'?'selected':''}>All students</option>` +
-      state.students.map(s=>`<option value="${s.id}" ${state.reportStudentId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')
+  const studentOptions = (isSupervisor || isCoSup)
+    ? `<option value="all" ${state.reportStudentId==='all'?'selected':''}>${isSupervisor ? 'All students' : 'All my students'}</option>` +
+      visible.map(s=>`<option value="${s.id}" ${state.reportStudentId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')
     : `<option value="${state.identity.id}" selected>${escapeHtml(state.identity.name)}</option>`;
 
   return `
@@ -1571,7 +2105,7 @@ function viewReports(){
     <div class="entry-card" style="margin-bottom:20px;">
       <div class="two-col">
         <div><label class="field-label">Student</label>
-          <select class="text-input" id="r_student" ${isSupervisor?'':'disabled'} onchange="state.reportStudentId=this.value">
+          <select class="text-input" id="r_student" ${(isSupervisor||isCoSup)?'':'disabled'} onchange="state.reportStudentId=this.value">
             ${studentOptions}
           </select>
         </div>
@@ -1610,7 +2144,7 @@ function buildReportForStudent(studentId, from, to){
 
 function generateReport(){
   const from = state.reportFrom, to = state.reportTo;
-  const studentIds = state.reportStudentId==='all' ? state.students.map(s=>s.id) : [state.reportStudentId];
+  const studentIds = state.reportStudentId==='all' ? visibleStudentsForIdentity().map(s=>s.id) : [state.reportStudentId];
   if(studentIds.length===0){ alert('No students to report on yet.'); return; }
   state.reportData = {
     generatedAt: todayStr(), from, to,
@@ -1679,7 +2213,7 @@ function renderStudentReportSection(s){
         </table>
       `}
 
-      <h3 class="report-section-title">Meetings &amp; Presentations Log</h3>
+      <h3 class="report-section-title">Meetings Log</h3>
       ${s.meetings.length===0 ? `<p class="report-empty">No meetings or presentations logged for this period.</p>` : `
         <table class="report-table">
           <thead><tr><th>Date</th><th>Type</th><th>Title</th><th>Status</th><th>Notes</th></tr></thead>
@@ -1722,7 +2256,7 @@ function downloadReportText(){
       out += `${p.title} | Journal: ${p.targetJournal||'—'} | Stage: ${p.stage}${p.pendingStage?` (proposed: ${p.pendingStage})`:''} | Updated: ${fmtDate(p.lastUpdate)}\n`;
       if(p.supervisorNote) out += `  Supervisor note: ${p.supervisorNote}\n`;
     });
-    out += `\n-- Meetings & Presentations Log --\n`;
+    out += `\n-- Meetings Log --\n`;
     if(s.meetings.length===0) out += `(none logged for this period)\n`;
     s.meetings.forEach(m=>{
       out += `[${fmtDate(m.plannedDate)}] ${m.type}: ${m.title} | Status: ${(MEETING_STATUS[m.status]||{label:m.status}).label}\n`;
