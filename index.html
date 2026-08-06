@@ -403,6 +403,7 @@ const state = {
   courses: [],
   fabricationItems: [],
   events: [],
+  resultsAnalysis: [],
   calendarMonth: null,
   plannerWeekStart: null,
   view: 'overview',
@@ -411,6 +412,7 @@ const state = {
   filterWeeklyStatus: 'all',
   filterSampleStatus: 'all',
   filterFabricationStatus: 'all',
+  filterAnalysisStatus: 'all',
   filterPaperStatus: 'all',
   filterProposalStatus: 'all',
   filterThesisStatus: 'all',
@@ -553,7 +555,7 @@ async function saveSupervisorProfile(profile){
 
 /* ============================ INIT ============================ */
 // Every collection key the app needs at startup, fetched in one batched request.
-const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','supervisor-pin'];
+const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','supervisor-pin'];
 
 async function init(){
   if(!backendConfigured()){
@@ -604,6 +606,7 @@ function applyDataValues(values){
   state.courses = arr('courses');
   state.fabricationItems = arr('fabrication-items');
   state.events = arr('events');
+  state.resultsAnalysis = arr('results-analysis');
   let supervisorProfile = {};
   try{ supervisorProfile = values['supervisor-pin'] ? JSON.parse(values['supervisor-pin']) : {}; }catch(e){ supervisorProfile = {}; }
   state.supervisorPinHash = supervisorProfile.hash || null;
@@ -990,7 +993,7 @@ function showDigestPopup(){
 const NAV_ITEM_COLORS = {
   overview:'var(--navy)', approvals:'var(--warning)', changesRequested:'var(--danger)', calendar:'var(--stat-indigo)',
   proposal:'var(--stat-indigo)', thesis:'var(--stat-purple)',
-  weekly:'var(--stat-blue)', fabrication:'var(--stat-teal)', samples:'var(--stat-cyan)', papers:'var(--stat-purple)',
+  weekly:'var(--stat-blue)', fabrication:'var(--stat-teal)', samples:'var(--stat-cyan)', resultsAnalysis:'var(--stat-rose)', papers:'var(--stat-purple)',
   rac:'var(--stat-rose)', learning:'var(--stat-blue)', financial:'var(--stat-teal)', conferences:'var(--stat-rose)',
   meetings:'var(--stat-indigo)', events:'var(--stat-purple)', instructions:'var(--navy)', reports:'var(--navy)', account:'var(--ink-faint)'
 };
@@ -1009,6 +1012,7 @@ const NAV_GROUPS = [
     { key:'weekly', label:'Weekly Plan' },
     { key:'fabrication', label:'Lab Work' },
     { key:'samples', label:'Characterization' },
+    { key:'resultsAnalysis', label:'Results Analysis' },
     { key:'papers', label:'Paper Pipeline' },
   ]},
   { label:'Academic Activities', items: [
@@ -1048,6 +1052,7 @@ function renderView(){
   else if(state.view==='rac') main.innerHTML = viewRac();
   else if(state.view==='weekly') main.innerHTML = viewWeekly();
   else if(state.view==='samples') main.innerHTML = viewSamples();
+  else if(state.view==='resultsAnalysis') main.innerHTML = viewResultsAnalysis();
   else if(state.view==='fabrication') main.innerHTML = viewFabrication();
   else if(state.view==='papers') main.innerHTML = viewPapers();
   else if(state.view==='conferences') main.innerHTML = viewConferences();
@@ -1063,7 +1068,7 @@ function renderView(){
 const ITEM_TYPE_VIEW = {
   instruction:'instructions', proposal:'proposal', thesis:'thesis', rac:'rac',
   financial:'financial', course:'learning', weekly:'weekly', sample:'samples',
-  paper:'papers', conference:'conferences', meeting:'meetings', fabrication:'fabrication', event:'events'
+  paper:'papers', conference:'conferences', meeting:'meetings', fabrication:'fabrication', event:'events', analysis:'resultsAnalysis'
 };
 function goToItem(type, id, studentId){
   const view = ITEM_TYPE_VIEW[type];
@@ -1247,6 +1252,8 @@ function pendingQueue(){
     items.push({ type:'weekly', id:w.id, studentId:w.studentId, title:`Weekly plan — week of ${fmtDate(w.weekStart)}`, date:w.weekStart, category:'Weekly Plan', color:'var(--stat-blue)' }));
   scopedList(state.samples).filter(s=>s.approvalStatus==='pending').forEach(s=>
     items.push({ type:'sample', id:s.id, studentId:s.studentId, title:s.sampleName, date:s.submittedDate, category:'Characterization', color:'var(--stat-cyan)' }));
+  scopedList(state.resultsAnalysis).filter(a=>a.approvalStatus==='pending').forEach(a=>
+    items.push({ type:'analysis', id:a.id, studentId:a.studentId, title:a.title, date:a.lastUpdate, category:'Results Analysis', color:'var(--stat-rose)' }));
   scopedList(state.papers).filter(p=>!!p.pendingStage).forEach(p=>
     items.push({ type:'paper', id:p.id, studentId:p.studentId, title:`${p.title} → ${p.pendingStage}`, date:p.lastUpdate, category:'Paper Pipeline', color:'var(--stat-purple)' }));
   scopedList(state.proposals).filter(pr=>pr.status==='pending').forEach(pr=>
@@ -1273,6 +1280,8 @@ function changesRequestedQueue(){
     items.push({ type:'weekly', id:w.id, studentId:w.studentId, title:`Weekly report — week of ${fmtDate(w.weekStart)}`, date:w.weekStart, category:'Weekly Plan', color:'var(--stat-blue)', note:w.supervisorComment }));
   scopedList(state.samples).filter(s=>s.approvalStatus==='changes_requested').forEach(s=>
     items.push({ type:'sample', id:s.id, studentId:s.studentId, title:s.sampleName, date:s.submittedDate, category:'Characterization', color:'var(--stat-cyan)', note:s.supervisorNote }));
+  scopedList(state.resultsAnalysis).filter(a=>a.approvalStatus==='changes_requested').forEach(a=>
+    items.push({ type:'analysis', id:a.id, studentId:a.studentId, title:a.title, date:a.lastUpdate, category:'Results Analysis', color:'var(--stat-rose)', note:a.supervisorNote }));
   scopedList(state.fabricationItems).filter(it=>it.approvalStatus==='changes_requested').forEach(it=>
     items.push({ type:'fabrication', id:it.id, studentId:it.studentId, title:fabricationLabel(it), date:it.startDate, category:'Lab Work', color:'var(--stat-teal)', note:it.supervisorNote }));
   scopedList(state.proposals).filter(pr=>pr.status==='changes_requested').forEach(pr=>
@@ -1365,6 +1374,12 @@ function thisWeekItems(){
     const stg = FABRICATION_STAGES[it.stage] || FABRICATION_STAGES.prep;
     items.push({ type:'fabrication', id:it.id, studentId:it.studentId, category:'Lab Work · '+stg.label, color:'var(--stat-teal)',
       title: fabricationLabel(it) });
+  });
+
+  scopedList(state.resultsAnalysis).filter(a=> a.status!=='completed').forEach(a=>{
+    const stt = ANALYSIS_STATUSES[a.status] || ANALYSIS_STATUSES.not_started;
+    items.push({ type:'analysis', id:a.id, studentId:a.studentId, category:'Results Analysis · '+stt.label, color:'var(--stat-rose)',
+      title: a.title });
   });
 
   visibleEvents().filter(e=> e.date>=monday && e.date<=sunday).forEach(e=>{
@@ -1913,6 +1928,7 @@ function downloadBackup(){
     courses: scopedList(state.courses),
     fabricationItems: scopedList(state.fabricationItems),
     events: visibleEvents(),
+    resultsAnalysis: scopedList(state.resultsAnalysis),
     instructions: scopedList(state.instructions),
     meetings: scopedList(state.meetings),
     coSupervisors: isSupervisor ? state.coSupervisors.map(c=>({id:c.id, name:c.name, email:c.email||'', assignedStudentIds:c.assignedStudentIds||[]})) : undefined
@@ -1958,6 +1974,7 @@ function handleRestoreFile(event){
     state.instructions = Array.isArray(parsed.instructions) ? parsed.instructions : state.instructions;
     state.meetings = Array.isArray(parsed.meetings) ? parsed.meetings : state.meetings;
     state.events = Array.isArray(parsed.events) ? parsed.events : state.events;
+    state.resultsAnalysis = Array.isArray(parsed.resultsAnalysis) ? parsed.resultsAnalysis : state.resultsAnalysis;
     if(Array.isArray(parsed.coSupervisors)){
       state.coSupervisors = parsed.coSupervisors.map(c => {
         const existing = state.coSupervisors.find(x=>x.id===c.id);
@@ -1980,6 +1997,7 @@ function handleRestoreFile(event){
       saveCollection('instructions', state.instructions),
       saveCollection('meetings', state.meetings),
       saveCollection('events', state.events),
+      saveCollection('results-analysis', state.resultsAnalysis),
       saveCollection('co-supervisors', state.coSupervisors)
     ]);
     event.target.value = '';
@@ -2686,7 +2704,13 @@ function thesisCard(tp, i, total){
                   <span style="flex:1; min-width:140px; font-size:13.5px;">${escapeHtml(c.title)}</span>
                   ${linkedPaper ? `<span class="entry-meta">→ ${escapeHtml(linkedPaper.title)} (${escapeHtml(linkedPaper.stage)})</span>` : `<span class="entry-meta">No paper linked</span>`}
                   ${c.targetDate ? `<span class="entry-meta mono">Target: ${fmtDate(c.targetDate)}</span>` : ''}
-                  <span class="stamp ${chSt.cls}" style="padding:2px 8px; font-size:10px;">${chSt.label}</span>
+                  ${canEdit ? `
+                    <select class="small-btn" style="padding:2px 6px; font-size:11px;" onchange="setThesisChapterStatus('${tp.id}','${c.id}', this.value)">
+                      <option value="not_started" ${c.status==='not_started'?'selected':''}>Not started</option>
+                      <option value="in_progress" ${c.status==='in_progress'?'selected':''}>In progress</option>
+                      <option value="done" ${c.status==='done'?'selected':''}>Done</option>
+                    </select>
+                  ` : `<span class="stamp ${chSt.cls}" style="padding:2px 8px; font-size:10px;">${chSt.label}</span>`}
                   ${chOverdue ? `<span class="stamp bad" style="padding:2px 8px; font-size:10px;">Overdue</span>` : ''}
                   ${canEdit ? `<button class="small-btn" style="padding:1px 7px; font-size:11px;" onclick="deleteThesisChapter('${tp.id}','${c.id}')">Remove</button>` : ''}
                 </div>
@@ -2802,6 +2826,15 @@ async function submitAddChapter(thId){
 async function deleteThesisChapter(thId, chId){
   const tp = state.thesisPlans.find(x=>x.id===thId);
   tp.chapters = (tp.chapters||[]).filter(x=>x.id!==chId);
+  await saveCollection('thesis-plans', state.thesisPlans);
+  renderView();
+}
+async function setThesisChapterStatus(thId, chId, status){
+  const tp = state.thesisPlans.find(x=>x.id===thId);
+  const ch = (tp.chapters||[]).find(x=>x.id===chId);
+  if(!ch) return;
+  ch.status = status;
+  tp.lastUpdate = todayStr();
   await saveCollection('thesis-plans', state.thesisPlans);
   renderView();
 }
@@ -3501,6 +3534,15 @@ function fabricationCard(it, i, total){
       ${it.supervisorNote ? `<div class="comment-box"><span class="lbl">Supervisor note</span><div class="comment-existing">${nl2br(it.supervisorNote)}</div></div>` : ''}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
+        ${(canManage || isOwner) ? `
+          <select class="small-btn" style="padding-right:6px;" onchange="setFabricationStage('${it.id}', this.value)">
+            <option value="prep" ${it.stage==='prep'?'selected':''}>Sample Preparation</option>
+            <option value="fabrication" ${it.stage==='fabrication'?'selected':''}>Device Fabrication</option>
+            <option value="testing" ${it.stage==='testing'?'selected':''}>Testing</option>
+            <option value="completed" ${it.stage==='completed'?'selected':''}>Completed</option>
+            <option value="on_hold" ${it.stage==='on_hold'?'selected':''}>On Hold</option>
+          </select>
+        ` : ''}
         ${isSupervisorLike() ? `<button class="small-btn" onclick="openFabricationReviewBox('${it.id}')">Review</button>` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openEditFabricationModal('${it.id}')">Edit</button>` : ''}
         ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteFabrication('${it.id}')">Delete</button>` : ''}
@@ -3663,6 +3705,14 @@ async function deleteFabrication(id){
   await saveCollection('fabrication-items', state.fabricationItems);
   renderView();
 }
+async function setFabricationStage(id, stage){
+  const it = state.fabricationItems.find(x=>x.id===id);
+  if(!it) return;
+  it.stage = stage;
+  it.lastUpdate = todayStr();
+  await saveCollection('fabrication-items', state.fabricationItems);
+  renderView();
+}
 
 /* ============================ WEEKLY PROGRESS ============================ */
 function viewWeekly(){
@@ -3701,7 +3751,12 @@ function setFilterWeeklyStatus(v){ state.filterWeeklyStatus = v; renderView(); }
 function weeklyCard(w, i, total){
   const isOwner = state.identity.role==='student' && w.studentId===state.identity.id;
   const canManage = isSupervisorLike();
-  const locked = w.status === 'approved' && isOwner;
+  const weekEnded = w.weekStart && shiftDate(w.weekStart, 6) < todayStr();
+  // Locked once approved, or once the week itself is over — a scholar can't
+  // quietly rewrite a past week's log. The one way back in is the supervisor
+  // explicitly using "Request changes", which always re-opens editing
+  // regardless of approval status or how old the week is.
+  const locked = isOwner && w.status !== 'changes_requested' && (w.status === 'approved' || weekEnded);
   const canEdit = canManage || (isOwner && !locked);
   const canDelete = isTrueSupervisor();
   const statusMap = {
@@ -3760,7 +3815,7 @@ function weeklyCard(w, i, total){
       ${w.supervisorComment ? `
         <div class="comment-box"><span class="lbl">Supervisor feedback</span><div class="comment-existing">${nl2br(w.supervisorComment)}</div></div>
       ` : ''}
-      ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
+      ${locked ? `<div class="entry-meta" style="margin-top:10px;">${w.status==='approved' ? 'Approved entries are locked' : 'This week has ended, so this entry is locked'} — ask your supervisor to request changes if this needs to be corrected.</div>` : ''}
       <div class="entry-actions">
         ${isSupervisorLike() ? `<button class="small-btn" onclick="openReviewBox('${w.id}')">Review</button>` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openEditWeeklyModal('${w.id}')">Edit</button>` : ''}
@@ -3825,6 +3880,12 @@ async function submitWeekly(){
   const planNext = document.getElementById('f_planNext').value.trim();
   const challenges = document.getElementById('f_challenges').value.trim();
   if(!weekStart || !workDone){ alert('Please add the week and what you worked on.'); return; }
+  const existing = state.weekly.find(w => w.studentId===state.identity.id && w.weekStart===weekStart);
+  if(existing){
+    alert(`You've already logged a plan for the week of ${fmtDate(weekStart)}. Edit that entry instead of creating a new one — closing this so you can find it.`);
+    closeModal();
+    return;
+  }
   const papersSelect = document.getElementById('f_weeklyPapers');
   const linkedPaperIds = papersSelect ? Array.from(papersSelect.selectedOptions).map(el=>el.value) : [];
   const proposalsSelect = document.getElementById('f_weeklyProposals');
@@ -3908,11 +3969,23 @@ function openEditWeeklyModal(id){
 }
 async function submitEditWeekly(id){
   const w = state.weekly.find(x=>x.id===id);
+  const isOwner = state.identity.role==='student' && w.studentId===state.identity.id;
+  const weekEnded = w.weekStart && shiftDate(w.weekStart, 6) < todayStr();
+  if(isOwner && w.status !== 'changes_requested' && (w.status === 'approved' || weekEnded)){
+    alert('This entry is locked — it was either already approved or the week has ended. Ask your supervisor to request changes if it needs correcting.');
+    closeModal();
+    return;
+  }
   const weekStart = document.getElementById('f_editWeekStart').value;
   const workDone = document.getElementById('f_editWorkDone').value.trim();
   const planNext = document.getElementById('f_editPlanNext').value.trim();
   const challenges = document.getElementById('f_editChallenges').value.trim();
   if(!weekStart || !workDone){ alert('Please add the week and what you worked on.'); return; }
+  const duplicate = state.weekly.find(x => x.id!==id && x.studentId===w.studentId && x.weekStart===weekStart);
+  if(duplicate){
+    alert(`A plan for the week of ${fmtDate(weekStart)} already exists for this research scholar. Choose a different week, or edit that existing entry instead.`);
+    return;
+  }
   w.weekStart = weekStart;
   w.workDone = workDone;
   w.planNext = planNext;
@@ -4189,6 +4262,255 @@ function stageStampClass(stage){
   if(stage==='Under Review' || stage==='Submitted') return 'neutral';
   return 'neutral';
 }
+/* ============================ RESULTS ANALYSIS ============================ */
+// Sits between Characterization and Paper Pipeline in the actual research
+// flow: samples get tested (Characterization), then the resulting data
+// gets analyzed and interpreted here, before it feeds into a paper.
+const ANALYSIS_STATUSES = { not_started:{label:'Not Started', cls:'neutral'}, in_progress:{label:'In Progress', cls:'warn'}, completed:{label:'Completed', cls:'good'} };
+function analysisApprovalMap(){
+  return {
+    pending: { label:'Pending Approval', cls:'warn' },
+    approved: { label:'Approved', cls:'good' },
+    changes_requested: { label:'Changes Requested', cls:'bad' }
+  };
+}
+function viewResultsAnalysis(){
+  const fullList = scopedList(state.resultsAnalysis);
+  let list = fullList.slice().sort((a,b)=> (b.lastUpdate||'').localeCompare(a.lastUpdate||''));
+  if(state.filterAnalysisStatus && state.filterAnalysisStatus !== 'all'){
+    list = list.filter(a => a.approvalStatus === state.filterAnalysisStatus);
+  }
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Results Analysis</div>
+        <div class="view-sub">Interpreting the data that came back — linked to the sample codes, characterization runs, papers, and thesis chapters it feeds into.</div>
+      </div>
+      <button class="action-btn" onclick="openAnalysisModal()">+ Log analysis</button>
+    </div>
+    ${supervisorFilterBar()}
+    ${sectionPieAndFilter(fullList, 'approvalStatus', state.filterAnalysisStatus, 'setFilterAnalysisStatus')}
+    ${list.length===0 ? emptyState('Nothing logged yet', 'Log an analysis to track interpreting results from a characterization run, linked to whatever it supports.') : list.map((a,i)=>analysisCard(a,i,list.length)).join('')}
+  `;
+}
+function setFilterAnalysisStatus(v){ state.filterAnalysisStatus = v; renderView(); }
+function analysisCard(a, i, total){
+  const isOwner = state.identity.role==='student' && a.studentId===state.identity.id;
+  const canManage = isSupervisorLike();
+  const locked = a.approvalStatus === 'approved' && isOwner;
+  const canEdit = canManage || (isOwner && !locked);
+  const st = analysisApprovalMap()[a.approvalStatus] || analysisApprovalMap().pending;
+  const stt = ANALYSIS_STATUSES[a.status] || ANALYSIS_STATUSES.not_started;
+  const overdue = a.targetDate && a.status!=='completed' && a.targetDate < todayStr();
+  const linkedSamples = (a.linkedSampleIds||[]).map(id=>state.samples.find(x=>x.id===id)).filter(Boolean);
+  const linkedFab = (a.linkedFabricationIds||[]).map(id=>state.fabricationItems.find(x=>x.id===id)).filter(Boolean);
+  const linkedPapers = (a.linkedPaperIds||[]).map(id=>state.papers.find(x=>x.id===id)).filter(Boolean);
+  const linkedThesis = a.linkedThesisId ? state.thesisPlans.find(x=>x.id===a.linkedThesisId) : null;
+  return `
+    <div class="entry-card cat-rose" id="item-analysis-${a.id}">
+      <div class="entry-top">
+        <div>
+          <div class="entry-idx">RA${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(a.studentId))}</div>
+          <div class="entry-title">${escapeHtml(a.title)}</div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+          <span class="stamp ${st.cls}">${st.label}</span>
+          <span class="stamp ${stt.cls}">${stt.label}</span>
+          ${overdue ? `<span class="stamp bad">Overdue</span>` : ''}
+        </div>
+      </div>
+      <div class="entry-grid">
+        <div class="entry-block"><span class="lbl">Target date</span>${a.targetDate ? fmtDate(a.targetDate) : 'not set'}</div>
+        ${a.notes ? `<div class="entry-block" style="grid-column:1/-1;"><span class="lbl">Analysis notes</span>${nl2br(a.notes)}</div>` : ''}
+      </div>
+      ${linkedSamples.length>0 ? `
+        <div class="entry-block" style="margin-top:8px;">
+          <span class="lbl">Characterization run(s)</span>
+          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+            ${linkedSamples.map(s=>`<span class="task-link stamp neutral" onclick="goToItem('sample','${s.id}','${a.studentId}')">${escapeHtml(s.sampleName)}</span>`).join('')}
+          </div>
+        </div>
+      ` : ''}
+      ${linkedFab.length>0 ? `
+        <div class="entry-block" style="margin-top:8px;">
+          <span class="lbl">Sample code(s)</span>
+          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+            ${linkedFab.map(it=>`<span class="task-link stamp neutral" onclick="goToItem('fabrication','${it.id}','${a.studentId}')">${escapeHtml(fabricationLabel(it))}</span>`).join('')}
+          </div>
+        </div>
+      ` : ''}
+      ${linkedPapers.length>0 ? `
+        <div class="entry-block" style="margin-top:8px;">
+          <span class="lbl">Paper(s)</span>
+          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+            ${linkedPapers.map(p=>`<span class="task-link stamp neutral" onclick="goToItem('paper','${p.id}','${a.studentId}')">${escapeHtml(p.title)}</span>`).join('')}
+          </div>
+        </div>
+      ` : ''}
+      ${linkedThesis ? `
+        <div class="entry-block" style="margin-top:8px;">
+          <span class="lbl">Thesis plan</span>
+          <span class="task-link stamp neutral" onclick="goToItem('thesis','${linkedThesis.id}','${a.studentId}')">${escapeHtml(linkedThesis.title)}</span>
+        </div>
+      ` : ''}
+      ${a.supervisorNote ? `<div class="comment-box"><span class="lbl">Supervisor note</span><div class="comment-existing">${nl2br(a.supervisorNote)}</div></div>` : ''}
+      ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
+      <div class="entry-actions">
+        ${(canManage || isOwner) ? `
+          <select class="small-btn" style="padding-right:6px;" onchange="setAnalysisStatus('${a.id}', this.value)">
+            <option value="not_started" ${a.status==='not_started'?'selected':''}>Not Started</option>
+            <option value="in_progress" ${a.status==='in_progress'?'selected':''}>In Progress</option>
+            <option value="completed" ${a.status==='completed'?'selected':''}>Completed</option>
+          </select>
+        ` : ''}
+        ${isSupervisorLike() ? `<button class="small-btn" onclick="openAnalysisReviewBox('${a.id}')">Review</button>` : ''}
+        ${canEdit ? `<button class="small-btn" onclick="openEditAnalysisModal('${a.id}')">Edit</button>` : ''}
+        ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteAnalysis('${a.id}')">Delete</button>` : ''}
+      </div>
+      <div id="analysisReviewSlot-${a.id}"></div>
+    </div>
+  `;
+}
+async function setAnalysisStatus(id, status){
+  const a = state.resultsAnalysis.find(x=>x.id===id);
+  if(!a) return;
+  a.status = status;
+  a.lastUpdate = todayStr();
+  await saveCollection('results-analysis', state.resultsAnalysis);
+  renderView();
+}
+function analysisFormFields(a){
+  a = a || {};
+  const studentId = a.studentId || (state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id));
+  const mySamples = state.samples.filter(s=>s.studentId===studentId);
+  const myFab = state.fabricationItems.filter(it=>it.studentId===studentId);
+  const myPapers = state.papers.filter(p=>p.studentId===studentId);
+  const myThesis = state.thesisPlans.find(tp=>tp.studentId===studentId);
+  const linkedSamples = a.linkedSampleIds || [];
+  const linkedFab = a.linkedFabricationIds || [];
+  const linkedPapers = a.linkedPaperIds || [];
+  return `
+    <label class="field-label">Title</label>
+    <input class="text-input" id="f_anTitle" value="${escapeHtml(a.title||'')}" placeholder="e.g. XRD Rietveld refinement for batch 3">
+    <label class="field-label">Target date (optional)</label>
+    <input type="date" class="text-input" id="f_anTargetDate" value="${a.targetDate||''}">
+    ${mySamples.length>0 ? `
+      <label class="field-label">Characterization run(s) this analyzes (optional)</label>
+      <select class="text-input" id="f_anSamples" multiple size="${Math.min(4, Math.max(2, mySamples.length))}">
+        ${mySamples.map(s=>`<option value="${s.id}" ${linkedSamples.includes(s.id)?'selected':''}>${escapeHtml(s.sampleName)} — ${escapeHtml(s.technique)}</option>`).join('')}
+      </select>
+    ` : ''}
+    ${myFab.length>0 ? `
+      <label class="field-label">Sample code(s) involved (optional)</label>
+      <select class="text-input" id="f_anFab" multiple size="${Math.min(4, Math.max(2, myFab.length))}">
+        ${myFab.map(it=>`<option value="${it.id}" ${linkedFab.includes(it.id)?'selected':''}>${escapeHtml(fabricationLabel(it))}</option>`).join('')}
+      </select>
+    ` : ''}
+    ${myPapers.length>0 ? `
+      <label class="field-label">Paper(s) this feeds into (optional)</label>
+      <select class="text-input" id="f_anPapers" multiple size="${Math.min(4, Math.max(2, myPapers.length))}">
+        ${myPapers.map(p=>`<option value="${p.id}" ${linkedPapers.includes(p.id)?'selected':''}>${escapeHtml(p.title)}</option>`).join('')}
+      </select>
+    ` : ''}
+    ${myThesis ? `
+      <label class="field-label">Link to thesis plan (optional)</label>
+      <select class="text-input" id="f_anThesis">
+        <option value="">Not linked</option>
+        <option value="${myThesis.id}" ${a.linkedThesisId===myThesis.id?'selected':''}>${escapeHtml(myThesis.title)}</option>
+      </select>
+    ` : ''}
+    <div class="view-sub" style="margin-top:4px;">Hold Ctrl (or ⌘ on Mac) to select more than one in a list.</div>
+    <label class="field-label">Analysis notes (optional)</label>
+    <textarea class="text-input" id="f_anNotes" rows="3" placeholder="Interpretation, key observations, conclusions so far">${escapeHtml(a.notes||'')}</textarea>
+  `;
+}
+function openAnalysisModal(){
+  showModal('Results Analysis', analysisFormFields(), submitAnalysis);
+}
+async function submitAnalysis(){
+  const title = document.getElementById('f_anTitle').value.trim();
+  if(!title){ alert('Please add a title.'); return; }
+  const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
+  if(!studentId){ alert('Add a research scholar first.'); return; }
+  const samplesSelect = document.getElementById('f_anSamples');
+  const fabSelect = document.getElementById('f_anFab');
+  const papersSelect = document.getElementById('f_anPapers');
+  const thesisSelect = document.getElementById('f_anThesis');
+  state.resultsAnalysis.push({
+    id: uid('an'), studentId, title,
+    targetDate: document.getElementById('f_anTargetDate').value,
+    linkedSampleIds: samplesSelect ? Array.from(samplesSelect.selectedOptions).map(el=>el.value) : [],
+    linkedFabricationIds: fabSelect ? Array.from(fabSelect.selectedOptions).map(el=>el.value) : [],
+    linkedPaperIds: papersSelect ? Array.from(papersSelect.selectedOptions).map(el=>el.value) : [],
+    linkedThesisId: thesisSelect ? (thesisSelect.value || null) : null,
+    notes: document.getElementById('f_anNotes').value.trim(),
+    status: 'not_started',
+    approvalStatus: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:'', lastUpdate: todayStr()
+  });
+  await saveCollection('results-analysis', state.resultsAnalysis);
+  if(!isSupervisorLike()){
+    apiNotify('analysisSubmitted', { studentId, title });
+  }
+  closeModal(); renderView();
+}
+function openEditAnalysisModal(id){
+  const a = state.resultsAnalysis.find(x=>x.id===id);
+  showModal('Results Analysis', analysisFormFields(a) + (!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''), ()=>submitEditAnalysis(id));
+}
+async function submitEditAnalysis(id){
+  const a = state.resultsAnalysis.find(x=>x.id===id);
+  const title = document.getElementById('f_anTitle').value.trim();
+  if(!title){ alert('Please add a title.'); return; }
+  const samplesSelect = document.getElementById('f_anSamples');
+  const fabSelect = document.getElementById('f_anFab');
+  const papersSelect = document.getElementById('f_anPapers');
+  const thesisSelect = document.getElementById('f_anThesis');
+  a.title = title;
+  a.targetDate = document.getElementById('f_anTargetDate').value;
+  a.linkedSampleIds = samplesSelect ? Array.from(samplesSelect.selectedOptions).map(el=>el.value) : (a.linkedSampleIds||[]);
+  a.linkedFabricationIds = fabSelect ? Array.from(fabSelect.selectedOptions).map(el=>el.value) : (a.linkedFabricationIds||[]);
+  a.linkedPaperIds = papersSelect ? Array.from(papersSelect.selectedOptions).map(el=>el.value) : (a.linkedPaperIds||[]);
+  a.linkedThesisId = thesisSelect ? (thesisSelect.value || null) : a.linkedThesisId;
+  a.notes = document.getElementById('f_anNotes').value.trim();
+  a.lastUpdate = todayStr();
+  if(!isSupervisorLike()){
+    a.approvalStatus = 'pending';
+    await saveCollection('results-analysis', state.resultsAnalysis);
+    apiNotify('analysisSubmitted', { studentId: a.studentId, title: a.title });
+  } else {
+    await saveCollection('results-analysis', state.resultsAnalysis);
+  }
+  closeModal(); renderView();
+}
+function openAnalysisReviewBox(id){
+  const a = state.resultsAnalysis.find(x=>x.id===id);
+  document.getElementById('analysisReviewSlot-'+id).innerHTML = `
+    <div class="comment-box">
+      <span class="lbl">Note (required to request changes)</span>
+      <textarea id="analysisReviewInput-${id}">${escapeHtml(a.supervisorNote || '')}</textarea>
+      <div class="entry-actions">
+        <button class="small-btn" onclick="reviewAnalysis('${id}','approved')">Approve</button>
+        <button class="small-btn danger" onclick="reviewAnalysis('${id}','changes_requested')">Request changes</button>
+      </div>
+    </div>`;
+}
+async function reviewAnalysis(id, decision){
+  const a = state.resultsAnalysis.find(x=>x.id===id);
+  const val = document.getElementById('analysisReviewInput-'+id).value.trim();
+  if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
+  a.supervisorNote = val;
+  a.approvalStatus = decision;
+  await saveCollection('results-analysis', state.resultsAnalysis);
+  apiNotify('analysisReviewed', { studentId: a.studentId, title: a.title, decision, note: val });
+  renderView();
+}
+async function deleteAnalysis(id){
+  if(!confirm('Delete this analysis entry?')) return;
+  state.resultsAnalysis = state.resultsAnalysis.filter(x=>x.id!==id);
+  await saveCollection('results-analysis', state.resultsAnalysis);
+  renderView();
+}
+
 function viewPapers(){
   const fullList = scopedList(state.papers);
   let list = fullList.slice().sort((a,b)=> (b.lastUpdate||'').localeCompare(a.lastUpdate||''));
@@ -4917,12 +5239,13 @@ function viewReports(){
 
   const availablePapers = scopedList(state.papers);
   if(!state.reportPaperId && availablePapers.length>0) state.reportPaperId = availablePapers[0].id;
+  if(!state.reportSectionKey) state.reportSectionKey = 'weekly';
 
   return `
     <div class="view-header">
       <div>
         <div class="view-title">Reports</div>
-        <div class="view-sub">Combines the supervisor instructions log with the research scholar's progress, sample, and paper logs into one report — or build one around a single paper.</div>
+        <div class="view-sub">Combines the supervisor instructions log with the research scholar's progress, sample, and paper logs into one report — build one around a single paper, or export a whole section at once.</div>
       </div>
     </div>
     <div class="entry-card" style="margin-bottom:20px;">
@@ -4930,6 +5253,7 @@ function viewReports(){
       <div class="role-row" style="margin-bottom:0;">
         <button class="role-btn ${state.reportType==='student'?'active':''}" onclick="setReportType('student')">By Research Scholar <small>Instructions, weekly plans, samples, papers, meetings</small></button>
         <button class="role-btn ${state.reportType==='paper'?'active':''}" onclick="setReportType('paper')">By Paper <small>Everything linked to one specific paper</small></button>
+        <button class="role-btn ${state.reportType==='section'?'active':''}" onclick="setReportType('section')">By Section <small>One section, every research scholar</small></button>
       </div>
     </div>
     ${state.reportType==='student' ? `
@@ -4950,10 +5274,10 @@ function viewReports(){
         </div>
         <div class="entry-actions">
           <button class="action-btn" onclick="generateReport()">Generate report</button>
-          ${state.reportData ? `<button class="action-btn ghost" onclick="window.print()">Print / Save as PDF</button><button class="action-btn ghost" onclick="downloadReportText()">Download as text</button>` : ''}
+          ${state.reportData && state.reportData.kind==='student' ? `<button class="action-btn ghost" onclick="window.print()">Print / Save as PDF</button><button class="action-btn ghost" onclick="downloadReportText()">Download as text</button><button class="action-btn ghost" onclick="downloadReportCsv()">Download as CSV</button>` : ''}
         </div>
       </div>
-    ` : `
+    ` : state.reportType==='paper' ? `
       <div class="entry-card" style="margin-bottom:20px;">
         ${availablePapers.length===0 ? `<div class="entry-meta">No papers available to report on yet.</div>` : `
           <label class="field-label">Paper</label>
@@ -4963,11 +5287,85 @@ function viewReports(){
         `}
         <div class="entry-actions">
           <button class="action-btn" onclick="generatePaperReport()" ${availablePapers.length===0?'disabled':''}>Generate report</button>
-          ${state.reportData && state.reportData.kind==='paper' ? `<button class="action-btn ghost" onclick="window.print()">Print / Save as PDF</button><button class="action-btn ghost" onclick="downloadReportText()">Download as text</button>` : ''}
+          ${state.reportData && state.reportData.kind==='paper' ? `<button class="action-btn ghost" onclick="window.print()">Print / Save as PDF</button><button class="action-btn ghost" onclick="downloadReportText()">Download as text</button><button class="action-btn ghost" onclick="downloadReportCsv()">Download as CSV</button>` : ''}
+        </div>
+      </div>
+    ` : `
+      <div class="entry-card" style="margin-bottom:20px;">
+        <label class="field-label">Section</label>
+        <select class="text-input" id="r_section" onchange="state.reportSectionKey=this.value">
+          ${Object.keys(REPORT_SECTIONS).map(k=>`<option value="${k}" ${state.reportSectionKey===k?'selected':''}>${escapeHtml(REPORT_SECTIONS[k].label)}</option>`).join('')}
+        </select>
+        <div class="entry-actions">
+          <button class="action-btn" onclick="generateSectionReport()">Generate report</button>
+          ${state.reportData && state.reportData.kind==='section' ? `<button class="action-btn ghost" onclick="window.print()">Print / Save as PDF</button><button class="action-btn ghost" onclick="downloadReportText()">Download as text</button><button class="action-btn ghost" onclick="downloadReportCsv()">Download as CSV</button>` : ''}
         </div>
       </div>
     `}
     <div id="reportPrintArea">${state.reportData ? renderReportHtml(state.reportData) : ''}</div>
+  `;
+}
+const REPORT_SECTIONS = {
+  weekly:        { label:'Weekly Plan',            list: () => state.weekly },
+  fabrication:   { label:'Lab Work',                list: () => state.fabricationItems },
+  samples:       { label:'Characterization',        list: () => state.samples },
+  resultsAnalysis:{ label:'Results Analysis',       list: () => state.resultsAnalysis },
+  papers:        { label:'Paper Pipeline',           list: () => state.papers },
+  proposal:      { label:'Work Plan (Proposal)',    list: () => state.proposals },
+  thesis:        { label:'Thesis Plan',              list: () => state.thesisPlans },
+  rac:           { label:'RAC Reviews',              list: () => state.racReviews },
+  conferences:   { label:'Conferences',              list: () => state.conferences },
+  financial:     { label:'Proposals',                list: () => state.financialApps },
+  learning:      { label:'Learning & Courses',       list: () => state.courses },
+};
+// Every section's records look different, so this normalizes any one of
+// them down to a common shape (title / status / date / detail) that a
+// single generic table and CSV export can both work from.
+function normalizeReportRow(sectionKey, item){
+  switch(sectionKey){
+    case 'weekly': return { title:`Week of ${fmtDate(item.weekStart)}`, status:item.status, date:item.weekStart, detail:item.workDone||'' };
+    case 'fabrication': return { title:fabricationLabel(item), status:item.approvalStatus, date:item.startDate||item.lastUpdate||'', detail:(FABRICATION_STAGES[item.stage]||{}).label||'' };
+    case 'samples': return { title:item.sampleName, status:item.approvalStatus, date:item.submittedDate, detail:item.technique||'' };
+    case 'resultsAnalysis': return { title:item.title, status:item.approvalStatus, date:item.targetDate||item.lastUpdate||'', detail:(ANALYSIS_STATUSES[item.status]||{}).label||'' };
+    case 'papers': return { title:item.title, status:item.stage, date:item.lastUpdate||'', detail:item.targetJournal||'' };
+    case 'proposal': return { title:item.title, status:item.status, date:item.lastUpdate||'', detail:item.objective||'' };
+    case 'thesis': return { title:item.title, status:item.status, date:item.lastUpdate||'', detail:`${(item.chapters||[]).length} chapter(s)` };
+    case 'rac': return { title:item.title, status:item.status, date:item.reviewDate, detail:item.comments||'' };
+    case 'conferences': return { title:item.eventName, status:item.approvalStatus, date:item.startDate, detail:item.role||'' };
+    case 'financial': return { title:item.title, status:item.approvalStatus, date:item.applicationDate, detail:item.type||'' };
+    case 'learning': return { title:item.title, status:item.approvalStatus, date:item.startDate, detail:item.provider||'' };
+    default: return { title:'', status:'', date:'', detail:'' };
+  }
+}
+function buildReportForSection(sectionKey){
+  const section = REPORT_SECTIONS[sectionKey];
+  const rawList = scopedList(section.list());
+  const rows = rawList.map(item => ({ studentId:item.studentId, ...normalizeReportRow(sectionKey, item) }))
+    .sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  return { sectionKey, sectionLabel: section.label, rows };
+}
+function generateSectionReport(){
+  if(!state.reportSectionKey) state.reportSectionKey = 'weekly';
+  state.reportData = { kind:'section', generatedAt: todayStr(), ...buildReportForSection(state.reportSectionKey) };
+  renderView();
+  setTimeout(()=>{ document.getElementById('reportPrintArea')?.scrollIntoView({behavior:'smooth'}); }, 50);
+}
+function renderSectionReportHtml(data){
+  return `
+    <div class="report-doc">
+      <div class="report-head">
+        <div class="report-eyebrow">Research Group Management System — ${escapeHtml(data.sectionLabel)} Report</div>
+        <div class="report-meta">Generated ${fmtDate(data.generatedAt)} · ${data.rows.length} entr${data.rows.length===1?'y':'ies'}</div>
+      </div>
+      <div class="report-student">
+        ${data.rows.length===0 ? `<p class="report-empty">Nothing logged in this section yet.</p>` : `
+          <table class="report-table">
+            <thead><tr><th>Research Scholar</th><th>Title</th><th>Status</th><th>Date</th><th>Detail</th></tr></thead>
+            <tbody>${data.rows.map(r=>`<tr><td>${escapeHtml(studentName(r.studentId))}</td><td>${escapeHtml(r.title)}</td><td>${escapeHtml(r.status||'')}</td><td>${r.date?fmtDate(r.date):'—'}</td><td>${escapeHtml((r.detail||'').slice(0,120))}</td></tr>`).join('')}</tbody>
+          </table>
+        `}
+      </div>
+    </div>
   `;
 }
 function setReportType(t){ state.reportType = t; state.reportData = null; renderView(); }
@@ -5004,13 +5402,14 @@ function buildReportForPaper(paperId){
   const p = state.papers.find(x=>x.id===paperId);
   const weekly = state.weekly.filter(w=>(w.linkedPaperIds||[]).includes(paperId)).sort((a,b)=>a.weekStart.localeCompare(b.weekStart));
   const fabrication = state.fabricationItems.filter(it=>(it.linkedPaperIds||[]).includes(paperId)).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
+  const analysis = state.resultsAnalysis.filter(a=>(a.linkedPaperIds||[]).includes(paperId)).sort((a,b)=>(a.lastUpdate||'').localeCompare(b.lastUpdate||''));
   const thesisLinks = [];
   state.thesisPlans.forEach(tp=>{
     (tp.chapters||[]).forEach(c=>{
       if(c.linkedPaperId===paperId) thesisLinks.push({ thesisTitle: tp.title, chapterTitle: c.title, status: c.status });
     });
   });
-  return { paper: p, weekly, fabrication, thesisLinks };
+  return { paper: p, weekly, fabrication, analysis, thesisLinks };
 }
 function generatePaperReport(){
   if(!state.reportPaperId){ alert('Choose a paper first.'); return; }
@@ -5025,6 +5424,7 @@ function generatePaperReport(){
 
 function renderReportHtml(data){
   if(data.kind === 'paper') return renderPaperReportHtml(data);
+  if(data.kind === 'section') return renderSectionReportHtml(data);
   const periodLabel = (data.from || data.to) ? `${data.from ? fmtDate(data.from) : 'Start'} — ${data.to ? fmtDate(data.to) : 'Present'}` : 'All time';
   return `
     <div class="report-doc">
@@ -5076,6 +5476,14 @@ function renderPaperReportHtml(data){
           <table class="report-table">
             <thead><tr><th>Sample Code</th><th>Stage</th><th>Started</th><th>Target completion</th></tr></thead>
             <tbody>${data.fabrication.map(it=>`<tr><td>${escapeHtml(fabricationLabel(it))}</td><td>${(FABRICATION_STAGES[it.stage]||{label:it.stage}).label}</td><td>${it.startDate?fmtDate(it.startDate):'—'}</td><td>${it.targetDate?fmtDate(it.targetDate):'—'}</td></tr>`).join('')}</tbody>
+          </table>
+        `}
+
+        <h3 class="report-section-title">Results Analysis Linked to This Paper</h3>
+        ${data.analysis.length===0 ? `<p class="report-empty">No results analysis linked to this paper.</p>` : `
+          <table class="report-table">
+            <thead><tr><th>Title</th><th>Status</th><th>Target date</th></tr></thead>
+            <tbody>${data.analysis.map(a=>`<tr><td>${escapeHtml(a.title)}</td><td>${(ANALYSIS_STATUSES[a.status]||{label:a.status}).label}</td><td>${a.targetDate?fmtDate(a.targetDate):'—'}</td></tr>`).join('')}</tbody>
           </table>
         `}
 
@@ -5214,6 +5622,10 @@ function downloadPaperReportText(data){
   if(data.fabrication.length===0) out += `(none linked)\n`;
   data.fabrication.forEach(it=>{ out += `${fabricationLabel(it)} | Stage: ${(FABRICATION_STAGES[it.stage]||{label:it.stage}).label} | Started: ${it.startDate?fmtDate(it.startDate):'—'} | Target: ${it.targetDate?fmtDate(it.targetDate):'—'}\n`; });
 
+  out += `\n-- Results Analysis Linked to This Paper --\n`;
+  if(data.analysis.length===0) out += `(none linked)\n`;
+  data.analysis.forEach(a=>{ out += `${a.title} | Status: ${(ANALYSIS_STATUSES[a.status]||{label:a.status}).label} | Target: ${a.targetDate?fmtDate(a.targetDate):'—'}\n`; });
+
   out += `\n-- Thesis Chapters Linked to This Paper --\n`;
   if(data.thesisLinks.length===0) out += `(none linked)\n`;
   data.thesisLinks.forEach(t=>{ out += `${t.thesisTitle} — ${t.chapterTitle} | Status: ${t.status}\n`; });
@@ -5230,6 +5642,69 @@ function downloadTextBlob(text, filename){
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/* ---------------- CSV export ---------------- */
+function csvEscape(val){
+  const str = (val===undefined || val===null) ? '' : String(val);
+  if(/[",\n]/.test(str)) return '"' + str.replace(/"/g,'""') + '"';
+  return str;
+}
+function rowsToCsv(headers, rows){
+  const lines = [headers.map(csvEscape).join(',')];
+  rows.forEach(r => lines.push(r.map(csvEscape).join(',')));
+  return lines.join('\r\n');
+}
+function downloadCsvBlob(csvText, filename){
+  // Leading BOM so Excel opens UTF-8 (e.g. "—", "→") correctly instead of showing garbled characters.
+  const blob = new Blob(['\ufeff' + csvText], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function slugify(text){
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+function downloadReportCsv(){
+  const data = state.reportData;
+  if(!data) return;
+  let headers, rows, filename;
+
+  if(data.kind === 'section'){
+    headers = ['Research Scholar', 'Title', 'Status', 'Date', 'Detail'];
+    rows = data.rows.map(r => [studentName(r.studentId), r.title, r.status||'', r.date?fmtDate(r.date):'', r.detail||'']);
+    filename = `${slugify(data.sectionLabel)}-report-${todayStr()}.csv`;
+
+  } else if(data.kind === 'paper'){
+    headers = ['Section', 'Title', 'Status', 'Date', 'Detail'];
+    rows = [];
+    const p = data.paper;
+    if(p) rows.push(['Paper', p.title, p.stage, p.lastUpdate?fmtDate(p.lastUpdate):'', p.targetJournal||'']);
+    data.weekly.forEach(w => rows.push(['Weekly Plan', `Week of ${fmtDate(w.weekStart)}`, w.status, fmtDate(w.weekStart), (w.workDone||'').slice(0,300)]));
+    data.fabrication.forEach(it => rows.push(['Lab Work', fabricationLabel(it), it.approvalStatus, it.startDate?fmtDate(it.startDate):'', (FABRICATION_STAGES[it.stage]||{}).label||'']));
+    (data.analysis||[]).forEach(a => rows.push(['Results Analysis', a.title, a.approvalStatus, a.targetDate?fmtDate(a.targetDate):'', (ANALYSIS_STATUSES[a.status]||{}).label||'']));
+    data.thesisLinks.forEach(t => rows.push(['Thesis Chapter', `${t.thesisTitle} — ${t.chapterTitle}`, t.status, '', '']));
+    filename = `paper-report-${slugify(p ? p.title : 'unknown')}-${todayStr()}.csv`;
+
+  } else {
+    headers = ['Research Scholar', 'Section', 'Title', 'Status', 'Date', 'Detail'];
+    rows = [];
+    data.students.forEach(s => {
+      s.instructions.forEach(ins => rows.push([s.name, 'Instruction', `Logged ${fmtDate(ins.date)}`, ins.done?'Done':'Open', ins.date?fmtDate(ins.date):'', (ins.text||'').slice(0,300)]));
+      s.weekly.forEach(w => rows.push([s.name, 'Weekly Plan', `Week of ${fmtDate(w.weekStart)}`, w.status, fmtDate(w.weekStart), (w.workDone||'').slice(0,300)]));
+      s.samples.forEach(sm => rows.push([s.name, 'Characterization', sm.sampleName, sm.approvalStatus, sm.submittedDate?fmtDate(sm.submittedDate):'', sm.technique||'']));
+      s.papers.forEach(p => rows.push([s.name, 'Paper Pipeline', p.title, p.stage, p.lastUpdate?fmtDate(p.lastUpdate):'', p.targetJournal||'']));
+      s.meetings.forEach(m => rows.push([s.name, 'Meeting', m.title, m.status, m.plannedDate?fmtDate(m.plannedDate):'', m.type||'']));
+    });
+    filename = `progress-report-${todayStr()}.csv`;
+  }
+
+  downloadCsvBlob(rowsToCsv(headers, rows), filename);
 }
 
 /* ============================ MODAL ============================ */
