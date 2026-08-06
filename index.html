@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Research Group Management System — Energy Devices and Materials Group</title>
+<title>Energy Devices and Materials Group — Research Logbook</title>
 <meta name="description" content="Weekly progress, characterization tracking, and paper pipeline management for research groups.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#F4F5F7;
@@ -46,18 +46,18 @@
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
-    font-family:'Inter', sans-serif;
+    font-family:'Roboto', sans-serif;
     font-size:15.5px;
     color:var(--ink);
     background:var(--bg);
     min-height:100vh;
     -webkit-font-smoothing:antialiased;
   }
-  h1,h2,h3{ font-family:'Source Serif 4', serif; letter-spacing:-0.005em; }
-  .heading{ font-family:'Source Serif 4', serif; letter-spacing:-0.005em; }
+  h1,h2,h3{ font-family:'Roboto', sans-serif; letter-spacing:-0.005em; }
+  .heading{ font-family:'Roboto', sans-serif; letter-spacing:-0.005em; }
   .mono{ font-family:'IBM Plex Mono', monospace; }
-  button{ font-family:'Inter', sans-serif; cursor:pointer; }
-  input,select,textarea{ font-family:'Inter', sans-serif; }
+  button{ font-family:'Roboto', sans-serif; cursor:pointer; }
+  input,select,textarea{ font-family:'Roboto', sans-serif; }
   ::selection{ background:var(--navy-wash); }
   a{ color:var(--navy); }
 
@@ -81,7 +81,7 @@
   .login-hero:after{ content:""; position:absolute; width:220px; height:220px; border-radius:50%; background:rgba(255,255,255,0.04); bottom:-90px; left:-70px; }
   .login-hero-illustration{ position:absolute; right:-6px; bottom:14px; display:flex; flex-direction:column; align-items:flex-end; gap:8px; opacity:0.55; pointer-events:none; }
   .login-hero-mark{ width:44px; height:44px; border-radius:10px; background:#fff; color:var(--navy-dark); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; margin-bottom:24px; position:relative; z-index:1; }
-  .login-hero-title{ font-family:'Source Serif 4', serif; font-size:31px; font-weight:600; line-height:1.25; letter-spacing:-0.01em; margin-bottom:0; position:relative; z-index:1; }
+  .login-hero-title{ font-family:'Roboto', sans-serif; font-size:31px; font-weight:600; line-height:1.25; letter-spacing:-0.01em; margin-bottom:0; position:relative; z-index:1; }
   .login-hero-groupname{ font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,0.6); margin-bottom:22px; position:relative; z-index:1; }
   .login-hero-tag{ font-size:14px; line-height:1.65; color:rgba(255,255,255,0.72); max-width:360px; margin-bottom:28px; position:relative; z-index:1; }
   .login-hero-list{ list-style:none; padding:0; margin:0 0 32px; display:flex; flex-direction:column; gap:11px; position:relative; z-index:1; }
@@ -101,7 +101,7 @@
   }
   .login-mark{ width:38px; height:38px; border-radius:8px; background:var(--navy); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; letter-spacing:0.02em; margin-bottom:18px; }
   .login-eyebrow{ font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; }
-  .login-title{ font-family:'Source Serif 4', serif; font-size:27px; font-weight:600; margin:6px 0 6px; letter-spacing:-0.01em; }
+  .login-title{ font-family:'Roboto', sans-serif; font-size:27px; font-weight:600; margin:6px 0 6px; letter-spacing:-0.01em; }
   .login-sub{ color:var(--ink-soft); font-size:15px; margin-bottom:28px; line-height:1.6; }
   .role-row{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
   .role-row .role-btn{ flex:1 1 140px; }
@@ -134,7 +134,7 @@
   }
   .brand{ display:flex; align-items:center; gap:11px; }
   .brand-mark{ width:30px; height:30px; border-radius:7px; background:#fff; color:var(--navy-dark); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; }
-  .brand-name{ font-family:'Source Serif 4', serif; font-weight:600; font-size:17px; letter-spacing:-0.005em; color:#fff; line-height:1.2; }
+  .brand-name{ font-family:'Roboto', sans-serif; font-weight:600; font-size:17px; letter-spacing:-0.005em; color:#fff; line-height:1.2; }
   .brand-subtitle{ font-size:11px; font-weight:500; letter-spacing:.03em; color:rgba(255,255,255,0.55); margin-top:1px; }
   .identity-pill{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:flex-end; }
   .identity-badge{ font-size:13.5px; padding:6px 13px; border-radius:20px; background:rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(255,255,255,0.14); }
@@ -156,7 +156,7 @@
 
   main#main{ flex:1; padding:28px 34px 64px; min-width:0; }
   .view-header{ display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:22px; padding-bottom:18px; border-bottom:1px solid var(--border); }
-  .view-title{ font-family:'Source Serif 4', serif; font-size:24px; font-weight:600; letter-spacing:-0.01em; }
+  .view-title{ font-family:'Roboto', sans-serif; font-size:24px; font-weight:600; letter-spacing:-0.01em; }
   .view-sub{ color:var(--ink-soft); font-size:14.5px; margin-top:4px; }
   .action-btn{
     padding:10px 17px; background:var(--navy); color:#fff; border:none; border-radius:7px; font-weight:600; font-size:14px;
@@ -279,7 +279,7 @@
   .entry-card.cat-neutral{ border-left-color:var(--ink-faint); }
   .entry-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--border); }
   .entry-idx{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-faint); letter-spacing:.03em; text-transform:uppercase; }
-  .entry-title{ font-family:'Source Serif 4', serif; font-size:17px; font-weight:600; margin-top:3px; color:var(--ink); }
+  .entry-title{ font-family:'Roboto', sans-serif; font-size:17px; font-weight:600; margin-top:3px; color:var(--ink); }
   .entry-title.linkable, .task-link{ cursor:pointer; }
   .entry-title.linkable:hover, .task-link:hover{ color:var(--navy); text-decoration:underline; }
   @keyframes flashHighlight{ 0%{ box-shadow:0 0 0 3px var(--navy); } 70%{ box-shadow:0 0 0 3px var(--navy); } 100%{ box-shadow:var(--shadow-sm); } }
@@ -323,7 +323,7 @@
   /* ---------- Report document ---------- */
   .report-doc{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:32px 36px; }
   .report-head{ border-bottom:2px solid var(--ink); padding-bottom:14px; margin-bottom:24px; }
-  .report-eyebrow{ font-size:18px; font-weight:700; letter-spacing:-0.01em; }
+  .report-eyebrow{ font-family:'Roboto', sans-serif; font-size:19px; font-weight:600; letter-spacing:-0.01em; }
   .report-meta{ font-size:12.5px; color:var(--ink-soft); margin-top:4px; }
   .report-divider{ border-top:1px dashed var(--border-strong); margin:30px 0; }
   .report-student-name{ font-size:19px; font-weight:700; margin:0 0 14px; }
@@ -2340,7 +2340,7 @@ async function deletePlannerTask(id){
   renderView();
 }
 
-/* ============================ PROPOSAL & WORK PLAN ============================ */
+/* ============================ WORK PLAN (PROPOSAL) ============================ */
 function viewProposal(){
   const fullList = scopedList(state.proposals);
   let list = fullList.slice().sort((a,b)=> (b.lastUpdate||'').localeCompare(a.lastUpdate||''));
@@ -2704,6 +2704,7 @@ function thesisCard(tp, i, total){
                   <span style="flex:1; min-width:140px; font-size:13.5px;">${escapeHtml(c.title)}</span>
                   ${linkedPaper ? `<span class="entry-meta">→ ${escapeHtml(linkedPaper.title)} (${escapeHtml(linkedPaper.stage)})</span>` : `<span class="entry-meta">No paper linked</span>`}
                   ${c.targetDate ? `<span class="entry-meta mono">Target: ${fmtDate(c.targetDate)}</span>` : ''}
+                  ${canEdit ? `<button class="small-btn" style="padding:1px 7px; font-size:11px;" onclick="openEditChapterDateModal('${tp.id}','${c.id}')">Edit date</button>` : ''}
                   ${canEdit ? `
                     <select class="small-btn" style="padding:2px 6px; font-size:11px;" onchange="setThesisChapterStatus('${tp.id}','${c.id}', this.value)">
                       <option value="not_started" ${c.status==='not_started'?'selected':''}>Not started</option>
@@ -2837,6 +2838,39 @@ async function setThesisChapterStatus(thId, chId, status){
   tp.lastUpdate = todayStr();
   await saveCollection('thesis-plans', state.thesisPlans);
   renderView();
+}
+function openEditChapterDateModal(thId, chId){
+  const tp = state.thesisPlans.find(x=>x.id===thId);
+  const ch = (tp.chapters||[]).find(x=>x.id===chId);
+  if(!ch) return;
+  const history = ch.targetDateHistory || [];
+  showModal('Edit target date', `
+    <div class="view-sub" style="margin-bottom:8px;">${escapeHtml(ch.title)}</div>
+    <label class="field-label">Target completion date</label>
+    <input type="date" class="text-input" id="f_chTargetDate" value="${ch.targetDate||''}">
+    ${history.length>0 ? `
+      <div class="entry-block" style="margin-top:12px;">
+        <span class="lbl">Change history</span>
+        <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">
+          ${history.slice().reverse().map(h=>`<div class="entry-meta">${fmtDate(h.changedAt)} — ${escapeHtml(h.changedBy)} changed ${h.from ? 'from '+fmtDate(h.from)+' ' : ''}to ${fmtDate(h.to)}</div>`).join('')}
+        </div>
+      </div>
+    ` : ''}
+  `, ()=>submitEditChapterDate(thId, chId));
+}
+async function submitEditChapterDate(thId, chId){
+  const tp = state.thesisPlans.find(x=>x.id===thId);
+  const ch = (tp.chapters||[]).find(x=>x.id===chId);
+  if(!ch) return;
+  const newDate = document.getElementById('f_chTargetDate').value;
+  if(newDate !== (ch.targetDate || '')){
+    if(!ch.targetDateHistory) ch.targetDateHistory = [];
+    ch.targetDateHistory.push({ from: ch.targetDate || null, to: newDate, changedBy: state.identity.name, changedAt: todayStr() });
+  }
+  ch.targetDate = newDate;
+  tp.lastUpdate = todayStr();
+  await saveCollection('thesis-plans', state.thesisPlans);
+  closeModal(); renderView();
 }
 function openThesisReviewBox(id){
   const tp = state.thesisPlans.find(x=>x.id===id);
@@ -3074,7 +3108,7 @@ async function deleteRac(id){
   renderView();
 }
 
-/* ============================ VISITING & FINANCIAL SUPPORT ============================ */
+/* ============================ PROPOSALS (FUNDING / TRAVEL) ============================ */
 function financialStatusMap(){
   return {
     pending: { label:'Pending Approval', cls:'warn' },
@@ -3447,7 +3481,7 @@ async function deleteCourse(id){
   renderView();
 }
 
-/* ============================ SAMPLE PREP & DEVICE FABRICATION ============================ */
+/* ============================ LAB WORK ============================ */
 function fabricationLabel(it){
   if(!it) return '';
   return it.title ? `${it.title} (${it.itemName})` : it.itemName; // older records may not have a name yet, just show the code
@@ -3634,7 +3668,12 @@ async function submitEditFabrication(id){
   it.linkedPaperIds = papersSelect ? Array.from(papersSelect.selectedOptions).map(el=>el.value) : (it.linkedPaperIds || []);
   delete it.linkedPaperId;
   it.startDate = startDate;
-  it.targetDate = document.getElementById('f_fabTargetDate').value;
+  const newFabTargetDate = document.getElementById('f_fabTargetDate').value;
+  if(newFabTargetDate !== (it.targetDate || '')){
+    if(!it.targetDateHistory) it.targetDateHistory = [];
+    it.targetDateHistory.push({ from: it.targetDate || null, to: newFabTargetDate, changedBy: state.identity.name, changedAt: todayStr() });
+  }
+  it.targetDate = newFabTargetDate;
   it.link = document.getElementById('f_fabLink').value.trim();
   it.notes = document.getElementById('f_fabNotes').value.trim();
   it.lastUpdate = todayStr();
@@ -3714,7 +3753,7 @@ async function setFabricationStage(id, stage){
   renderView();
 }
 
-/* ============================ WEEKLY PROGRESS ============================ */
+/* ============================ WEEKLY PLAN ============================ */
 function viewWeekly(){
   const fullList = scopedList(state.weekly);
   let list = fullList.slice().sort((a,b)=> b.weekStart.localeCompare(a.weekStart));
@@ -4254,14 +4293,6 @@ async function submitEditSample(id){
   closeModal(); renderView();
 }
 
-/* ============================ PAPERS ============================ */
-function stageStampClass(stage){
-  if(stage==='Published') return 'good';
-  if(stage==='Accepted') return 'good';
-  if(stage==='Revisions Requested') return 'warn';
-  if(stage==='Under Review' || stage==='Submitted') return 'neutral';
-  return 'neutral';
-}
 /* ============================ RESULTS ANALYSIS ============================ */
 // Sits between Characterization and Paper Pipeline in the actual research
 // flow: samples get tested (Characterization), then the resulting data
@@ -4466,7 +4497,12 @@ async function submitEditAnalysis(id){
   const papersSelect = document.getElementById('f_anPapers');
   const thesisSelect = document.getElementById('f_anThesis');
   a.title = title;
-  a.targetDate = document.getElementById('f_anTargetDate').value;
+  const newAnTargetDate = document.getElementById('f_anTargetDate').value;
+  if(newAnTargetDate !== (a.targetDate || '')){
+    if(!a.targetDateHistory) a.targetDateHistory = [];
+    a.targetDateHistory.push({ from: a.targetDate || null, to: newAnTargetDate, changedBy: state.identity.name, changedAt: todayStr() });
+  }
+  a.targetDate = newAnTargetDate;
   a.linkedSampleIds = samplesSelect ? Array.from(samplesSelect.selectedOptions).map(el=>el.value) : (a.linkedSampleIds||[]);
   a.linkedFabricationIds = fabSelect ? Array.from(fabSelect.selectedOptions).map(el=>el.value) : (a.linkedFabricationIds||[]);
   a.linkedPaperIds = papersSelect ? Array.from(papersSelect.selectedOptions).map(el=>el.value) : (a.linkedPaperIds||[]);
@@ -4511,6 +4547,14 @@ async function deleteAnalysis(id){
   renderView();
 }
 
+/* ============================ PAPERS ============================ */
+function stageStampClass(stage){
+  if(stage==='Published') return 'good';
+  if(stage==='Accepted') return 'good';
+  if(stage==='Revisions Requested') return 'warn';
+  if(stage==='Under Review' || stage==='Submitted') return 'neutral';
+  return 'neutral';
+}
 function viewPapers(){
   const fullList = scopedList(state.papers);
   let list = fullList.slice().sort((a,b)=> (b.lastUpdate||'').localeCompare(a.lastUpdate||''));
@@ -4548,6 +4592,7 @@ function paperCard(p, i, total){
   const locked = p.stage === 'Published' && isOwner;
   const canEdit = canManage || (isOwner && !locked);
   const hasPending = !!p.pendingStage;
+  const hasPendingDate = !!p.pendingTargetDate;
   const refLinks = p.referenceLinks || [];
   const overdue = p.targetDate && p.stage!=='Published' && p.targetDate < todayStr();
   return `
@@ -4561,9 +4606,22 @@ function paperCard(p, i, total){
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
           <span class="stamp ${stageStampClass(p.stage)}">${escapeHtml(p.stage)}</span>
           ${hasPending ? `<span class="stamp warn">Proposed: ${escapeHtml(p.pendingStage)}</span>` : ''}
+          ${hasPendingDate ? `<span class="stamp warn">Date change proposed</span>` : ''}
           ${overdue ? `<span class="stamp bad">Overdue</span>` : ''}
         </div>
       </div>
+      ${hasPendingDate ? `
+        <div class="comment-box">
+          <span class="lbl">Requested target date change</span>
+          <div class="entry-meta" style="margin-top:2px;">${p.targetDate ? fmtDate(p.targetDate) : 'Not set'} → <b>${fmtDate(p.pendingTargetDate)}</b></div>
+          ${canManage ? `
+            <div class="entry-actions" style="margin-top:8px;">
+              <button class="small-btn" onclick="approvePendingTargetDate('${p.id}')">Approve date</button>
+              <button class="small-btn danger" onclick="rejectPendingTargetDate('${p.id}')">Reject date</button>
+            </div>
+          ` : `<div class="entry-meta" style="margin-top:6px;">Waiting on your supervisor to approve this date change.</div>`}
+        </div>
+      ` : ''}
       ${p.notes ? `<div class="entry-block"><span class="lbl">Notes</span>${nl2br(p.notes)}</div>` : ''}
       ${p.manuscriptLink ? `<div class="entry-block" style="margin-top:8px;"><span class="lbl">Manuscript / draft</span><a href="${escapeHtml(p.manuscriptLink)}" target="_blank" rel="noopener">Open draft ↗</a></div>` : ''}
       ${(()=>{
@@ -4577,6 +4635,16 @@ function paperCard(p, i, total){
           </div>
         ` : '';
       })()}
+      ${(p.targetDateHistory && p.targetDateHistory.length>0) ? `
+        <div class="entry-block" style="margin-top:8px;">
+          <span class="lbl">Target date history</span>
+          <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">
+            ${p.targetDateHistory.slice().reverse().map(h=>`
+              <div class="entry-meta">${fmtDate(h.changedAt)} — ${h.changedBy} changed target date ${h.from ? 'from '+fmtDate(h.from)+' ' : ''}to ${fmtDate(h.to)} <span class="stamp ${h.status==='approved'||h.status==='applied'?'good':h.status==='rejected'?'bad':'warn'}" style="padding:1px 6px; font-size:10px; margin-left:4px;">${h.status}</span></div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
       <div class="entry-block" style="margin-top:8px;">
         <span class="lbl">Reference links <span style="text-transform:none; font-weight:400;">(reading, citations, related work)</span></span>
         ${refLinks.length===0 ? `<span class="entry-meta">No reference links added yet.</span>` : `
@@ -4735,6 +4803,7 @@ function openEditPaperDetails(id){
     <input class="text-input" id="f_editJournal" value="${escapeHtml(p.targetJournal || '')}">
     <label class="field-label">Target date for next milestone (optional)</label>
     <input type="date" class="text-input" id="f_editPaperTargetDate" value="${p.targetDate || ''}">
+    ${!isSupervisorLike() && p.targetDate ? `<div class="view-sub" style="margin-top:4px;">Changing this date requires your supervisor's approval — it won't take effect until then.</div>` : ''}
     <label class="field-label">Manuscript / draft link</label>
     <input class="text-input" id="f_editManuscriptLink" value="${escapeHtml(p.manuscriptLink || '')}" placeholder="Google Docs / Overleaf link">
     <label class="field-label">Notes</label>
@@ -4744,12 +4813,54 @@ function openEditPaperDetails(id){
 async function saveEditPaperDetails(id){
   const p = state.papers.find(x=>x.id===id);
   p.targetJournal = document.getElementById('f_editJournal').value.trim();
-  p.targetDate = document.getElementById('f_editPaperTargetDate').value;
+  const newDate = document.getElementById('f_editPaperTargetDate').value;
   p.manuscriptLink = document.getElementById('f_editManuscriptLink').value.trim();
   p.notes = document.getElementById('f_editNotes').value.trim();
   p.lastUpdate = todayStr();
+  if(!p.targetDateHistory) p.targetDateHistory = [];
+
+  const dateChanged = newDate !== (p.targetDate || '');
+  if(dateChanged){
+    // Once a target date has been set, changing it needs supervisor approval —
+    // scholars can't quietly move a milestone date without a record of it.
+    // Setting it for the first time (or the supervisor changing it) applies
+    // immediately, but every change — approved or not — is logged.
+    const requiresApproval = !isSupervisorLike() && !!p.targetDate;
+    if(requiresApproval){
+      p.pendingTargetDate = newDate;
+      p.targetDateHistory.push({ from: p.targetDate || null, to: newDate, changedBy: state.identity.name, changedAt: todayStr(), status: 'pending' });
+      apiNotify('paperDateProposed', { studentId: p.studentId, title: p.title, from: p.targetDate ? fmtDate(p.targetDate) : 'not set', to: fmtDate(newDate) });
+    } else {
+      p.targetDateHistory.push({ from: p.targetDate || null, to: newDate, changedBy: state.identity.name, changedAt: todayStr(), status: 'applied' });
+      p.targetDate = newDate;
+    }
+  }
   await saveCollection('papers', state.papers);
   closeModal(); renderView();
+}
+async function approvePendingTargetDate(id){
+  const p = state.papers.find(x=>x.id===id);
+  if(!p.pendingTargetDate) return;
+  const entry = (p.targetDateHistory||[]).slice().reverse().find(h=>h.to===p.pendingTargetDate && h.status==='pending');
+  if(entry) entry.status = 'approved';
+  p.targetDate = p.pendingTargetDate;
+  p.pendingTargetDate = null;
+  p.lastUpdate = todayStr();
+  await saveCollection('papers', state.papers);
+  apiNotify('paperDateDecided', { studentId: p.studentId, title: p.title, date: fmtDate(p.targetDate), decision: 'approved' });
+  renderView();
+}
+async function rejectPendingTargetDate(id){
+  const p = state.papers.find(x=>x.id===id);
+  if(!p.pendingTargetDate) return;
+  const entry = (p.targetDateHistory||[]).slice().reverse().find(h=>h.to===p.pendingTargetDate && h.status==='pending');
+  if(entry) entry.status = 'rejected';
+  const rejectedDate = p.pendingTargetDate;
+  p.pendingTargetDate = null;
+  p.lastUpdate = todayStr();
+  await saveCollection('papers', state.papers);
+  apiNotify('paperDateDecided', { studentId: p.studentId, title: p.title, date: fmtDate(rejectedDate), decision: 'rejected' });
+  renderView();
 }
 function openAddReferenceLinkModal(paperId){
   showModal('Add reference link', `
