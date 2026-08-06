@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Research Group Management System</title>
+<title>Research Group Management System — Energy Devices and Materials Group</title>
 <meta name="description" content="Weekly progress, characterization tracking, and paper pipeline management for research groups.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -81,7 +81,8 @@
   .login-hero:after{ content:""; position:absolute; width:220px; height:220px; border-radius:50%; background:rgba(255,255,255,0.04); bottom:-90px; left:-70px; }
   .login-hero-illustration{ position:absolute; right:-6px; bottom:14px; display:flex; flex-direction:column; align-items:flex-end; gap:8px; opacity:0.55; pointer-events:none; }
   .login-hero-mark{ width:44px; height:44px; border-radius:10px; background:#fff; color:var(--navy-dark); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; margin-bottom:24px; position:relative; z-index:1; }
-  .login-hero-title{ font-family:'Source Serif 4', serif; font-size:31px; font-weight:600; line-height:1.25; letter-spacing:-0.01em; margin-bottom:14px; position:relative; z-index:1; }
+  .login-hero-title{ font-family:'Source Serif 4', serif; font-size:31px; font-weight:600; line-height:1.25; letter-spacing:-0.01em; margin-bottom:0; position:relative; z-index:1; }
+  .login-hero-groupname{ font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,0.6); margin-bottom:22px; position:relative; z-index:1; }
   .login-hero-tag{ font-size:14px; line-height:1.65; color:rgba(255,255,255,0.72); max-width:360px; margin-bottom:28px; position:relative; z-index:1; }
   .login-hero-list{ list-style:none; padding:0; margin:0 0 32px; display:flex; flex-direction:column; gap:11px; position:relative; z-index:1; }
   .login-hero-list li{ font-size:13.5px; color:rgba(255,255,255,0.92); padding-left:24px; position:relative; }
@@ -133,7 +134,8 @@
   }
   .brand{ display:flex; align-items:center; gap:11px; }
   .brand-mark{ width:30px; height:30px; border-radius:7px; background:#fff; color:var(--navy-dark); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; }
-  .brand-name{ font-family:'Source Serif 4', serif; font-weight:600; font-size:17px; letter-spacing:-0.005em; color:#fff; }
+  .brand-name{ font-family:'Source Serif 4', serif; font-weight:600; font-size:17px; letter-spacing:-0.005em; color:#fff; line-height:1.2; }
+  .brand-subtitle{ font-size:11px; font-weight:500; letter-spacing:.03em; color:rgba(255,255,255,0.55); margin-top:1px; }
   .identity-pill{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:flex-end; }
   .identity-badge{ font-size:13.5px; padding:6px 13px; border-radius:20px; background:rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(255,255,255,0.14); }
   .identity-badge b{ font-weight:600; }
@@ -362,7 +364,10 @@
   <div class="topbar">
     <div class="brand">
       <div class="brand-mark">RG</div>
-      <div class="brand-name">Research Group Management System</div>
+      <div>
+        <div class="brand-name">Research Group Management System</div>
+        <div class="brand-subtitle">Energy Devices and Materials Group</div>
+      </div>
       <span style="font-size:10.5px; color:rgba(255,255,255,0.45); font-weight:600; letter-spacing:.04em; border:1px solid rgba(255,255,255,0.2); border-radius:4px; padding:1px 6px;">v1.0</span>
     </div>
     <div class="identity-pill">
@@ -620,6 +625,7 @@ function loginShell(cardHtml){
     <div class="login-hero">
       <div class="login-hero-mark">RG</div>
       <div class="login-hero-title">Research Group<br>Management System</div>
+      <div class="login-hero-groupname">Energy Devices and Materials Group</div>
       <div class="login-hero-tag">A shared, live workspace for weekly progress, characterization tracking, and the paper pipeline — built for supervisors, mentors, and research scholars.</div>
       <ul class="login-hero-list">
         <li>Weekly progress and Review</li>
@@ -1258,7 +1264,7 @@ function pendingQueue(){
   scopedList(state.meetings).filter(m=>m.status==='proposed').forEach(m=>
     items.push({ type:'meeting', id:m.id, studentId:m.studentId, title:m.title, date:m.plannedDate, category:'Meetings', color:'var(--stat-indigo)' }));
   scopedList(state.fabricationItems).filter(it=>it.approvalStatus==='pending').forEach(it=>
-    items.push({ type:'fabrication', id:it.id, studentId:it.studentId, title:it.itemName, date:it.startDate, category:'Lab Work', color:'var(--stat-teal)' }));
+    items.push({ type:'fabrication', id:it.id, studentId:it.studentId, title:fabricationLabel(it), date:it.startDate, category:'Lab Work', color:'var(--stat-teal)' }));
   return items.sort((a,b)=> (a.date||'').localeCompare(b.date||''));
 }
 function changesRequestedQueue(){
@@ -1268,7 +1274,7 @@ function changesRequestedQueue(){
   scopedList(state.samples).filter(s=>s.approvalStatus==='changes_requested').forEach(s=>
     items.push({ type:'sample', id:s.id, studentId:s.studentId, title:s.sampleName, date:s.submittedDate, category:'Characterization', color:'var(--stat-cyan)', note:s.supervisorNote }));
   scopedList(state.fabricationItems).filter(it=>it.approvalStatus==='changes_requested').forEach(it=>
-    items.push({ type:'fabrication', id:it.id, studentId:it.studentId, title:it.itemName, date:it.startDate, category:'Lab Work', color:'var(--stat-teal)', note:it.supervisorNote }));
+    items.push({ type:'fabrication', id:it.id, studentId:it.studentId, title:fabricationLabel(it), date:it.startDate, category:'Lab Work', color:'var(--stat-teal)', note:it.supervisorNote }));
   scopedList(state.proposals).filter(pr=>pr.status==='changes_requested').forEach(pr=>
     items.push({ type:'proposal', id:pr.id, studentId:pr.studentId, title:pr.title, date:pr.lastUpdate, category:'Work Plan (Proposal)', color:'var(--stat-indigo)', note:pr.supervisorNote }));
   scopedList(state.thesisPlans).filter(tp=>tp.status==='changes_requested').forEach(tp=>
@@ -1358,7 +1364,7 @@ function thisWeekItems(){
   scopedList(state.fabricationItems).filter(it=> it.stage!=='completed' && it.stage!=='on_hold').forEach(it=>{
     const stg = FABRICATION_STAGES[it.stage] || FABRICATION_STAGES.prep;
     items.push({ type:'fabrication', id:it.id, studentId:it.studentId, category:'Lab Work · '+stg.label, color:'var(--stat-teal)',
-      title: 'Sample Code: ' + it.itemName });
+      title: fabricationLabel(it) });
   });
 
   visibleEvents().filter(e=> e.date>=monday && e.date<=sunday).forEach(e=>{
@@ -3409,6 +3415,10 @@ async function deleteCourse(id){
 }
 
 /* ============================ SAMPLE PREP & DEVICE FABRICATION ============================ */
+function fabricationLabel(it){
+  if(!it) return '';
+  return it.title ? `${it.title} (${it.itemName})` : it.itemName; // older records may not have a name yet, just show the code
+}
 function fabricationApprovalMap(){
   return {
     pending: { label:'Pending Approval', cls:'warn' },
@@ -3452,7 +3462,8 @@ function fabricationCard(it, i, total){
       <div class="entry-top">
         <div>
           <div class="entry-idx">FB${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(it.studentId))}</div>
-          <div class="entry-title">Sample Code: ${escapeHtml(it.itemName)}</div>
+          <div class="entry-title">${it.title ? escapeHtml(it.title) : 'Sample Code: '+escapeHtml(it.itemName)}</div>
+          ${it.title ? `<div class="entry-meta">Sample Code: ${escapeHtml(it.itemName)}</div>` : ''}
           <div class="entry-meta">
             ${linkedPaperIds.length>0 ? `Supports paper(s): ${linkedPaperIds.map(pid=>{
               const p = state.papers.find(x=>x.id===pid);
@@ -3504,6 +3515,8 @@ function fabricationFormFields(it){
   const myPapers = state.papers.filter(p=>p.studentId===studentIdForPapers);
   const linkedPaperIds = it.linkedPaperIds || (it.linkedPaperId ? [it.linkedPaperId] : []);
   return `
+    <label class="field-label">Lab Work name</label>
+    <input class="text-input" id="f_fabTitle" value="${escapeHtml(it.title||'')}" placeholder="e.g. Cathode electrode synthesis / Coin cell fabrication for Paper 2">
     <label class="field-label">Sample Code</label>
     <input class="text-input" id="f_fabName" value="${escapeHtml(it.itemName||'')}" placeholder="e.g. S-2026-014, or a short code you use in the lab">
     <label class="field-label">Stage</label>
@@ -3539,14 +3552,15 @@ function openFabricationModal(){
   showModal('Lab Work', fabricationFormFields(), submitFabrication);
 }
 async function submitFabrication(){
+  const title = document.getElementById('f_fabTitle').value.trim();
   const itemName = document.getElementById('f_fabName').value.trim();
   const startDate = document.getElementById('f_fabStart').value;
-  if(!itemName || !startDate){ alert('Please add a sample code and start date.'); return; }
+  if(!title || !itemName || !startDate){ alert('Please add a Lab Work name, sample code, and start date.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
   if(!studentId){ alert('Add a research scholar first.'); return; }
   const papersSelect = document.getElementById('f_fabPaper');
   state.fabricationItems.push({
-    id: uid('fab'), studentId, itemName,
+    id: uid('fab'), studentId, title, itemName,
     stage: document.getElementById('f_fabStage').value,
     linkedPaperIds: papersSelect ? Array.from(papersSelect.selectedOptions).map(el=>el.value) : [],
     startDate, targetDate: document.getElementById('f_fabTargetDate').value,
@@ -3557,7 +3571,7 @@ async function submitFabrication(){
   });
   await saveCollection('fabrication-items', state.fabricationItems);
   if(!isSupervisorLike()){
-    apiNotify('fabricationSubmitted', { studentId, itemName });
+    apiNotify('fabricationSubmitted', { studentId, itemName: `${title} (${itemName})` });
   }
   closeModal(); renderView();
 }
@@ -3567,10 +3581,12 @@ function openEditFabricationModal(id){
 }
 async function submitEditFabrication(id){
   const it = state.fabricationItems.find(x=>x.id===id);
+  const title = document.getElementById('f_fabTitle').value.trim();
   const itemName = document.getElementById('f_fabName').value.trim();
   const startDate = document.getElementById('f_fabStart').value;
-  if(!itemName || !startDate){ alert('Please add a sample code and start date.'); return; }
+  if(!title || !itemName || !startDate){ alert('Please add a Lab Work name, sample code, and start date.'); return; }
   const papersSelect = document.getElementById('f_fabPaper');
+  it.title = title;
   it.itemName = itemName;
   it.stage = document.getElementById('f_fabStage').value;
   it.linkedPaperIds = papersSelect ? Array.from(papersSelect.selectedOptions).map(el=>el.value) : (it.linkedPaperIds || []);
@@ -3583,7 +3599,7 @@ async function submitEditFabrication(id){
   if(!isSupervisorLike()){
     it.approvalStatus = 'pending';
     await saveCollection('fabrication-items', state.fabricationItems);
-    apiNotify('fabricationSubmitted', { studentId: it.studentId, itemName: it.itemName });
+    apiNotify('fabricationSubmitted', { studentId: it.studentId, itemName: fabricationLabel(it) });
   } else {
     await saveCollection('fabrication-items', state.fabricationItems);
   }
@@ -3638,7 +3654,7 @@ async function reviewFabrication(id, decision){
   it.supervisorNote = val;
   it.approvalStatus = decision;
   await saveCollection('fabrication-items', state.fabricationItems);
-  apiNotify('fabricationReviewed', { studentId: it.studentId, itemName: it.itemName, decision, note: val });
+  apiNotify('fabricationReviewed', { studentId: it.studentId, itemName: fabricationLabel(it), decision, note: val });
   renderView();
 }
 async function deleteFabrication(id){
@@ -3736,7 +3752,7 @@ function weeklyCard(w, i, total){
           <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
             ${w.linkedFabricationIds.map(fid=>{
               const it = state.fabricationItems.find(x=>x.id===fid);
-              return it ? `<span class="task-link stamp neutral" onclick="goToItem('fabrication','${it.id}','${w.studentId}')">${escapeHtml(it.itemName)}</span>` : '';
+              return it ? `<span class="task-link stamp neutral" onclick="goToItem('fabrication','${it.id}','${w.studentId}')">${escapeHtml(fabricationLabel(it))}</span>` : '';
             }).join('')}
           </div>
         </div>
@@ -3791,7 +3807,7 @@ function openWeeklyModal(){
     ${myFabItems.length>0 ? `
       <label class="field-label">Which sample code(s) does this week involve? (optional)</label>
       <select class="text-input" id="f_weeklyFab" multiple size="${Math.min(4, Math.max(2, myFabItems.length))}">
-        ${myFabItems.map(it=>`<option value="${it.id}">${escapeHtml(it.itemName)}</option>`).join('')}
+        ${myFabItems.map(it=>`<option value="${it.id}">${escapeHtml(fabricationLabel(it))}</option>`).join('')}
       </select>
     ` : ''}
   `, submitWeekly);
@@ -3884,7 +3900,7 @@ function openEditWeeklyModal(id){
     ${myFabItems.length>0 ? `
       <label class="field-label">Which sample code(s) does this week involve? (optional)</label>
       <select class="text-input" id="f_editWeeklyFab" multiple size="${Math.min(4, Math.max(2, myFabItems.length))}">
-        ${myFabItems.map(it=>`<option value="${it.id}" ${linkedFab.includes(it.id)?'selected':''}>${escapeHtml(it.itemName)}</option>`).join('')}
+        ${myFabItems.map(it=>`<option value="${it.id}" ${linkedFab.includes(it.id)?'selected':''}>${escapeHtml(fabricationLabel(it))}</option>`).join('')}
       </select>
     ` : ''}
     ${!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''}
@@ -3976,7 +3992,7 @@ function sampleCard(s, i, total){
           <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
             ${s.linkedFabricationIds.map(fid=>{
               const it = state.fabricationItems.find(x=>x.id===fid);
-              return it ? `<span class="task-link stamp neutral" onclick="goToItem('fabrication','${it.id}','${s.studentId}')">${escapeHtml(it.itemName)}</span>` : '';
+              return it ? `<span class="task-link stamp neutral" onclick="goToItem('fabrication','${it.id}','${s.studentId}')">${escapeHtml(fabricationLabel(it))}</span>` : '';
             }).join('')}
           </div>
         </div>
@@ -4026,7 +4042,7 @@ function openSampleModal(){
     ${myFabItems.length>0 ? `
       <label class="field-label">Sample code(s) being characterized (optional)</label>
       <select class="text-input" id="f_sampleFab" multiple size="${Math.min(5, Math.max(3, myFabItems.length))}">
-        ${myFabItems.map(it=>`<option value="${it.id}">${escapeHtml(it.itemName)}</option>`).join('')}
+        ${myFabItems.map(it=>`<option value="${it.id}">${escapeHtml(fabricationLabel(it))}</option>`).join('')}
       </select>
       <div class="view-sub" style="margin-top:4px;">Hold Ctrl (or ⌘ on Mac) to select more than one.</div>
     ` : ''}
@@ -4133,7 +4149,7 @@ function openEditSampleModal(id){
     ${myFabItems.length>0 ? `
       <label class="field-label">Sample code(s) being characterized (optional)</label>
       <select class="text-input" id="f_editSampleFab" multiple size="${Math.min(5, Math.max(3, myFabItems.length))}">
-        ${myFabItems.map(it=>`<option value="${it.id}" ${linked.includes(it.id)?'selected':''}>${escapeHtml(it.itemName)}</option>`).join('')}
+        ${myFabItems.map(it=>`<option value="${it.id}" ${linked.includes(it.id)?'selected':''}>${escapeHtml(fabricationLabel(it))}</option>`).join('')}
       </select>
       <div class="view-sub" style="margin-top:4px;">Hold Ctrl (or ⌘ on Mac) to select more than one.</div>
     ` : ''}
@@ -4234,7 +4250,7 @@ function paperCard(p, i, total){
           <div class="entry-block" style="margin-top:8px;">
             <span class="lbl">Supporting sample code(s)</span>
             <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
-              ${supportingSamples.map(it=>`<span class="task-link stamp neutral" onclick="goToItem('fabrication','${it.id}','${p.studentId}')">${escapeHtml(it.itemName)}</span>`).join('')}
+              ${supportingSamples.map(it=>`<span class="task-link stamp neutral" onclick="goToItem('fabrication','${it.id}','${p.studentId}')">${escapeHtml(fabricationLabel(it))}</span>`).join('')}
             </div>
           </div>
         ` : '';
@@ -5059,7 +5075,7 @@ function renderPaperReportHtml(data){
         ${data.fabrication.length===0 ? `<p class="report-empty">No Lab Work items linked to this paper.</p>` : `
           <table class="report-table">
             <thead><tr><th>Sample Code</th><th>Stage</th><th>Started</th><th>Target completion</th></tr></thead>
-            <tbody>${data.fabrication.map(it=>`<tr><td>${escapeHtml(it.itemName)}</td><td>${(FABRICATION_STAGES[it.stage]||{label:it.stage}).label}</td><td>${it.startDate?fmtDate(it.startDate):'—'}</td><td>${it.targetDate?fmtDate(it.targetDate):'—'}</td></tr>`).join('')}</tbody>
+            <tbody>${data.fabrication.map(it=>`<tr><td>${escapeHtml(fabricationLabel(it))}</td><td>${(FABRICATION_STAGES[it.stage]||{label:it.stage}).label}</td><td>${it.startDate?fmtDate(it.startDate):'—'}</td><td>${it.targetDate?fmtDate(it.targetDate):'—'}</td></tr>`).join('')}</tbody>
           </table>
         `}
 
@@ -5196,7 +5212,7 @@ function downloadPaperReportText(data){
 
   out += `\n-- Lab Work Linked to This Paper --\n`;
   if(data.fabrication.length===0) out += `(none linked)\n`;
-  data.fabrication.forEach(it=>{ out += `${it.itemName} | Stage: ${(FABRICATION_STAGES[it.stage]||{label:it.stage}).label} | Started: ${it.startDate?fmtDate(it.startDate):'—'} | Target: ${it.targetDate?fmtDate(it.targetDate):'—'}\n`; });
+  data.fabrication.forEach(it=>{ out += `${fabricationLabel(it)} | Stage: ${(FABRICATION_STAGES[it.stage]||{label:it.stage}).label} | Started: ${it.startDate?fmtDate(it.startDate):'—'} | Target: ${it.targetDate?fmtDate(it.targetDate):'—'}\n`; });
 
   out += `\n-- Thesis Chapters Linked to This Paper --\n`;
   if(data.thesisLinks.length===0) out += `(none linked)\n`;
