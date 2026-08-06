@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Research Group Management System - Energy Devices and Materials Group, Christ University, Bengaluru</title>
+<title>Research Group Management System</title>
 <meta name="description" content="Weekly progress, characterization tracking, and paper pipeline management for research groups.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -309,8 +309,8 @@
   .empty-state .em-sub{ font-size:13.5px; max-width:360px; margin:0 auto; }
 
   /* ---------- Modal ---------- */
-  .modal-overlay{ position:fixed; inset:0; background:rgba(15,20,32,0.5); display:flex; align-items:center; justify-content:center; padding:20px; z-index:100; }
-  .modal-box{ background:var(--surface); border-radius:10px; width:100%; max-width:520px; max-height:88vh; overflow-y:auto; box-shadow:0 24px 60px rgba(0,0,0,0.28); }
+  .modal-overlay{ position:fixed; inset:0; background:rgba(15,20,32,0.5); display:flex; align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto; z-index:100; }
+  .modal-box{ background:var(--surface); border-radius:10px; width:100%; max-width:520px; box-shadow:0 24px 60px rgba(0,0,0,0.28); margin:auto; }
   .modal-head{ padding:20px 24px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
   .modal-head h3{ font-size:16px; font-weight:600; }
   .modal-close{ background:none; border:none; font-size:20px; color:var(--ink-faint); line-height:1; padding:4px; }
@@ -345,7 +345,7 @@
 
   @media (max-width: 760px){
     .layout{ flex-direction:column; }
-    .sidebar{ position:static; width:100%; height:auto; display:flex; gap:6px; overflow-x:auto; padding:12px 16px; border-right:none; border-bottom:1px solid var(--border); }
+    .sidebar{ position:static; width:100%; height:auto; display:flex; flex-wrap:wrap; gap:6px; padding:12px 16px; border-right:none; border-bottom:1px solid var(--border); }
     .nav-item{ white-space:nowrap; }
     main#main{ padding:20px 16px 48px; }
     .entry-grid{ grid-template-columns:1fr; }
@@ -1339,6 +1339,35 @@ function viewApprovals(){
 }
 
 /* ============================ OVERVIEW ============================ */
+function thisWeekItems(){
+  const monday = getMondayStr();
+  const sunday = shiftDate(monday, 6);
+  const items = [];
+
+  scopedList(state.weekly).filter(w=>w.weekStart===monday).forEach(w=>{
+    const preview = (w.workDone||'').slice(0,70) + ((w.workDone||'').length>70 ? '…' : '');
+    items.push({ type:'weekly', id:w.id, studentId:w.studentId, category:'Weekly Plan', color:'var(--stat-blue)',
+      title: preview || 'Weekly plan logged' });
+  });
+
+  scopedList(state.meetings).filter(m=> m.plannedDate>=monday && m.plannedDate<=sunday && m.status!=='cancelled').forEach(m=>{
+    items.push({ type:'meeting', id:m.id, studentId:m.studentId, category:'Meeting · '+fmtDate(m.plannedDate), color:'var(--stat-indigo)',
+      title: m.title });
+  });
+
+  scopedList(state.fabricationItems).filter(it=> it.stage!=='completed' && it.stage!=='on_hold').forEach(it=>{
+    const stg = FABRICATION_STAGES[it.stage] || FABRICATION_STAGES.prep;
+    items.push({ type:'fabrication', id:it.id, studentId:it.studentId, category:'Lab Work · '+stg.label, color:'var(--stat-teal)',
+      title: 'Sample Code: ' + it.itemName });
+  });
+
+  visibleEvents().filter(e=> e.date>=monday && e.date<=sunday).forEach(e=>{
+    items.push({ type:'event', id:e.id, studentId:e.assignedStudentId, category:'Event · '+e.type, color:'var(--stat-purple)',
+      title: e.title });
+  });
+
+  return items;
+}
 function viewOverview(){
   const weekly = scopedList(state.weekly);
   const samples = scopedList(state.samples);
@@ -1350,6 +1379,7 @@ function viewOverview(){
   const pendingPapers = papers.filter(p=>!!p.pendingStage).length;
   const pendingMeetings = meetings.filter(m=>m.status==='proposed').length;
   const totalPendingApproval = pendingQueue().length;
+  const changesRequestedCount = changesRequestedQueue().length;
   const awaitingSamples = samples.filter(s=>!s.resultsReceivedDate).length;
   const overdueSamples = samples.filter(s=> !s.resultsReceivedDate && s.expectedDate && s.expectedDate < todayStr()).length;
   const activePapers = papers.filter(p=>p.stage!=='Published').length;
@@ -1407,7 +1437,7 @@ function viewOverview(){
     <div class="stat-grid compact">
       ${isSupervisorLike()
         ? `<div class="stat-card compact accent-blue ${totalPendingApproval>0?'warn':'ok'}" style="cursor:pointer;" onclick="goView('approvals')"><div class="stat-num">${totalPendingApproval}</div><div class="stat-label"><span class="dot"></span>Awaiting approval</div></div>`
-        : `<div class="stat-card compact ${changesRequestedQueue().length>0?'warn':'ok'}" style="cursor:pointer;" onclick="goView('changesRequested')"><div class="stat-num">${changesRequestedQueue().length}</div><div class="stat-label"><span class="dot" style="background:var(--danger);"></span>Changes requested</div></div>`}
+        : `<div class="stat-card compact ${changesRequestedCount>0?'warn':'ok'}" style="cursor:pointer;" onclick="goView('changesRequested')"><div class="stat-num">${changesRequestedCount}</div><div class="stat-label"><span class="dot" style="background:var(--danger);"></span>Changes requested</div></div>`}
       <div class="stat-card compact accent-teal ${overdueSamples>0?'warn':'ok'}"><div class="stat-num">${awaitingSamples}</div><div class="stat-label"><span class="dot"></span>Awaiting results</div></div>
       <div class="stat-card compact ${overdueSamples>0?'warn':''}"><div class="stat-num">${overdueSamples}</div><div class="stat-label"><span class="dot" style="background:var(--danger);"></span>Overdue</div></div>
       <div class="stat-card compact accent-purple"><div class="stat-num">${activePapers}</div><div class="stat-label"><span class="dot"></span>Papers active</div></div>
@@ -1416,6 +1446,27 @@ function viewOverview(){
     </div>
 
     ${isSupervisorLike() ? studentSummaryTable() : ''}
+
+    ${(()=>{
+      const weekStart = getMondayStr();
+      const weekEnd = shiftDate(weekStart, 6);
+      const weekItems = thisWeekItems();
+      return `
+        <h3 class="panel-title"><span class="dot" style="background:var(--stat-blue);"></span>This week — ${fmtDate(weekStart)} to ${fmtDate(weekEnd)}</h3>
+        <div class="entry-card compact-card" style="margin-bottom:24px;">
+          ${weekItems.length===0 ? `<div class="empty-state"><div class="em-title">Nothing on the board this week</div><div class="em-sub">${state.identity.role==='student' ? "Log this week's plan to see it here." : "Once scholars log this week's work, it'll show up here."}</div></div>` :
+            weekItems.map((it,idx)=>`
+              <div style="display:flex; align-items:center; gap:12px; padding:11px 4px; ${idx>0?'border-top:1px solid var(--border);':''}">
+                <span style="width:7px; height:7px; border-radius:50%; background:${it.color}; flex-shrink:0;"></span>
+                <div style="flex:1; min-width:0;">
+                  <span class="task-link" style="font-weight:600; font-size:13.5px;" onclick="goToItem('${it.type}','${it.id}','${it.studentId||''}')">${escapeHtml(it.title)}</span>
+                  <div class="entry-meta">${escapeHtml(it.category)}${isSupervisorLike() ? ' · '+escapeHtml(it.studentId ? studentName(it.studentId) : 'All research scholars') : ''}</div>
+                </div>
+              </div>
+            `).join('')}
+        </div>
+      `;
+    })()}
 
     <div class="two-col-panels">
       <div>
@@ -2278,7 +2329,7 @@ function viewProposal(){
         <div class="view-title">Work Plan (Proposal)</div>
         <div class="view-sub">Objectives, goals, and methodology for the research — approved by your supervisor.</div>
       </div>
-      ${state.identity.role==='student' ? `<button class="action-btn" onclick="openProposalModal()">+ New proposal / work plan</button>` : ''}
+      ${state.identity.role==='student' ? `<button class="action-btn" onclick="openProposalModal()">+ Proposal / Work Plan</button>` : ''}
     </div>
     ${supervisorFilterBar()}
     ${sectionPieAndFilter(fullList, 'status', state.filterProposalStatus, 'setFilterProposalStatus')}
@@ -2579,7 +2630,7 @@ function viewThesis(){
         <div class="view-title">Thesis Plan</div>
         <div class="view-sub">Planned papers, chapters, and how it all maps to progress on the work plan.${alreadyHasOne ? ' Only one thesis plan is allowed per research scholar.' : ''}</div>
       </div>
-      ${(state.identity.role==='student' && !alreadyHasOne) ? `<button class="action-btn" onclick="openThesisModal()">+ New thesis plan</button>` : ''}
+      ${(state.identity.role==='student' && !alreadyHasOne) ? `<button class="action-btn" onclick="openThesisModal()">+ Thesis Plan</button>` : ''}
     </div>
     ${supervisorFilterBar()}
     ${sectionPieAndFilter(fullList, 'status', state.filterThesisStatus, 'setFilterThesisStatus')}
@@ -2616,7 +2667,7 @@ function thesisCard(tp, i, total){
       ${progressBarRow('Work plan goals complete', prog.goalsDone, prog.goalsTotal, prog.goalPct, 'var(--stat-blue)')}
 
       <div class="entry-block" style="margin-top:6px;">
-        <span class="lbl">Chapters</span>
+        <span class="lbl">Chapter Plan</span>
         ${chapters.length===0 ? `<span class="entry-meta">No chapters added yet.</span>` : `
           <div style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">
             ${chapters.map(c=>{
@@ -3004,7 +3055,7 @@ function viewFinancial(){
         <div class="view-title">Proposals</div>
         <div class="view-sub">Visiting positions, travel grants, fellowships, and scholarship applications.</div>
       </div>
-      <button class="action-btn" onclick="openFinancialModal()">+ Log application</button>
+      <button class="action-btn" onclick="openFinancialModal()">+ Log Proposals</button>
     </div>
     ${supervisorFilterBar()}
     ${sectionPieAndFilter(fullList, 'approvalStatus', state.filterFinancialStatus, 'setFilterFinancialStatus')}
@@ -3199,7 +3250,7 @@ function viewLearning(){
         <div class="view-title">Learning &amp; Courses</div>
         <div class="view-sub">Courses, certifications, workshops, and training taken alongside the research.${fullList.length>0 ? ` ${completed} of ${fullList.length} completed.` : ''}</div>
       </div>
-      <button class="action-btn" onclick="openCourseModal()">+ Log course</button>
+      <button class="action-btn" onclick="openCourseModal()">+ Log Learning & Courses</button>
     </div>
     ${supervisorFilterBar()}
     ${sectionPieAndFilter(fullList, 'approvalStatus', state.filterCourseStatus, 'setFilterCourseStatus')}
@@ -3392,7 +3443,7 @@ function fabricationCard(it, i, total){
   const canEdit = canManage || (isOwner && !locked);
   const st = fabricationApprovalMap()[it.approvalStatus] || fabricationApprovalMap().pending;
   const stg = FABRICATION_STAGES[it.stage] || FABRICATION_STAGES.prep;
-  const linkedPaper = it.linkedPaperId ? state.papers.find(p=>p.id===it.linkedPaperId) : null;
+  const linkedPaperIds = it.linkedPaperIds || (it.linkedPaperId ? [it.linkedPaperId] : []);
   const overdue = it.targetDate && it.stage!=='completed' && it.targetDate < todayStr();
   const steps = it.roadmap || [];
   const stepsDone = steps.filter(s=>s.done).length;
@@ -3401,9 +3452,12 @@ function fabricationCard(it, i, total){
       <div class="entry-top">
         <div>
           <div class="entry-idx">FB${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(it.studentId))}</div>
-          <div class="entry-title">${escapeHtml(it.itemName)}</div>
+          <div class="entry-title">Sample Code: ${escapeHtml(it.itemName)}</div>
           <div class="entry-meta">
-            ${linkedPaper ? `Supports paper: <span class="task-link" onclick="goToItem('paper','${linkedPaper.id}','${it.studentId}')">${escapeHtml(linkedPaper.title)}</span> (${escapeHtml(linkedPaper.stage)})` : 'Not yet linked to a paper'}
+            ${linkedPaperIds.length>0 ? `Supports paper(s): ${linkedPaperIds.map(pid=>{
+              const p = state.papers.find(x=>x.id===pid);
+              return p ? `<span class="task-link" onclick="goToItem('paper','${p.id}','${it.studentId}')">${escapeHtml(p.title)}</span>` : '';
+            }).join(', ')}` : 'Not yet linked to a paper'}
           </div>
         </div>
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
@@ -3446,11 +3500,12 @@ function fabricationCard(it, i, total){
 }
 function fabricationFormFields(it){
   it = it || {};
-  const studentIdForPapers = it.studentId || (state.identity.role==='student' ? state.identity.id : state.filterStudentId);
+  const studentIdForPapers = it.studentId || (state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id));
   const myPapers = state.papers.filter(p=>p.studentId===studentIdForPapers);
+  const linkedPaperIds = it.linkedPaperIds || (it.linkedPaperId ? [it.linkedPaperId] : []);
   return `
-    <label class="field-label">Lab Work name</label>
-    <input class="text-input" id="f_fabName" value="${escapeHtml(it.itemName||'')}" placeholder="e.g. Cathode electrode batch 5 / Coin cell device A">
+    <label class="field-label">Sample Code</label>
+    <input class="text-input" id="f_fabName" value="${escapeHtml(it.itemName||'')}" placeholder="e.g. S-2026-014, or a short code you use in the lab">
     <label class="field-label">Stage</label>
     <select class="text-input" id="f_fabStage">
       <option value="prep" ${it.stage==='prep'?'selected':''}>Sample Preparation</option>
@@ -3459,11 +3514,13 @@ function fabricationFormFields(it){
       <option value="completed" ${it.stage==='completed'?'selected':''}>Completed</option>
       <option value="on_hold" ${it.stage==='on_hold'?'selected':''}>On Hold</option>
     </select>
-    <label class="field-label">Link to a paper (optional)</label>
-    <select class="text-input" id="f_fabPaper">
-      <option value="">No paper linked</option>
-      ${myPapers.map(p=>`<option value="${p.id}" ${it.linkedPaperId===p.id?'selected':''}>${escapeHtml(p.title)} (${escapeHtml(p.stage)})</option>`).join('')}
-    </select>
+    ${myPapers.length>0 ? `
+      <label class="field-label">Link to paper(s) (optional)</label>
+      <select class="text-input" id="f_fabPaper" multiple size="${Math.min(5, Math.max(3, myPapers.length))}">
+        ${myPapers.map(p=>`<option value="${p.id}" ${linkedPaperIds.includes(p.id)?'selected':''}>${escapeHtml(p.title)} (${escapeHtml(p.stage)})</option>`).join('')}
+      </select>
+      <div class="view-sub" style="margin-top:4px;">Hold Ctrl (or ⌘ on Mac) to select more than one.</div>
+    ` : ''}
     <div class="two-col">
       <div><label class="field-label">Start date</label>
         <input type="date" class="text-input" id="f_fabStart" value="${it.startDate||todayStr()}">
@@ -3484,13 +3541,14 @@ function openFabricationModal(){
 async function submitFabrication(){
   const itemName = document.getElementById('f_fabName').value.trim();
   const startDate = document.getElementById('f_fabStart').value;
-  if(!itemName || !startDate){ alert('Please add a name and start date.'); return; }
+  if(!itemName || !startDate){ alert('Please add a sample code and start date.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
   if(!studentId){ alert('Add a research scholar first.'); return; }
+  const papersSelect = document.getElementById('f_fabPaper');
   state.fabricationItems.push({
     id: uid('fab'), studentId, itemName,
     stage: document.getElementById('f_fabStage').value,
-    linkedPaperId: document.getElementById('f_fabPaper').value || null,
+    linkedPaperIds: papersSelect ? Array.from(papersSelect.selectedOptions).map(el=>el.value) : [],
     startDate, targetDate: document.getElementById('f_fabTargetDate').value,
     link: document.getElementById('f_fabLink').value.trim(),
     notes: document.getElementById('f_fabNotes').value.trim(),
@@ -3511,10 +3569,12 @@ async function submitEditFabrication(id){
   const it = state.fabricationItems.find(x=>x.id===id);
   const itemName = document.getElementById('f_fabName').value.trim();
   const startDate = document.getElementById('f_fabStart').value;
-  if(!itemName || !startDate){ alert('Please add a name and start date.'); return; }
+  if(!itemName || !startDate){ alert('Please add a sample code and start date.'); return; }
+  const papersSelect = document.getElementById('f_fabPaper');
   it.itemName = itemName;
   it.stage = document.getElementById('f_fabStage').value;
-  it.linkedPaperId = document.getElementById('f_fabPaper').value || null;
+  it.linkedPaperIds = papersSelect ? Array.from(papersSelect.selectedOptions).map(el=>el.value) : (it.linkedPaperIds || []);
+  delete it.linkedPaperId;
   it.startDate = startDate;
   it.targetDate = document.getElementById('f_fabTargetDate').value;
   it.link = document.getElementById('f_fabLink').value.trim();
@@ -3670,6 +3730,17 @@ function weeklyCard(w, i, total){
           </div>
         </div>
       ` : ''}
+      ${(w.linkedFabricationIds && w.linkedFabricationIds.length>0) ? `
+        <div class="entry-block" style="margin-top:8px;">
+          <span class="lbl">Sample code(s) involved</span>
+          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+            ${w.linkedFabricationIds.map(fid=>{
+              const it = state.fabricationItems.find(x=>x.id===fid);
+              return it ? `<span class="task-link stamp neutral" onclick="goToItem('fabrication','${it.id}','${w.studentId}')">${escapeHtml(it.itemName)}</span>` : '';
+            }).join('')}
+          </div>
+        </div>
+      ` : ''}
       ${w.supervisorComment ? `
         <div class="comment-box"><span class="lbl">Supervisor feedback</span><div class="comment-existing">${nl2br(w.supervisorComment)}</div></div>
       ` : ''}
@@ -3693,6 +3764,7 @@ function openWeeklyModal(){
   const previous = mine.find(w=>w.weekStart < monday) || mine[0];
   const myPapers = state.papers.filter(p=>p.studentId===state.identity.id);
   const myApprovedProposals = state.proposals.filter(p=>p.studentId===state.identity.id && p.status==='approved');
+  const myFabItems = state.fabricationItems.filter(it=>it.studentId===state.identity.id);
   showModal('Weekly Plan', `
     ${previous && previous.planNext ? `<div class="comment-box" style="margin-bottom:14px;"><span class="lbl">You planned last time (week of ${fmtDate(previous.weekStart)})</span><div class="comment-existing">${nl2br(previous.planNext)}</div></div>` : ''}
     <label class="field-label">Week starting</label>
@@ -3716,6 +3788,12 @@ function openWeeklyModal(){
         ${myApprovedProposals.map(p=>`<option value="${p.id}">${escapeHtml(p.title)}</option>`).join('')}
       </select>
     ` : ''}
+    ${myFabItems.length>0 ? `
+      <label class="field-label">Which sample code(s) does this week involve? (optional)</label>
+      <select class="text-input" id="f_weeklyFab" multiple size="${Math.min(4, Math.max(2, myFabItems.length))}">
+        ${myFabItems.map(it=>`<option value="${it.id}">${escapeHtml(it.itemName)}</option>`).join('')}
+      </select>
+    ` : ''}
   `, submitWeekly);
 }
 function getMondayStr(){
@@ -3735,8 +3813,10 @@ async function submitWeekly(){
   const linkedPaperIds = papersSelect ? Array.from(papersSelect.selectedOptions).map(el=>el.value) : [];
   const proposalsSelect = document.getElementById('f_weeklyProposals');
   const linkedProposalIds = proposalsSelect ? Array.from(proposalsSelect.selectedOptions).map(el=>el.value) : [];
+  const fabSelect = document.getElementById('f_weeklyFab');
+  const linkedFabricationIds = fabSelect ? Array.from(fabSelect.selectedOptions).map(el=>el.value) : [];
   state.weekly.push({
-    id: uid('wk'), studentId: state.identity.id, weekStart, workDone, planNext, challenges, linkedPaperIds, linkedProposalIds,
+    id: uid('wk'), studentId: state.identity.id, weekStart, workDone, planNext, challenges, linkedPaperIds, linkedProposalIds, linkedFabricationIds,
     status:'pending', supervisorComment:''
   });
   await saveCollection('weekly-reports', state.weekly);
@@ -3777,6 +3857,8 @@ function openEditWeeklyModal(id){
   const linked = w.linkedPaperIds || [];
   const myApprovedProposals = state.proposals.filter(p=>p.studentId===w.studentId && p.status==='approved');
   const linkedProposals = w.linkedProposalIds || [];
+  const myFabItems = state.fabricationItems.filter(it=>it.studentId===w.studentId);
+  const linkedFab = w.linkedFabricationIds || [];
   showModal('Weekly Plan', `
     <label class="field-label">Week starting</label>
     <input type="date" id="f_editWeekStart" class="text-input" value="${w.weekStart}">
@@ -3799,6 +3881,12 @@ function openEditWeeklyModal(id){
         ${myApprovedProposals.map(p=>`<option value="${p.id}" ${linkedProposals.includes(p.id)?'selected':''}>${escapeHtml(p.title)}</option>`).join('')}
       </select>
     ` : ''}
+    ${myFabItems.length>0 ? `
+      <label class="field-label">Which sample code(s) does this week involve? (optional)</label>
+      <select class="text-input" id="f_editWeeklyFab" multiple size="${Math.min(4, Math.max(2, myFabItems.length))}">
+        ${myFabItems.map(it=>`<option value="${it.id}" ${linkedFab.includes(it.id)?'selected':''}>${escapeHtml(it.itemName)}</option>`).join('')}
+      </select>
+    ` : ''}
     ${!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''}
   `, ()=>submitEditWeekly(id));
 }
@@ -3817,6 +3905,8 @@ async function submitEditWeekly(id){
   w.linkedPaperIds = editPapersSelect ? Array.from(editPapersSelect.selectedOptions).map(el=>el.value) : (w.linkedPaperIds || []);
   const editProposalsSelect = document.getElementById('f_editWeeklyProposals');
   w.linkedProposalIds = editProposalsSelect ? Array.from(editProposalsSelect.selectedOptions).map(el=>el.value) : (w.linkedProposalIds || []);
+  const editFabSelect = document.getElementById('f_editWeeklyFab');
+  w.linkedFabricationIds = editFabSelect ? Array.from(editFabSelect.selectedOptions).map(el=>el.value) : (w.linkedFabricationIds || []);
   if(!isSupervisorLike()){
     w.status = 'pending';
     await saveCollection('weekly-reports', state.weekly);
@@ -3845,7 +3935,7 @@ function viewSamples(){
         <div class="view-title">Characterization</div>
         <div class="view-sub">CV, GCD, EIS, cycling, and other characterizations — track submissions, results, and data links.</div>
       </div>
-      <button class="action-btn" onclick="openSampleModal()">+ Log new sample</button>
+      <button class="action-btn" onclick="openSampleModal()">+ Log new characterization</button>
     </div>
     ${supervisorFilterBar()}
     ${sectionPieAndFilter(fullList, 'approvalStatus', state.filterSampleStatus, 'setFilterSampleStatus')}
@@ -3880,6 +3970,17 @@ function sampleCard(s, i, total){
           <span class="stamp ${ap.cls}">${ap.label}</span>
         </div>
       </div>
+      ${(s.linkedFabricationIds && s.linkedFabricationIds.length>0) ? `
+        <div class="entry-block" style="margin-top:2px;">
+          <span class="lbl">Sample code(s)</span>
+          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+            ${s.linkedFabricationIds.map(fid=>{
+              const it = state.fabricationItems.find(x=>x.id===fid);
+              return it ? `<span class="task-link stamp neutral" onclick="goToItem('fabrication','${it.id}','${s.studentId}')">${escapeHtml(it.itemName)}</span>` : '';
+            }).join('')}
+          </div>
+        </div>
+      ` : ''}
       <div class="entry-grid">
         <div class="entry-block"><span class="lbl">Submitted</span>${fmtDate(s.submittedDate)}</div>
         <div class="entry-block"><span class="lbl">Expected by</span>${s.expectedDate ? fmtDate(s.expectedDate) : '—'}</div>
@@ -3901,6 +4002,8 @@ function sampleCard(s, i, total){
   `;
 }
 function openSampleModal(){
+  const studentIdForLinks = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
+  const myFabItems = state.fabricationItems.filter(it=>it.studentId===studentIdForLinks);
   showModal('Characterization', `
     <label class="field-label">Sample name / ID</label>
     <input class="text-input" id="f_sampleName" placeholder="e.g. Batch-3-Annealed">
@@ -3920,6 +4023,13 @@ function openSampleModal(){
         <input type="date" class="text-input" id="f_expectedDate">
       </div>
     </div>
+    ${myFabItems.length>0 ? `
+      <label class="field-label">Sample code(s) being characterized (optional)</label>
+      <select class="text-input" id="f_sampleFab" multiple size="${Math.min(5, Math.max(3, myFabItems.length))}">
+        ${myFabItems.map(it=>`<option value="${it.id}">${escapeHtml(it.itemName)}</option>`).join('')}
+      </select>
+      <div class="view-sub" style="margin-top:4px;">Hold Ctrl (or ⌘ on Mac) to select more than one.</div>
+    ` : ''}
     <label class="field-label">Notes (optional)</label>
     <textarea class="text-input" id="f_sampleNotes" rows="2" placeholder="Any special conditions or instructions"></textarea>
   `, submitSample);
@@ -3934,8 +4044,10 @@ async function submitSample(){
   if(!sampleName || !submittedDate){ alert('Please add a sample name and submission date.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
   if(!studentId){ alert('Add a research scholar first.'); return; }
+  const fabSelect = document.getElementById('f_sampleFab');
   state.samples.push({
     id: uid('smp'), studentId, sampleName, technique, facility, submittedDate, expectedDate, resultsReceivedDate:'', notes, dataLink:'',
+    linkedFabricationIds: fabSelect ? Array.from(fabSelect.selectedOptions).map(el=>el.value) : [],
     approvalStatus: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:''
   });
   await saveCollection('samples', state.samples);
@@ -3997,6 +4109,8 @@ async function deleteSample(id){
 }
 function openEditSampleModal(id){
   const s = state.samples.find(x=>x.id===id);
+  const myFabItems = state.fabricationItems.filter(it=>it.studentId===s.studentId);
+  const linked = s.linkedFabricationIds || [];
   showModal('Characterization', `
     <label class="field-label">Sample name / ID</label>
     <input class="text-input" id="f_editSampleName" value="${escapeHtml(s.sampleName)}">
@@ -4016,6 +4130,13 @@ function openEditSampleModal(id){
         <input type="date" class="text-input" id="f_editExpectedDate" value="${s.expectedDate||''}">
       </div>
     </div>
+    ${myFabItems.length>0 ? `
+      <label class="field-label">Sample code(s) being characterized (optional)</label>
+      <select class="text-input" id="f_editSampleFab" multiple size="${Math.min(5, Math.max(3, myFabItems.length))}">
+        ${myFabItems.map(it=>`<option value="${it.id}" ${linked.includes(it.id)?'selected':''}>${escapeHtml(it.itemName)}</option>`).join('')}
+      </select>
+      <div class="view-sub" style="margin-top:4px;">Hold Ctrl (or ⌘ on Mac) to select more than one.</div>
+    ` : ''}
     <label class="field-label">Notes (optional)</label>
     <textarea class="text-input" id="f_editSampleNotes" rows="2">${escapeHtml(s.notes||'')}</textarea>
     ${!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''}
@@ -4026,11 +4147,13 @@ async function submitEditSample(id){
   const sampleName = document.getElementById('f_editSampleName').value.trim();
   const submittedDate = document.getElementById('f_editSubmittedDate').value;
   if(!sampleName || !submittedDate){ alert('Please add a sample name and submission date.'); return; }
+  const fabSelect = document.getElementById('f_editSampleFab');
   s.sampleName = sampleName;
   s.technique = document.getElementById('f_editTechnique').value;
   s.facility = document.getElementById('f_editFacility').value.trim();
   s.submittedDate = submittedDate;
   s.expectedDate = document.getElementById('f_editExpectedDate').value;
+  s.linkedFabricationIds = fabSelect ? Array.from(fabSelect.selectedOptions).map(el=>el.value) : (s.linkedFabricationIds || []);
   s.notes = document.getElementById('f_editSampleNotes').value.trim();
   if(!isSupervisorLike()){
     s.approvalStatus = 'pending';
@@ -4064,7 +4187,7 @@ function viewPapers(){
         <div class="view-title">Paper Pipeline</div>
         <div class="view-sub">Track manuscripts from planning through to publication, with draft and reference links.</div>
       </div>
-      <button class="action-btn" onclick="openPaperModal()">+ Add paper</button>
+      <button class="action-btn" onclick="openPaperModal()">+ Add New Paper Plan</button>
     </div>
     ${supervisorFilterBar()}
     <div class="two-col-panels" style="margin-bottom:20px; align-items:center;">
@@ -4105,6 +4228,17 @@ function paperCard(p, i, total){
       </div>
       ${p.notes ? `<div class="entry-block"><span class="lbl">Notes</span>${nl2br(p.notes)}</div>` : ''}
       ${p.manuscriptLink ? `<div class="entry-block" style="margin-top:8px;"><span class="lbl">Manuscript / draft</span><a href="${escapeHtml(p.manuscriptLink)}" target="_blank" rel="noopener">Open draft ↗</a></div>` : ''}
+      ${(()=>{
+        const supportingSamples = state.fabricationItems.filter(it => (it.linkedPaperIds||[]).includes(p.id));
+        return supportingSamples.length>0 ? `
+          <div class="entry-block" style="margin-top:8px;">
+            <span class="lbl">Supporting sample code(s)</span>
+            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+              ${supportingSamples.map(it=>`<span class="task-link stamp neutral" onclick="goToItem('fabrication','${it.id}','${p.studentId}')">${escapeHtml(it.itemName)}</span>`).join('')}
+            </div>
+          </div>
+        ` : '';
+      })()}
       <div class="entry-block" style="margin-top:8px;">
         <span class="lbl">Reference links <span style="text-transform:none; font-weight:400;">(reading, citations, related work)</span></span>
         ${refLinks.length===0 ? `<span class="entry-meta">No reference links added yet.</span>` : `
@@ -4166,7 +4300,7 @@ function openConsolidatedWeeklyModal(paperId){
 
   showModal(`Consolidated updates — ${p.title}`, `
     <div class="view-sub" style="margin-bottom:14px;">${linked.length} weekly update${linked.length===1?'':'s'} linked to this paper, oldest first.</div>
-    <div style="display:flex; flex-direction:column; gap:10px; max-height:420px; overflow-y:auto;">
+    <div style="display:flex; flex-direction:column; gap:10px;">
       ${linked.map(w=>`
         <div style="border:1px solid var(--border); border-radius:7px; padding:11px 14px;">
           <div style="font-weight:600; font-size:13px; margin-bottom:4px;">Week of ${fmtDate(w.weekStart)}</div>
@@ -4853,7 +4987,7 @@ function generateReport(){
 function buildReportForPaper(paperId){
   const p = state.papers.find(x=>x.id===paperId);
   const weekly = state.weekly.filter(w=>(w.linkedPaperIds||[]).includes(paperId)).sort((a,b)=>a.weekStart.localeCompare(b.weekStart));
-  const fabrication = state.fabricationItems.filter(it=>it.linkedPaperId===paperId).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
+  const fabrication = state.fabricationItems.filter(it=>(it.linkedPaperIds||[]).includes(paperId)).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
   const thesisLinks = [];
   state.thesisPlans.forEach(tp=>{
     (tp.chapters||[]).forEach(c=>{
@@ -4924,7 +5058,7 @@ function renderPaperReportHtml(data){
         <h3 class="report-section-title">Lab Work Linked to This Paper</h3>
         ${data.fabrication.length===0 ? `<p class="report-empty">No Lab Work items linked to this paper.</p>` : `
           <table class="report-table">
-            <thead><tr><th>Item</th><th>Stage</th><th>Started</th><th>Target completion</th></tr></thead>
+            <thead><tr><th>Sample Code</th><th>Stage</th><th>Started</th><th>Target completion</th></tr></thead>
             <tbody>${data.fabrication.map(it=>`<tr><td>${escapeHtml(it.itemName)}</td><td>${(FABRICATION_STAGES[it.stage]||{label:it.stage}).label}</td><td>${it.startDate?fmtDate(it.startDate):'—'}</td><td>${it.targetDate?fmtDate(it.targetDate):'—'}</td></tr>`).join('')}</tbody>
           </table>
         `}
