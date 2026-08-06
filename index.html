@@ -457,6 +457,19 @@ function fmtDate(d){
   if(isNaN(dt)) return d;
   return dt.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
 }
+const ORDINAL_WORDS = ['First','Second','Third','Fourth','Fifth','Sixth','Seventh','Eighth','Ninth','Tenth'];
+function ordinalWord(n){
+  return ORDINAL_WORDS[n-1] || (n + 'th');
+}
+// changeIndex counts how many target-date changes already exist BEFORE this
+// one: 0 → the very first time it's set ("First target"), 1 → the first
+// time it's changed after that ("First revised target"), 2 → "Second
+// revised target", and so on — so it's always clear how many times a
+// target date has moved, not just what it moved to most recently.
+function targetDateChangeLabel(changeIndex){
+  if(changeIndex <= 0) return 'First target';
+  return ordinalWord(changeIndex) + ' revised target';
+}
 function escapeHtml(str){
   if(str === undefined || str === null) return '';
   return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -2852,7 +2865,7 @@ function openEditChapterDateModal(thId, chId){
       <div class="entry-block" style="margin-top:12px;">
         <span class="lbl">Change history</span>
         <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">
-          ${history.slice().reverse().map(h=>`<div class="entry-meta">${fmtDate(h.changedAt)} — ${escapeHtml(h.changedBy)} changed ${h.from ? 'from '+fmtDate(h.from)+' ' : ''}to ${fmtDate(h.to)}</div>`).join('')}
+          ${history.slice().reverse().map(h=>`<div class="entry-meta"><b>${escapeHtml(h.label||'')}</b> — ${fmtDate(h.changedAt)} — ${escapeHtml(h.changedBy)} set to ${fmtDate(h.to)}${h.from ? ' (was '+fmtDate(h.from)+')' : ''}</div>`).join('')}
         </div>
       </div>
     ` : ''}
@@ -2865,7 +2878,7 @@ async function submitEditChapterDate(thId, chId){
   const newDate = document.getElementById('f_chTargetDate').value;
   if(newDate !== (ch.targetDate || '')){
     if(!ch.targetDateHistory) ch.targetDateHistory = [];
-    ch.targetDateHistory.push({ from: ch.targetDate || null, to: newDate, changedBy: state.identity.name, changedAt: todayStr() });
+    ch.targetDateHistory.push({ from: ch.targetDate || null, to: newDate, changedBy: state.identity.name, changedAt: todayStr(), label: targetDateChangeLabel(ch.targetDateHistory.length) });
   }
   ch.targetDate = newDate;
   tp.lastUpdate = todayStr();
@@ -3550,6 +3563,14 @@ function fabricationCard(it, i, total){
         ${it.link ? `<div class="entry-block"><span class="lbl">Data / photos</span><a href="${escapeHtml(it.link)}" target="_blank" rel="noopener">Open ↗</a></div>` : ''}
         ${it.notes ? `<div class="entry-block" style="grid-column:1/-1;"><span class="lbl">Notes</span>${nl2br(it.notes)}</div>` : ''}
       </div>
+      ${(it.targetDateHistory && it.targetDateHistory.length>0) ? `
+        <div class="entry-block" style="margin-top:8px;">
+          <span class="lbl">Target date history</span>
+          <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">
+            ${it.targetDateHistory.slice().reverse().map(h=>`<div class="entry-meta"><b>${escapeHtml(h.label||'')}</b> — ${fmtDate(h.changedAt)} — ${escapeHtml(h.changedBy)} set to ${fmtDate(h.to)}${h.from ? ' (was '+fmtDate(h.from)+')' : ''}</div>`).join('')}
+          </div>
+        </div>
+      ` : ''}
       <div class="entry-block" style="margin-top:10px;">
         <span class="lbl">Roadmap${steps.length>0 ? ` (${stepsDone}/${steps.length} complete)` : ''}</span>
         ${steps.length===0 ? `<span class="entry-meta">No steps added yet.</span>` : `
@@ -3671,7 +3692,7 @@ async function submitEditFabrication(id){
   const newFabTargetDate = document.getElementById('f_fabTargetDate').value;
   if(newFabTargetDate !== (it.targetDate || '')){
     if(!it.targetDateHistory) it.targetDateHistory = [];
-    it.targetDateHistory.push({ from: it.targetDate || null, to: newFabTargetDate, changedBy: state.identity.name, changedAt: todayStr() });
+    it.targetDateHistory.push({ from: it.targetDate || null, to: newFabTargetDate, changedBy: state.identity.name, changedAt: todayStr(), label: targetDateChangeLabel(it.targetDateHistory.length) });
   }
   it.targetDate = newFabTargetDate;
   it.link = document.getElementById('f_fabLink').value.trim();
@@ -4354,6 +4375,14 @@ function analysisCard(a, i, total){
         <div class="entry-block"><span class="lbl">Target date</span>${a.targetDate ? fmtDate(a.targetDate) : 'not set'}</div>
         ${a.notes ? `<div class="entry-block" style="grid-column:1/-1;"><span class="lbl">Analysis notes</span>${nl2br(a.notes)}</div>` : ''}
       </div>
+      ${(a.targetDateHistory && a.targetDateHistory.length>0) ? `
+        <div class="entry-block" style="margin-top:8px;">
+          <span class="lbl">Target date history</span>
+          <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">
+            ${a.targetDateHistory.slice().reverse().map(h=>`<div class="entry-meta"><b>${escapeHtml(h.label||'')}</b> — ${fmtDate(h.changedAt)} — ${escapeHtml(h.changedBy)} set to ${fmtDate(h.to)}${h.from ? ' (was '+fmtDate(h.from)+')' : ''}</div>`).join('')}
+          </div>
+        </div>
+      ` : ''}
       ${linkedSamples.length>0 ? `
         <div class="entry-block" style="margin-top:8px;">
           <span class="lbl">Characterization run(s)</span>
@@ -4500,7 +4529,7 @@ async function submitEditAnalysis(id){
   const newAnTargetDate = document.getElementById('f_anTargetDate').value;
   if(newAnTargetDate !== (a.targetDate || '')){
     if(!a.targetDateHistory) a.targetDateHistory = [];
-    a.targetDateHistory.push({ from: a.targetDate || null, to: newAnTargetDate, changedBy: state.identity.name, changedAt: todayStr() });
+    a.targetDateHistory.push({ from: a.targetDate || null, to: newAnTargetDate, changedBy: state.identity.name, changedAt: todayStr(), label: targetDateChangeLabel(a.targetDateHistory.length) });
   }
   a.targetDate = newAnTargetDate;
   a.linkedSampleIds = samplesSelect ? Array.from(samplesSelect.selectedOptions).map(el=>el.value) : (a.linkedSampleIds||[]);
@@ -4592,7 +4621,7 @@ function paperCard(p, i, total){
   const locked = p.stage === 'Published' && isOwner;
   const canEdit = canManage || (isOwner && !locked);
   const hasPending = !!p.pendingStage;
-  const hasPendingDate = !!p.pendingTargetDate;
+  const hasPendingDetails = !!p.pendingDetails;
   const refLinks = p.referenceLinks || [];
   const overdue = p.targetDate && p.stage!=='Published' && p.targetDate < todayStr();
   return `
@@ -4606,20 +4635,25 @@ function paperCard(p, i, total){
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
           <span class="stamp ${stageStampClass(p.stage)}">${escapeHtml(p.stage)}</span>
           ${hasPending ? `<span class="stamp warn">Proposed: ${escapeHtml(p.pendingStage)}</span>` : ''}
-          ${hasPendingDate ? `<span class="stamp warn">Date change proposed</span>` : ''}
+          ${hasPendingDetails ? `<span class="stamp warn">Detail change proposed</span>` : ''}
           ${overdue ? `<span class="stamp bad">Overdue</span>` : ''}
         </div>
       </div>
-      ${hasPendingDate ? `
+      ${hasPendingDetails ? `
         <div class="comment-box">
-          <span class="lbl">Requested target date change</span>
-          <div class="entry-meta" style="margin-top:2px;">${p.targetDate ? fmtDate(p.targetDate) : 'Not set'} → <b>${fmtDate(p.pendingTargetDate)}</b></div>
+          <span class="lbl">Requested changes</span>
+          <div class="entry-meta" style="margin-top:2px;">
+            ${p.pendingDetails.targetJournal !== (p.targetJournal||'') ? `Journal: "${escapeHtml(p.targetJournal||'—')}" → <b>"${escapeHtml(p.pendingDetails.targetJournal||'—')}"</b><br>` : ''}
+            ${p.pendingDetails.targetDate !== (p.targetDate||'') ? `${escapeHtml((p.detailsHistory||[]).slice().reverse().find(h=>h.status==='pending' && h.dateLabel)?.dateLabel || 'Target date')}: ${p.targetDate?fmtDate(p.targetDate):'not set'} → <b>${p.pendingDetails.targetDate?fmtDate(p.pendingDetails.targetDate):'not set'}</b><br>` : ''}
+            ${p.pendingDetails.manuscriptLink !== (p.manuscriptLink||'') ? `Manuscript link updated<br>` : ''}
+            ${p.pendingDetails.notes !== (p.notes||'') ? `Notes updated` : ''}
+          </div>
           ${canManage ? `
             <div class="entry-actions" style="margin-top:8px;">
-              <button class="small-btn" onclick="approvePendingTargetDate('${p.id}')">Approve date</button>
-              <button class="small-btn danger" onclick="rejectPendingTargetDate('${p.id}')">Reject date</button>
+              <button class="small-btn" onclick="approvePendingDetails('${p.id}')">Approve changes</button>
+              <button class="small-btn danger" onclick="rejectPendingDetails('${p.id}')">Reject changes</button>
             </div>
-          ` : `<div class="entry-meta" style="margin-top:6px;">Waiting on your supervisor to approve this date change.</div>`}
+          ` : `<div class="entry-meta" style="margin-top:6px;">Waiting on your supervisor to approve these changes.</div>`}
         </div>
       ` : ''}
       ${p.notes ? `<div class="entry-block"><span class="lbl">Notes</span>${nl2br(p.notes)}</div>` : ''}
@@ -4635,12 +4669,12 @@ function paperCard(p, i, total){
           </div>
         ` : '';
       })()}
-      ${(p.targetDateHistory && p.targetDateHistory.length>0) ? `
+      ${(p.detailsHistory && p.detailsHistory.length>0) ? `
         <div class="entry-block" style="margin-top:8px;">
-          <span class="lbl">Target date history</span>
+          <span class="lbl">Change history</span>
           <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">
-            ${p.targetDateHistory.slice().reverse().map(h=>`
-              <div class="entry-meta">${fmtDate(h.changedAt)} — ${h.changedBy} changed target date ${h.from ? 'from '+fmtDate(h.from)+' ' : ''}to ${fmtDate(h.to)} <span class="stamp ${h.status==='approved'||h.status==='applied'?'good':h.status==='rejected'?'bad':'warn'}" style="padding:1px 6px; font-size:10px; margin-left:4px;">${h.status}</span></div>
+            ${p.detailsHistory.slice().reverse().map(h=>`
+              <div class="entry-meta">${fmtDate(h.changedAt)} — ${escapeHtml(h.changedBy)}: ${escapeHtml(h.summary)} <span class="stamp ${h.status==='approved'||h.status==='applied'?'good':h.status==='rejected'?'bad':'warn'}" style="padding:1px 6px; font-size:10px; margin-left:4px;">${h.status}</span></div>
             `).join('')}
           </div>
         </div>
@@ -4803,63 +4837,83 @@ function openEditPaperDetails(id){
     <input class="text-input" id="f_editJournal" value="${escapeHtml(p.targetJournal || '')}">
     <label class="field-label">Target date for next milestone (optional)</label>
     <input type="date" class="text-input" id="f_editPaperTargetDate" value="${p.targetDate || ''}">
-    ${!isSupervisorLike() && p.targetDate ? `<div class="view-sub" style="margin-top:4px;">Changing this date requires your supervisor's approval — it won't take effect until then.</div>` : ''}
     <label class="field-label">Manuscript / draft link</label>
     <input class="text-input" id="f_editManuscriptLink" value="${escapeHtml(p.manuscriptLink || '')}" placeholder="Google Docs / Overleaf link">
     <label class="field-label">Notes</label>
     <textarea class="text-input" id="f_editNotes" rows="4">${escapeHtml(p.notes || '')}</textarea>
+    ${!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Once a paper's details have been set, any change here requires your supervisor's approval before it takes effect.</div>` : ''}
   `, ()=>saveEditPaperDetails(id));
 }
+// Any detail a scholar changes here — journal, target date, manuscript link,
+// or notes — is bundled into ONE pending proposal the supervisor approves or
+// rejects as a whole, exactly like stage changes already work. Nothing is
+// applied until they decide. The supervisor's own edits still apply
+// immediately. Every change, decided or not, is recorded in history.
 async function saveEditPaperDetails(id){
   const p = state.papers.find(x=>x.id===id);
-  p.targetJournal = document.getElementById('f_editJournal').value.trim();
+  const newJournal = document.getElementById('f_editJournal').value.trim();
   const newDate = document.getElementById('f_editPaperTargetDate').value;
-  p.manuscriptLink = document.getElementById('f_editManuscriptLink').value.trim();
-  p.notes = document.getElementById('f_editNotes').value.trim();
-  p.lastUpdate = todayStr();
-  if(!p.targetDateHistory) p.targetDateHistory = [];
+  const newLink = document.getElementById('f_editManuscriptLink').value.trim();
+  const newNotes = document.getElementById('f_editNotes').value.trim();
+  if(!p.detailsHistory) p.detailsHistory = [];
 
-  const dateChanged = newDate !== (p.targetDate || '');
-  if(dateChanged){
-    // Once a target date has been set, changing it needs supervisor approval —
-    // scholars can't quietly move a milestone date without a record of it.
-    // Setting it for the first time (or the supervisor changing it) applies
-    // immediately, but every change — approved or not — is logged.
-    const requiresApproval = !isSupervisorLike() && !!p.targetDate;
-    if(requiresApproval){
-      p.pendingTargetDate = newDate;
-      p.targetDateHistory.push({ from: p.targetDate || null, to: newDate, changedBy: state.identity.name, changedAt: todayStr(), status: 'pending' });
-      apiNotify('paperDateProposed', { studentId: p.studentId, title: p.title, from: p.targetDate ? fmtDate(p.targetDate) : 'not set', to: fmtDate(newDate) });
-    } else {
-      p.targetDateHistory.push({ from: p.targetDate || null, to: newDate, changedBy: state.identity.name, changedAt: todayStr(), status: 'applied' });
-      p.targetDate = newDate;
-    }
+  const changed = newJournal !== (p.targetJournal||'') || newDate !== (p.targetDate||'') || newLink !== (p.manuscriptLink||'') || newNotes !== (p.notes||'');
+  if(!changed){ closeModal(); return; }
+
+  const proposedValues = { targetJournal: newJournal, targetDate: newDate, manuscriptLink: newLink, notes: newNotes };
+  const wasAlreadyEstablished = !!(p.targetJournal || p.targetDate || p.manuscriptLink);
+
+  // If the target date is part of this change, work out which revision this
+  // is ("First target" / "First revised target" / "Second revised target"...)
+  // by counting only the PRIOR history entries that also touched the date.
+  let dateLabel = null;
+  if(newDate !== (p.targetDate||'')){
+    const priorDateChanges = p.detailsHistory.filter(h=>h.dateLabel).length;
+    dateLabel = targetDateChangeLabel(priorDateChanges);
   }
+  const summary = summarizePaperDetailChange_(p, proposedValues, dateLabel);
+
+  if(!isSupervisorLike() && wasAlreadyEstablished){
+    p.pendingDetails = proposedValues;
+    p.detailsHistory.push({ changedBy: state.identity.name, changedAt: todayStr(), status: 'pending', dateLabel, summary });
+    apiNotify('paperDetailsProposed', { studentId: p.studentId, title: p.title, summary });
+  } else {
+    p.detailsHistory.push({ changedBy: state.identity.name, changedAt: todayStr(), status: 'applied', dateLabel, summary });
+    Object.assign(p, proposedValues);
+  }
+  p.lastUpdate = todayStr();
   await saveCollection('papers', state.papers);
   closeModal(); renderView();
 }
-async function approvePendingTargetDate(id){
+function summarizePaperDetailChange_(p, next, dateLabel){
+  const parts = [];
+  if(next.targetJournal !== (p.targetJournal||'')) parts.push(`journal → "${next.targetJournal||'—'}"`);
+  if(next.targetDate !== (p.targetDate||'')) parts.push(`${dateLabel||'target date'} → ${next.targetDate?fmtDate(next.targetDate):'not set'}`);
+  if(next.manuscriptLink !== (p.manuscriptLink||'')) parts.push(`manuscript link updated`);
+  if(next.notes !== (p.notes||'')) parts.push(`notes updated`);
+  return parts.join(', ') || 'details updated';
+}
+async function approvePendingDetails(id){
   const p = state.papers.find(x=>x.id===id);
-  if(!p.pendingTargetDate) return;
-  const entry = (p.targetDateHistory||[]).slice().reverse().find(h=>h.to===p.pendingTargetDate && h.status==='pending');
+  if(!p.pendingDetails) return;
+  const entry = (p.detailsHistory||[]).slice().reverse().find(h=>h.status==='pending');
   if(entry) entry.status = 'approved';
-  p.targetDate = p.pendingTargetDate;
-  p.pendingTargetDate = null;
+  Object.assign(p, p.pendingDetails);
+  p.pendingDetails = null;
   p.lastUpdate = todayStr();
   await saveCollection('papers', state.papers);
-  apiNotify('paperDateDecided', { studentId: p.studentId, title: p.title, date: fmtDate(p.targetDate), decision: 'approved' });
+  apiNotify('paperDetailsDecided', { studentId: p.studentId, title: p.title, decision: 'approved' });
   renderView();
 }
-async function rejectPendingTargetDate(id){
+async function rejectPendingDetails(id){
   const p = state.papers.find(x=>x.id===id);
-  if(!p.pendingTargetDate) return;
-  const entry = (p.targetDateHistory||[]).slice().reverse().find(h=>h.to===p.pendingTargetDate && h.status==='pending');
+  if(!p.pendingDetails) return;
+  const entry = (p.detailsHistory||[]).slice().reverse().find(h=>h.status==='pending');
   if(entry) entry.status = 'rejected';
-  const rejectedDate = p.pendingTargetDate;
-  p.pendingTargetDate = null;
+  p.pendingDetails = null;
   p.lastUpdate = todayStr();
   await saveCollection('papers', state.papers);
-  apiNotify('paperDateDecided', { studentId: p.studentId, title: p.title, date: fmtDate(rejectedDate), decision: 'rejected' });
+  apiNotify('paperDetailsDecided', { studentId: p.studentId, title: p.title, decision: 'rejected' });
   renderView();
 }
 function openAddReferenceLinkModal(paperId){
