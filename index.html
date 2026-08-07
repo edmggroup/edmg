@@ -457,6 +457,21 @@ function fmtDate(d){
   if(isNaN(dt)) return d;
   return dt.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
 }
+// Native <input type="time"> always stores/returns 24-hour "HH:MM" — this
+// converts that to 12-hour display text (e.g. "15:00" → "3:00 PM") for
+// anywhere the time is shown as text. The input element itself is left
+// alone; browsers render that picker per the OS/browser's own locale.
+function fmtTime(t){
+  if(!t) return '';
+  const parts = t.split(':');
+  let h = parseInt(parts[0], 10);
+  const m = parts[1] || '00';
+  if(isNaN(h)) return t;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  if(h === 0) h = 12;
+  return `${h}:${m} ${ampm}`;
+}
 const ORDINAL_WORDS = ['First','Second','Third','Fourth','Fifth','Sixth','Seventh','Eighth','Ninth','Tenth'];
 function ordinalWord(n){
   return ORDINAL_WORDS[n-1] || (n + 'th');
@@ -1379,7 +1394,7 @@ function thisWeekItems(){
   });
 
   scopedList(state.meetings).filter(m=> m.plannedDate>=monday && m.plannedDate<=sunday && m.status!=='cancelled').forEach(m=>{
-    items.push({ type:'meeting', id:m.id, studentId:m.studentId, category:'Meeting · '+fmtDate(m.plannedDate), color:'var(--stat-indigo)',
+    items.push({ type:'meeting', id:m.id, studentId:m.studentId, category:'Meeting · '+fmtDate(m.plannedDate)+(m.plannedTime?' at '+fmtTime(m.plannedTime):''), color:'var(--stat-indigo)',
       title: m.title });
   });
 
@@ -5160,21 +5175,44 @@ function meetingCard(m, i, total){
   const canDelete = isTrueSupervisor();
   const st = MEETING_STATUS[m.status] || MEETING_STATUS.proposed;
   const isPast = m.plannedDate < todayStr();
+  const minutes = m.minutes || [];
+  // Minutes/feedback can only be added once the meeting has been approved
+  // (no longer just "proposed") and its date has actually arrived — this is
+  // a record of what happened, not a place for pre-meeting notes. Once
+  // approved, both the scholar and the supervisor can add points here.
+  const canAddMinutes = (canManage || isOwner) && m.status !== 'proposed' && m.plannedDate <= todayStr();
   return `
     <div class="entry-card cat-indigo" id="item-meeting-${m.id}">
       <div class="entry-top">
         <div>
           <div class="entry-idx">M${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(m.studentId))}</div>
           <div class="entry-title">${escapeHtml(m.title)}</div>
-          <div class="entry-meta">${escapeHtml(m.type)} · ${fmtDate(m.plannedDate)}${isPast && (m.status==='proposed'||m.status==='confirmed') ? ' · past due' : ''}</div>
+          <div class="entry-meta">${escapeHtml(m.type)} · ${fmtDate(m.plannedDate)}${m.plannedTime ? ' at '+escapeHtml(fmtTime(m.plannedTime)) : ''}${isPast && (m.status==='proposed'||m.status==='confirmed') ? ' · past due' : ''}</div>
         </div>
         <span class="stamp ${st.cls}">${st.label}</span>
       </div>
       ${m.agenda ? `<div class="entry-block"><span class="lbl">Agenda / discussion points</span>${nl2br(m.agenda)}</div>` : ''}
-      ${m.outcomeNotes ? `<div class="comment-box"><span class="lbl">${m.status==='cancelled'?'Reason':'Outcome notes'}</span><div class="comment-existing">${nl2br(m.outcomeNotes)}</div></div>` : ''}
+      ${m.outcomeNotes ? `<div class="comment-box"><span class="lbl">${m.status==='cancelled'?'Reason':'Outcome summary'}</span><div class="comment-existing">${nl2br(m.outcomeNotes)}</div></div>` : ''}
+      ${(m.status!=='proposed') ? `
+        <div class="entry-block" style="margin-top:10px;">
+          <span class="lbl">Minutes / feedback${minutes.length>0 ? ` (${minutes.length})` : ''}</span>
+          ${minutes.length===0 ? `<div class="entry-meta" style="margin-top:2px;">No points recorded yet.</div>` : `
+            <ul style="margin:6px 0 0; padding-left:18px; display:flex; flex-direction:column; gap:6px;">
+              ${minutes.map(pt=>`
+                <li style="font-size:13.5px; line-height:1.5;">
+                  ${escapeHtml(pt.text)}
+                  <div class="entry-meta">${fmtDate(pt.addedAt)} — ${escapeHtml(pt.addedBy)}${(canManage || pt.addedById===state.identity.id) ? ` · <span class="task-link" onclick="deleteMeetingMinute('${m.id}','${pt.id}')">Remove</span>` : ''}</div>
+                </li>
+              `).join('')}
+            </ul>
+          `}
+          ${canAddMinutes ? `<div class="entry-actions" style="margin-top:8px;"><button class="small-btn" onclick="openAddMeetingMinuteModal('${m.id}')">+ Add point</button></div>` :
+            (m.status!=='proposed' && m.plannedDate>todayStr() && (canManage||isOwner)) ? `<div class="entry-meta" style="margin-top:6px;">Minutes can be added once the meeting date arrives.</div>` : ''}
+        </div>
+      ` : ''}
       ${isOwner && m.status!=='proposed' ? `<div class="entry-meta" style="margin-top:6px;">Confirmed items can only be changed or cancelled by your supervisor.</div>` : ''}
       <div class="entry-actions">
-        ${canManage && m.status==='proposed' ? `<button class="small-btn" onclick="confirmMeeting('${m.id}')">Confirm</button>` : ''}
+        ${canManage && m.status==='proposed' ? `<button class="small-btn" onclick="openConfirmMeetingModal('${m.id}')">Confirm</button>` : ''}
         ${canManage && (m.status==='proposed'||m.status==='confirmed') ? `<button class="small-btn" onclick="openCompleteMeetingModal('${m.id}')">Mark completed</button>` : ''}
         ${canManage && (m.status==='proposed'||m.status==='confirmed') ? `<button class="small-btn danger" onclick="openCancelMeetingModal('${m.id}')">Cancel</button>` : ''}
         ${canDelete ? `<button class="small-btn danger" onclick="deleteMeeting('${m.id}')">Delete</button>` : ''}
@@ -5182,14 +5220,44 @@ function meetingCard(m, i, total){
     </div>
   `;
 }
+function openAddMeetingMinuteModal(id){
+  showModal('Add minute / feedback point', `
+    <label class="field-label">Point</label>
+    <textarea class="text-input" id="f_minuteText" rows="2" placeholder="e.g. Agreed to repeat the XRD scan with a slower step rate before the next review."></textarea>
+  `, ()=>submitAddMeetingMinute(id));
+}
+async function submitAddMeetingMinute(id){
+  const text = document.getElementById('f_minuteText').value.trim();
+  if(!text){ alert('Please add a point.'); return; }
+  const m = state.meetings.find(x=>x.id===id);
+  if(!m.minutes) m.minutes = [];
+  m.minutes.push({ id: uid('min'), text, addedBy: state.identity.name, addedById: state.identity.id, addedAt: todayStr() });
+  m.lastUpdate = todayStr();
+  await saveCollection('meetings', state.meetings);
+  closeModal(); renderView();
+}
+async function deleteMeetingMinute(id, minuteId){
+  if(!confirm('Remove this point?')) return;
+  const m = state.meetings.find(x=>x.id===id);
+  m.minutes = (m.minutes||[]).filter(pt=>pt.id!==minuteId);
+  m.lastUpdate = todayStr();
+  await saveCollection('meetings', state.meetings);
+  renderView();
+}
 function openMeetingModal(){
   showModal('Meetings', `
     <label class="field-label">Type</label>
     <select class="text-input" id="f_meetType">${MEETING_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('')}</select>
     <label class="field-label">Title / topic</label>
     <input class="text-input" id="f_meetTitle" placeholder="e.g. March group meeting presentation">
-    <label class="field-label">Planned date</label>
-    <input type="date" class="text-input" id="f_meetDate" value="${todayStr()}">
+    <div class="two-col">
+      <div><label class="field-label">Planned date</label>
+        <input type="date" class="text-input" id="f_meetDate" value="${todayStr()}">
+      </div>
+      <div><label class="field-label">Planned time (optional)</label>
+        <input type="time" class="text-input" id="f_meetTime">
+      </div>
+    </div>
     <label class="field-label">Agenda / discussion points (optional)</label>
     <textarea class="text-input" id="f_meetAgenda" rows="3" placeholder="What do you want to cover or discuss?"></textarea>
   `, submitMeeting);
@@ -5198,23 +5266,52 @@ async function submitMeeting(){
   const type = document.getElementById('f_meetType').value;
   const title = document.getElementById('f_meetTitle').value.trim();
   const plannedDate = document.getElementById('f_meetDate').value;
+  const plannedTime = document.getElementById('f_meetTime').value;
   const agenda = document.getElementById('f_meetAgenda').value.trim();
   if(!title || !plannedDate){ alert('Please add a title and planned date.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
   if(!studentId){ alert('Add a research scholar first.'); return; }
   state.meetings.push({
-    id: uid('mtg'), studentId, type, title, plannedDate, agenda, outcomeNotes:'',
+    id: uid('mtg'), studentId, type, title, plannedDate, plannedTime, agenda, outcomeNotes:'', minutes:[],
     status: isSupervisorLike() ? 'confirmed' : 'proposed',
     lastUpdate: todayStr()
   });
   await saveCollection('meetings', state.meetings);
   closeModal(); renderView();
 }
-async function confirmMeeting(id){
+// Confirming a request isn't just a one-click approval — the supervisor may
+// only be free at a different time than what the scholar first proposed, so
+// this lets them adjust the date/time as part of approving it.
+function openConfirmMeetingModal(id){
   const m = state.meetings.find(x=>x.id===id);
-  m.status = 'confirmed'; m.lastUpdate = todayStr();
+  showModal('Confirm meeting', `
+    <div class="view-sub" style="margin-bottom:10px;">${escapeHtml(m.title)} — requested by ${escapeHtml(studentName(m.studentId))}</div>
+    <div class="two-col">
+      <div><label class="field-label">Date</label>
+        <input type="date" class="text-input" id="f_confirmDate" value="${m.plannedDate}">
+      </div>
+      <div><label class="field-label">Time (optional)</label>
+        <input type="time" class="text-input" id="f_confirmTime" value="${m.plannedTime||''}">
+      </div>
+    </div>
+    <div class="view-sub" style="margin-top:8px;">Change the date or time here if the requested slot doesn't work — the scholar will see the confirmed time, not the originally requested one.</div>
+  `, ()=>submitConfirmMeeting(id));
+}
+async function submitConfirmMeeting(id){
+  const m = state.meetings.find(x=>x.id===id);
+  const newDate = document.getElementById('f_confirmDate').value;
+  const newTime = document.getElementById('f_confirmTime').value;
+  if(!newDate){ alert('Please set a date.'); return; }
+  const rescheduled = newDate !== m.plannedDate || newTime !== (m.plannedTime||'');
+  m.plannedDate = newDate;
+  m.plannedTime = newTime;
+  m.status = 'confirmed';
+  m.lastUpdate = todayStr();
   await saveCollection('meetings', state.meetings);
-  renderView();
+  if(rescheduled){
+    apiNotify('meetingRescheduled', { studentId: m.studentId, title: m.title, date: fmtDate(newDate), time: newTime ? fmtTime(newTime) : '' });
+  }
+  closeModal(); renderView();
 }
 function openCompleteMeetingModal(id){
   showModal('Mark as completed', `
