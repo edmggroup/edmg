@@ -107,7 +107,7 @@
   .role-row .role-btn{ flex:1 1 140px; }
   .role-btn{
     flex:1; padding:14px 14px; border-radius:8px; border:1px solid var(--border); background:var(--surface);
-    font-weight:600; font-size:14px; color:var(--ink-soft); transition:all .12s ease; text-align:left;
+    font-weight:600; font-size:14px; color:var(--ink-soft); transition:all .12s ease; text-align:center;
   }
   .role-btn small{ display:block; font-weight:400; font-size:12px; color:var(--ink-faint); margin-top:3px; }
   .role-btn.active{ border-color:var(--navy); background:var(--navy-wash); color:var(--navy-dark); box-shadow:inset 0 0 0 1px var(--navy); }
@@ -810,7 +810,7 @@ function renderLogin(){
   if(role === 'cosupervisor'){
     const picked = state.loginPickId ? state.coSupervisors.find(x=>x.id===state.loginPickId) : null;
     if(state.coSupervisors.length === 0){
-      coSupPickerHtml = `<div class="view-sub" style="margin-top:10px;">No mentors / co-supervisors / advisors have been added yet. Ask the supervisor to add you from Overview → Account → Mentor / Co-Supervisor / Advisor.</div>`;
+      coSupPickerHtml = '';
     } else {
       coSupPickerHtml = `
         <label class="field-label">Select &amp; Sign-In with your User Name</label>
@@ -844,7 +844,7 @@ function renderLogin(){
       <label class="field-label">I am logging in as</label>
       <div class="role-row">
         <button class="role-btn ${role==='supervisor'?'active':''}" onclick="chooseRole('supervisor')">Supervisor <small>Review reports, track the group</small></button>
-        <button class="role-btn ${role==='cosupervisor'?'active':''}" onclick="chooseRole('cosupervisor')">Mentor / Advisor<br>Co-Supervisor <small>Review your assigned scholars</small></button>
+        <button class="role-btn ${role==='cosupervisor'?'active':''}" onclick="chooseRole('cosupervisor')">Advisor / Co-Supervisor <small>Review your assigned scholars</small></button>
         <button class="role-btn ${role==='student'?'active':''}" onclick="chooseRole('student')">Research Scholar <small>Log progress, samples, papers</small></button>
       </div>
       ${role==='supervisor' ? `
