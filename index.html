@@ -472,6 +472,13 @@ function fmtTime(t){
   if(h === 0) h = 12;
   return `${h}:${m} ${ampm}`;
 }
+// Meetings may have a start time only, a start+end range, or no time at all
+// (just a date) — this renders whichever combination is actually set.
+function fmtTimeRange(startTime, endTime){
+  if(!startTime && !endTime) return '';
+  if(startTime && endTime) return `${fmtTime(startTime)} – ${fmtTime(endTime)}`;
+  return fmtTime(startTime || endTime);
+}
 const ORDINAL_WORDS = ['First','Second','Third','Fourth','Fifth','Sixth','Seventh','Eighth','Ninth','Tenth'];
 function ordinalWord(n){
   return ORDINAL_WORDS[n-1] || (n + 'th');
@@ -1394,7 +1401,7 @@ function thisWeekItems(){
   });
 
   scopedList(state.meetings).filter(m=> m.plannedDate>=monday && m.plannedDate<=sunday && m.status!=='cancelled').forEach(m=>{
-    items.push({ type:'meeting', id:m.id, studentId:m.studentId, category:'Meeting · '+fmtDate(m.plannedDate)+(m.plannedTime?' at '+fmtTime(m.plannedTime):''), color:'var(--stat-indigo)',
+    items.push({ type:'meeting', id:m.id, studentId:m.studentId, category:'Meeting · '+fmtDate(m.plannedDate)+((m.startTime||m.endTime||m.plannedTime)?' · '+fmtTimeRange(m.startTime||m.plannedTime, m.endTime):''), color:'var(--stat-indigo)',
       title: m.title });
   });
 
@@ -5187,7 +5194,7 @@ function meetingCard(m, i, total){
         <div>
           <div class="entry-idx">M${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(m.studentId))}</div>
           <div class="entry-title">${escapeHtml(m.title)}</div>
-          <div class="entry-meta">${escapeHtml(m.type)} · ${fmtDate(m.plannedDate)}${m.plannedTime ? ' at '+escapeHtml(fmtTime(m.plannedTime)) : ''}${isPast && (m.status==='proposed'||m.status==='confirmed') ? ' · past due' : ''}</div>
+          <div class="entry-meta">${escapeHtml(m.type)} · ${fmtDate(m.plannedDate)}${(m.startTime||m.endTime||m.plannedTime) ? ' · '+escapeHtml(fmtTimeRange(m.startTime||m.plannedTime, m.endTime)) : ''}${isPast && (m.status==='proposed'||m.status==='confirmed') ? ' · past due' : ''}</div>
         </div>
         <span class="stamp ${st.cls}">${st.label}</span>
       </div>
@@ -5250,12 +5257,14 @@ function openMeetingModal(){
     <select class="text-input" id="f_meetType">${MEETING_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('')}</select>
     <label class="field-label">Title / topic</label>
     <input class="text-input" id="f_meetTitle" placeholder="e.g. March group meeting presentation">
+    <label class="field-label">Planned date</label>
+    <input type="date" class="text-input" id="f_meetDate" value="${todayStr()}">
     <div class="two-col">
-      <div><label class="field-label">Planned date</label>
-        <input type="date" class="text-input" id="f_meetDate" value="${todayStr()}">
+      <div><label class="field-label">From (optional)</label>
+        <input type="time" class="text-input" id="f_meetStartTime">
       </div>
-      <div><label class="field-label">Planned time (optional)</label>
-        <input type="time" class="text-input" id="f_meetTime">
+      <div><label class="field-label">To (optional)</label>
+        <input type="time" class="text-input" id="f_meetEndTime">
       </div>
     </div>
     <label class="field-label">Agenda / discussion points (optional)</label>
@@ -5266,13 +5275,15 @@ async function submitMeeting(){
   const type = document.getElementById('f_meetType').value;
   const title = document.getElementById('f_meetTitle').value.trim();
   const plannedDate = document.getElementById('f_meetDate').value;
-  const plannedTime = document.getElementById('f_meetTime').value;
+  const startTime = document.getElementById('f_meetStartTime').value;
+  const endTime = document.getElementById('f_meetEndTime').value;
   const agenda = document.getElementById('f_meetAgenda').value.trim();
   if(!title || !plannedDate){ alert('Please add a title and planned date.'); return; }
+  if(startTime && endTime && endTime <= startTime){ alert('The "To" time must be after the "From" time.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
   if(!studentId){ alert('Add a research scholar first.'); return; }
   state.meetings.push({
-    id: uid('mtg'), studentId, type, title, plannedDate, plannedTime, agenda, outcomeNotes:'', minutes:[],
+    id: uid('mtg'), studentId, type, title, plannedDate, startTime, endTime, agenda, outcomeNotes:'', minutes:[],
     status: isSupervisorLike() ? 'confirmed' : 'proposed',
     lastUpdate: todayStr()
   });
@@ -5286,12 +5297,14 @@ function openConfirmMeetingModal(id){
   const m = state.meetings.find(x=>x.id===id);
   showModal('Confirm meeting', `
     <div class="view-sub" style="margin-bottom:10px;">${escapeHtml(m.title)} — requested by ${escapeHtml(studentName(m.studentId))}</div>
+    <label class="field-label">Date</label>
+    <input type="date" class="text-input" id="f_confirmDate" value="${m.plannedDate}">
     <div class="two-col">
-      <div><label class="field-label">Date</label>
-        <input type="date" class="text-input" id="f_confirmDate" value="${m.plannedDate}">
+      <div><label class="field-label">From (optional)</label>
+        <input type="time" class="text-input" id="f_confirmStartTime" value="${m.startTime||''}">
       </div>
-      <div><label class="field-label">Time (optional)</label>
-        <input type="time" class="text-input" id="f_confirmTime" value="${m.plannedTime||''}">
+      <div><label class="field-label">To (optional)</label>
+        <input type="time" class="text-input" id="f_confirmEndTime" value="${m.endTime||''}">
       </div>
     </div>
     <div class="view-sub" style="margin-top:8px;">Change the date or time here if the requested slot doesn't work — the scholar will see the confirmed time, not the originally requested one.</div>
@@ -5300,16 +5313,19 @@ function openConfirmMeetingModal(id){
 async function submitConfirmMeeting(id){
   const m = state.meetings.find(x=>x.id===id);
   const newDate = document.getElementById('f_confirmDate').value;
-  const newTime = document.getElementById('f_confirmTime').value;
+  const newStartTime = document.getElementById('f_confirmStartTime').value;
+  const newEndTime = document.getElementById('f_confirmEndTime').value;
   if(!newDate){ alert('Please set a date.'); return; }
-  const rescheduled = newDate !== m.plannedDate || newTime !== (m.plannedTime||'');
+  if(newStartTime && newEndTime && newEndTime <= newStartTime){ alert('The "To" time must be after the "From" time.'); return; }
+  const rescheduled = newDate !== m.plannedDate || newStartTime !== (m.startTime||'') || newEndTime !== (m.endTime||'');
   m.plannedDate = newDate;
-  m.plannedTime = newTime;
+  m.startTime = newStartTime;
+  m.endTime = newEndTime;
   m.status = 'confirmed';
   m.lastUpdate = todayStr();
   await saveCollection('meetings', state.meetings);
   if(rescheduled){
-    apiNotify('meetingRescheduled', { studentId: m.studentId, title: m.title, date: fmtDate(newDate), time: newTime ? fmtTime(newTime) : '' });
+    apiNotify('meetingRescheduled', { studentId: m.studentId, title: m.title, date: fmtDate(newDate), time: fmtTimeRange(newStartTime, newEndTime) });
   }
   closeModal(); renderView();
 }
