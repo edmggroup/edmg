@@ -843,9 +843,9 @@ function renderLogin(){
       <div class="login-sub">Weekly progress, characterization samples, and paper pipeline — tracked in one shared logbook. Each account is PIN-protected.</div>
       <label class="field-label">I am logging in as</label>
       <div class="role-row">
-        <button class="role-btn ${role==='supervisor'?'active':''}" onclick="chooseRole('supervisor')">Supervisor <small>Review reports, track the group</small></button>
-        <button class="role-btn ${role==='cosupervisor'?'active':''}" onclick="chooseRole('cosupervisor')">Advisor / Co-Supervisor <small>Review your assigned scholars</small></button>
-        <button class="role-btn ${role==='student'?'active':''}" onclick="chooseRole('student')">Research Scholar <small>Log progress, samples, papers</small></button>
+        <button class="role-btn ${role==='supervisor'?'active':''}" onclick="chooseRole('supervisor')" style="white-space:nowrap;">Supervisor</button>
+        <button class="role-btn ${role==='cosupervisor'?'active':''}" onclick="chooseRole('cosupervisor')" style="white-space:nowrap;">Advisor / Co-Supervisor</button>
+        <button class="role-btn ${role==='student'?'active':''}" onclick="chooseRole('student')" style="white-space:nowrap;">Research Scholar</button>
       </div>
       ${role==='supervisor' ? `
         ${supervisorPinHtml}
