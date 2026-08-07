@@ -91,7 +91,7 @@
   .login-card-wrap{ flex:1 1 480px; display:flex; align-items:center; justify-content:center; padding:40px 24px; }
   @keyframes loginFadeIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
   .login-card{
-    width:100%; max-width:440px; background:var(--surface); border:1px solid var(--border);
+    width:100%; max-width:600px; background:var(--surface); border:1px solid var(--border);
     border-radius:12px; box-shadow:var(--shadow-md); padding:40px 36px;
     animation: loginFadeIn .4s cubic-bezier(.2,.7,.3,1);
   }
@@ -116,7 +116,7 @@
     width:100%; padding:11px 13px; border:1px solid var(--border-strong); border-radius:7px; font-size:14.5px; color:var(--ink); background:var(--surface);
   }
   .text-input:focus, select:focus, textarea:focus{ outline:2px solid var(--navy); outline-offset:1px; border-color:var(--navy); }
-  .student-pick-list{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  .student-pick-list{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:8px; }
   .pick-chip{ padding:7px 13px; border-radius:20px; border:1px solid var(--border-strong); background:var(--surface); font-size:13px; font-weight:500; color:var(--ink-soft); }
   .pick-chip.active{ border-color:var(--navy); background:var(--navy); color:#fff; }
   .primary-btn{
@@ -743,7 +743,7 @@ function renderLogin(){
   if(role === 'student'){
     const picked = state.loginPickId && state.loginPickId!=='__new__' ? state.students.find(x=>x.id===state.loginPickId) : null;
     studentPickerHtml = `
-      <label class="field-label">Who are you?</label>
+      <label class="field-label">Select &amp; Sign-In with your User Name</label>
       <div class="student-pick-list" id="studentPickList">
         ${state.students.map(s => `<button type="button" class="pick-chip ${state.loginPickId===s.id?'active':''}" onclick="pickStudent('${s.id}')">${escapeHtml(s.name)}</button>`).join('')}
         <button type="button" class="pick-chip ${state.loginPickId==='__new__'?'active':''}" onclick="pickStudent('__new__')">+ New scholar</button>
@@ -813,7 +813,7 @@ function renderLogin(){
       coSupPickerHtml = `<div class="view-sub" style="margin-top:10px;">No mentors / co-supervisors / advisors have been added yet. Ask the supervisor to add you from Overview → Account → Mentor / Co-Supervisor / Advisor.</div>`;
     } else {
       coSupPickerHtml = `
-        <label class="field-label">Who are you?</label>
+        <label class="field-label">Select &amp; Sign-In with your User Name</label>
         <div class="student-pick-list" id="coSupPickList">
           ${state.coSupervisors.map(c => `<button type="button" class="pick-chip ${state.loginPickId===c.id?'active':''}" onclick="pickCoSupervisor('${c.id}')">${escapeHtml(c.name)}</button>`).join('')}
         </div>
