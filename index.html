@@ -2695,6 +2695,7 @@ function proposalCard(pr, i, total){
       ${pr.expectedOutcomes ? `<div class="entry-block" style="margin-top:10px;"><span class="lbl">Expected outcomes</span>${nl2br(pr.expectedOutcomes)}</div>` : ''}
       ${pr.supervisorNote ? `<div class="comment-box"><span class="lbl">${pr.reviewedByName ? `Feedback from ${escapeHtml(pr.reviewedByName)} (${escapeHtml(pr.reviewedByRole)}) on ${escapeHtml(pr.reviewedAt||'')}` : 'Supervisor feedback'}</span><div class="comment-existing">${nl2br(pr.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(pr)}
+      ${editHistoryHtml(pr)}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved plans are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${canReview_(pr) ? `<button class="small-btn" onclick="openProposalReviewBox('${pr.id}')">Review</button>` : (isSupervisorLike() && pr.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(pr.assignedReviewerName)} for review</span>` : '')}
@@ -2777,6 +2778,7 @@ async function submitEditProposal(id){
     await saveCollection('proposals', state.proposals);
     apiNotify('proposalSubmitted', { studentId: pr.studentId, title: pr.title });
   } else {
+    logStaffEdit_(pr, pr.title, 'proposal');
     await saveCollection('proposals', state.proposals);
   }
   closeModal(); renderView();
@@ -2982,6 +2984,7 @@ function thesisCard(tp, i, total){
 
       ${tp.supervisorNote ? `<div class="comment-box"><span class="lbl">${tp.reviewedByName ? `Feedback from ${escapeHtml(tp.reviewedByName)} (${escapeHtml(tp.reviewedByRole)}) on ${escapeHtml(tp.reviewedAt||'')}` : 'Supervisor feedback'}</span><div class="comment-existing">${nl2br(tp.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(tp)}
+      ${editHistoryHtml(tp)}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved thesis plans are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${canReview_(tp) ? `<button class="small-btn" onclick="openThesisReviewBox('${tp.id}')">Review</button>` : (isSupervisorLike() && tp.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(tp.assignedReviewerName)} for review</span>` : '')}
@@ -3044,6 +3047,7 @@ async function submitEditThesis(id){
     await saveCollection('thesis-plans', state.thesisPlans);
     apiNotify('thesisSubmitted', { studentId: tp.studentId, title: tp.title });
   } else {
+    logStaffEdit_(tp, tp.title, 'thesis');
     await saveCollection('thesis-plans', state.thesisPlans);
   }
   closeModal(); renderView();
@@ -3228,6 +3232,7 @@ function racCard(r, i, total){
       </div>
       ${r.supervisorNote ? `<div class="comment-box"><span class="lbl">${r.reviewedByName ? `Feedback from ${escapeHtml(r.reviewedByName)} (${escapeHtml(r.reviewedByRole)}) on ${escapeHtml(r.reviewedAt||'')}` : 'Supervisor feedback'}</span><div class="comment-existing">${nl2br(r.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(r)}
+      ${editHistoryHtml(r)}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved reviews are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${canReview_(r) ? `<button class="small-btn" onclick="openRacReviewBox('${r.id}')">Review</button>` : (isSupervisorLike() && r.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(r.assignedReviewerName)} for review</span>` : '')}
@@ -3311,6 +3316,7 @@ async function submitEditRac(id){
     await saveCollection('rac-reviews', state.racReviews);
     apiNotify('racSubmitted', { studentId: r.studentId, title: r.title });
   } else {
+    logStaffEdit_(r, r.title, 'rac');
     await saveCollection('rac-reviews', state.racReviews);
   }
   closeModal(); renderView();
@@ -3440,6 +3446,7 @@ function financialCard(f, i, total){
       </div>
       ${f.supervisorNote ? `<div class="comment-box"><span class="lbl">${f.reviewedByName ? `Note from ${escapeHtml(f.reviewedByName)} (${escapeHtml(f.reviewedByRole)}) on ${escapeHtml(f.reviewedAt||'')}` : 'Supervisor note'}</span><div class="comment-existing">${nl2br(f.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(f)}
+      ${editHistoryHtml(f)}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved applications are locked — you can still record the outcome, but contact your supervisor to change the application details.</div>` : ''}
       <div class="entry-actions">
         ${canEdit ? `<button class="small-btn" onclick="openEditFinancialModal('${f.id}')">Edit application</button>` : ''}
@@ -3525,6 +3532,7 @@ async function submitEditFinancial(id){
     await saveCollection('financial-applications', state.financialApps);
     apiNotify('financialSubmitted', { studentId: f.studentId, title: f.title });
   } else {
+    logStaffEdit_(f, f.title, 'financial');
     await saveCollection('financial-applications', state.financialApps);
   }
   closeModal(); renderView();
@@ -3640,6 +3648,7 @@ function courseCard(c, i, total){
       </div>
       ${c.supervisorNote ? `<div class="comment-box"><span class="lbl">${c.reviewedByName ? `Note from ${escapeHtml(c.reviewedByName)} (${escapeHtml(c.reviewedByRole)}) on ${escapeHtml(c.reviewedAt||'')}` : 'Supervisor note'}</span><div class="comment-existing">${nl2br(c.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(c)}
+      ${editHistoryHtml(c)}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${canReview_(c) ? `<button class="small-btn" onclick="openCourseReviewBox('${c.id}')">Review</button>` : (isSupervisorLike() && c.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(c.assignedReviewerName)} for review</span>` : '')}
@@ -3731,6 +3740,7 @@ async function submitEditCourse(id){
     await saveCollection('courses', state.courses);
     apiNotify('courseSubmitted', { studentId: c.studentId, title: c.title });
   } else {
+    logStaffEdit_(c, c.title, 'course');
     await saveCollection('courses', state.courses);
   }
   closeModal(); renderView();
@@ -3864,6 +3874,7 @@ function fabricationCard(it, i, total){
       </div>
       ${it.supervisorNote ? `<div class="comment-box"><span class="lbl">${it.reviewedByName ? `Note from ${escapeHtml(it.reviewedByName)} (${escapeHtml(it.reviewedByRole)}) on ${escapeHtml(it.reviewedAt||'')}` : 'Supervisor note'}</span><div class="comment-existing">${nl2br(it.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(it)}
+      ${editHistoryHtml(it)}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${(canManage || isOwner) ? `
@@ -3981,6 +3992,7 @@ async function submitEditFabrication(id){
     await saveCollection('fabrication-items', state.fabricationItems);
     apiNotify('fabricationSubmitted', { studentId: it.studentId, itemName: fabricationLabel(it) });
   } else {
+    logStaffEdit_(it, fabricationLabel(it), 'fabrication');
     await saveCollection('fabrication-items', state.fabricationItems);
   }
   closeModal(); renderView();
@@ -4095,6 +4107,30 @@ async function addAdditionalComment(type, id){
   const reviewer = reviewerIdentity(entry.studentId);
   apiNotify('additionalCommentAdded', { studentId: entry.studentId, title: titleForReviewable(type, entry), comment: text.trim(), addedByName: reviewer.name, addedByRole: reviewer.roleLabel, commenterId: state.identity.id });
   renderView();
+}
+// When the SUPERVISOR or a MENTOR edits a scholar's own work directly —
+// not a review, an actual content change — that's recorded here and
+// everyone connected to that scholar is notified: the scholar, the
+// supervisor (unless they're the one editing), and any other mentor
+// assigned to them. A scholar editing their own work is normal and isn't
+// flagged this way — only staff-made edits are.
+function logStaffEdit_(entry, title, type){
+  if(!isSupervisorLike()) return;
+  const editor = reviewerIdentity(entry.studentId);
+  if(!entry.editHistory) entry.editHistory = [];
+  entry.editHistory.push({ editedByName: editor.name, editedByRole: editor.roleLabel, editedAt: nowIST() });
+  apiNotify('workItemEdited', { studentId: entry.studentId, title, type, editedByName: editor.name, editedByRole: editor.roleLabel, commenterId: state.identity.id });
+}
+function editHistoryHtml(entry){
+  if(!entry.editHistory || entry.editHistory.length===0) return '';
+  return `
+    <div class="entry-block" style="margin-top:8px;">
+      <span class="lbl">Edited by staff (${entry.editHistory.length})</span>
+      <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">
+        ${entry.editHistory.slice().reverse().map(h=>`<div class="entry-meta">${escapeHtml(h.editedByName)} (${escapeHtml(h.editedByRole)}) on ${escapeHtml(h.editedAt)}</div>`).join('')}
+      </div>
+    </div>
+  `;
 }
 function pushStatusHistory_(entry, fromStatus, toStatus, studentIdOverride){
   if(!entry.statusHistory) entry.statusHistory = [];
@@ -4224,6 +4260,7 @@ function weeklyCard(w, i, total){
         <div class="comment-box"><span class="lbl">${w.reviewedByName ? `Feedback from ${escapeHtml(w.reviewedByName)} (${escapeHtml(w.reviewedByRole)}) on ${escapeHtml(w.reviewedAt||'')}` : 'Supervisor feedback'}</span><div class="comment-existing">${nl2br(w.supervisorComment)}</div></div>
       ` : ''}
       ${reviewHistoryHtml(w)}
+      ${editHistoryHtml(w)}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">${w.status==='approved' ? 'Approved entries are locked' : 'This week has ended, so this entry is locked'} — ask your supervisor to request changes if this needs to be corrected.</div>` : ''}
       <div class="entry-actions">
         ${canReview_(w) ? `<button class="small-btn" onclick="openReviewBox('${w.id}')">Review</button>` : (isSupervisorLike() && w.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(w.assignedReviewerName)} for review</span>` : '')}
@@ -4416,6 +4453,7 @@ async function submitEditWeekly(id){
     await saveCollection('weekly-reports', state.weekly);
     apiNotify('weeklySubmitted', { studentId: w.studentId, weekStart, workDone });
   } else {
+    logStaffEdit_(w, `Week of ${fmtDate(w.weekStart)}`, 'weekly');
     await saveCollection('weekly-reports', state.weekly);
   }
   closeModal(); renderView();
@@ -4494,6 +4532,7 @@ function sampleCard(s, i, total){
       </div>
       ${s.supervisorNote ? `<div class="comment-box"><span class="lbl">${s.reviewedByName ? `Note from ${escapeHtml(s.reviewedByName)} (${escapeHtml(s.reviewedByRole)}) on ${escapeHtml(s.reviewedAt||'')}` : 'Supervisor note'}</span><div class="comment-existing">${nl2br(s.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(s)}
+      ${editHistoryHtml(s)}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved submissions are locked — you can still log results, but contact your supervisor to change the submission details.</div>` : ''}
       <div class="entry-actions">
         ${canEditSubmission ? `<button class="small-btn" onclick="openEditSampleModal('${s.id}')">Edit submission</button>` : ''}
@@ -4671,6 +4710,7 @@ async function submitEditSample(id){
     await saveCollection('samples', state.samples);
     apiNotify('sampleSubmitted', { studentId: s.studentId, sampleName: s.sampleName, technique: s.technique });
   } else {
+    logStaffEdit_(s, s.sampleName, 'sample');
     await saveCollection('samples', state.samples);
   }
   closeModal(); renderView();
@@ -4778,6 +4818,7 @@ function analysisCard(a, i, total){
       ` : ''}
       ${a.supervisorNote ? `<div class="comment-box"><span class="lbl">${a.reviewedByName ? `Note from ${escapeHtml(a.reviewedByName)} (${escapeHtml(a.reviewedByRole)}) on ${escapeHtml(a.reviewedAt||'')}` : 'Supervisor note'}</span><div class="comment-existing">${nl2br(a.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(a)}
+      ${editHistoryHtml(a)}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${(canManage || isOwner) ? `
@@ -4909,6 +4950,7 @@ async function submitEditAnalysis(id){
     await saveCollection('results-analysis', state.resultsAnalysis);
     apiNotify('analysisSubmitted', { studentId: a.studentId, title: a.title });
   } else {
+    logStaffEdit_(a, a.title, 'analysis');
     await saveCollection('results-analysis', state.resultsAnalysis);
   }
   closeModal(); renderView();
@@ -5066,6 +5108,7 @@ function paperCard(p, i, total){
       </div>
       ${p.supervisorNote ? `<div class="comment-box"><span class="lbl">${p.reviewedByName ? `Note from ${escapeHtml(p.reviewedByName)} (${escapeHtml(p.reviewedByRole)}) on ${escapeHtml(p.reviewedAt||'')}` : 'Supervisor note'}</span><div class="comment-existing">${nl2br(p.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(p)}
+      ${editHistoryHtml(p)}
       <div class="entry-meta" style="margin-top:8px;">Last updated ${fmtDate(p.lastUpdate)}</div>
       ${locked ? `<div class="entry-meta" style="margin-top:6px;">Published papers are locked — contact your supervisor for any changes.</div>` : ''}
       ${hasPending ? `
@@ -5265,6 +5308,10 @@ async function saveEditPaperDetails(id){
   } else {
     p.detailsHistory.push({ changedBy: state.identity.name, changedAt: todayStr(), status: 'applied', dateLabel, summary });
     Object.assign(p, proposedValues);
+    if(isSupervisorLike() && wasAlreadyEstablished){
+      const editor = reviewerIdentity(p.studentId);
+      apiNotify('workItemEdited', { studentId: p.studentId, title: p.title, type: 'paper', editedByName: editor.name, editedByRole: editor.roleLabel, commenterId: state.identity.id });
+    }
   }
   p.lastUpdate = todayStr();
   await saveCollection('papers', state.papers);
@@ -5394,6 +5441,7 @@ function conferenceCard(c, i, total){
       </div>
       ${c.supervisorNote ? `<div class="comment-box"><span class="lbl">${c.reviewedByName ? `Note from ${escapeHtml(c.reviewedByName)} (${escapeHtml(c.reviewedByRole)}) on ${escapeHtml(c.reviewedAt||'')}` : 'Supervisor note'}</span><div class="comment-existing">${nl2br(c.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(c)}
+      ${editHistoryHtml(c)}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${canReview_(c) ? `<button class="small-btn" onclick="openConferenceReviewBox('${c.id}')">Review</button>` : (isSupervisorLike() && c.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(c.assignedReviewerName)} for review</span>` : '')}
@@ -5485,6 +5533,7 @@ async function submitEditConference(id){
     await saveCollection('conferences', state.conferences);
     apiNotify('conferenceSubmitted', { studentId: c.studentId, eventName: c.eventName });
   } else {
+    logStaffEdit_(c, c.eventName, 'conference');
     await saveCollection('conferences', state.conferences);
   }
   closeModal(); renderView();
