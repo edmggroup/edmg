@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Energy Devices and Materials Group — Research Logbook</title>
 <meta name="description" content="Weekly progress, characterization tracking, and paper pipeline management for research groups.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RG Logbook">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -907,7 +915,7 @@ async function doLogin(){
       const newS = { id: uid('stu'), name, email, pinHash };
       state.students.push(newS);
       await saveCollection('students', state.students);
-      apiNotify('newStudent', { name });
+      apiNotify('newStudent', { name, studentId: newS.id });
       state.identity = { role:'student', id:newS.id, name:newS.name };
       showApp();
     } else if(state.loginPickId){
@@ -981,7 +989,7 @@ function switchUser(){
 function showApp(){
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appShell').style.display='block';
-  const roleLabel = state.identity.role === 'supervisor' ? 'Supervisor' : state.identity.role === 'cosupervisor' ? 'Mentor / Co-Supervisor / Advisor' : 'Research Scholar';
+  const roleLabel = state.identity.role === 'supervisor' ? 'Supervisor' : state.identity.role === 'cosupervisor' ? 'Advisor / Co-Supervisor' : 'Research Scholar';
   document.getElementById('identityBadge').innerHTML = `<b>${escapeHtml(state.identity.name)}</b> · ${roleLabel}`;
   renderSidebar();
   renderView();
@@ -1782,7 +1790,7 @@ function accessSection(){
 
 function coSupervisorAdminSection(){
   return `
-    <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Mentor / Co-Supervisor / Advisor</h3>
+    <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Advisor / Co-Supervisor</h3>
     <div class="entry-card">
       <div class="entry-block" style="margin-bottom:14px;">Add a mentor and assign them to specific research scholars — they'll see and can review only those scholars' entries, nothing else in the group.</div>
       ${state.coSupervisors.length===0 ? `<div class="entry-meta" style="margin-bottom:10px;">No mentors added yet.</div>` :
@@ -1791,7 +1799,7 @@ function coSupervisorAdminSection(){
             <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
               <span style="font-size:13.5px; font-weight:600;">${escapeHtml(c.name)} <span class="entry-meta" style="font-weight:400;">${escapeHtml(c.email||'no email on file')}</span></span>
               <div style="display:flex; gap:6px;">
-                <button class="small-btn" onclick="openEditCoSupAssignmentModal('${c.id}')">Edit students</button>
+                <button class="small-btn" onclick="openEditCoSupAssignmentModal('${c.id}')">Edit scholars &amp; alerts</button>
                 <button class="small-btn" onclick="openResetCoSupPinModal('${c.id}')">Reset PIN</button>
                 <button class="small-btn danger" onclick="removeCoSupervisor('${c.id}')">Remove</button>
               </div>
@@ -1799,6 +1807,7 @@ function coSupervisorAdminSection(){
             <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px;">
               ${(c.assignedStudentIds||[]).length===0 ? `<span class="entry-meta">No students assigned yet</span>` :
                 c.assignedStudentIds.map(sid=>`<span class="stamp neutral">${escapeHtml(studentName(sid))}</span>`).join('')}
+              ${c.notifySubmissions ? `<span class="stamp good">Submission alerts on</span>` : ''}
             </div>
           </div>
         `).join('')}
@@ -1823,15 +1832,20 @@ function openAddCoSupervisorModal(){
         </label>
       `).join('')}
     </div>
+    <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; margin-top:14px;">
+      <input type="checkbox" id="f_coSupNotify"> Email this mentor when their assigned scholars submit something new for approval
+    </label>
+    <div class="view-sub" style="margin-top:4px;">Optional — off by default. This is separate from review notifications, which the mentor already gets whenever they approve or request changes on their own.</div>
   `, submitAddCoSupervisor);
 }
 async function submitAddCoSupervisor(){
   const name = document.getElementById('f_coSupName').value.trim();
   const email = document.getElementById('f_coSupEmail').value.trim();
   const assignedStudentIds = Array.from(document.querySelectorAll('.coSupStudentCheck:checked')).map(el=>el.value);
+  const notifySubmissions = document.getElementById('f_coSupNotify').checked;
   if(!name){ alert('Please enter a name.'); return; }
   if(!isValidEmail(email)){ alert('Please enter a valid email address.'); return; }
-  state.coSupervisors.push({ id: uid('cos'), name, email, pinHash: null, assignedStudentIds });
+  state.coSupervisors.push({ id: uid('cos'), name, email, pinHash: null, assignedStudentIds, notifySubmissions });
   await saveCollection('co-supervisors', state.coSupervisors);
   closeModal(); renderView();
 }
@@ -1845,11 +1859,16 @@ function openEditCoSupAssignmentModal(id){
         </label>
       `).join('')}
     </div>
+    <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; margin-top:14px;">
+      <input type="checkbox" id="f_coSupNotifyEdit" ${c.notifySubmissions?'checked':''}> Email this mentor when their assigned scholars submit something new for approval
+    </label>
+    <div class="view-sub" style="margin-top:4px;">Optional — off by default. This is separate from review notifications, which the mentor already gets whenever they approve or request changes on their own.</div>
   `, ()=>submitEditCoSupAssignment(id));
 }
 async function submitEditCoSupAssignment(id){
   const c = state.coSupervisors.find(x=>x.id===id);
   c.assignedStudentIds = Array.from(document.querySelectorAll('.coSupEditCheck:checked')).map(el=>el.value);
+  c.notifySubmissions = document.getElementById('f_coSupNotifyEdit').checked;
   await saveCollection('co-supervisors', state.coSupervisors);
   closeModal(); renderView();
 }
@@ -1966,7 +1985,7 @@ function downloadBackup(){
     resultsAnalysis: scopedList(state.resultsAnalysis),
     instructions: scopedList(state.instructions),
     meetings: scopedList(state.meetings),
-    coSupervisors: isSupervisor ? state.coSupervisors.map(c=>({id:c.id, name:c.name, email:c.email||'', assignedStudentIds:c.assignedStudentIds||[]})) : undefined
+    coSupervisors: isSupervisor ? state.coSupervisors.map(c=>({id:c.id, name:c.name, email:c.email||'', assignedStudentIds:c.assignedStudentIds||[], notifySubmissions:!!c.notifySubmissions})) : undefined
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
   const url = URL.createObjectURL(blob);
@@ -6006,6 +6025,11 @@ function showModal(title, bodyHtml, onSubmit){
 function closeModal(){ document.getElementById('modalRoot').innerHTML = ''; }
 
 /* ============================ START ============================ */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => { /* offline shell just won't be available — the app still works online */ });
+  });
+}
 init();
 </script>
 </body>
