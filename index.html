@@ -1207,6 +1207,9 @@ function reviewerIdentity(studentId){
   if(state.identity.role === 'supervisor'){
     return { name: state.identity.name, roleLabel: 'Research Supervisor' };
   }
+  if(state.identity.role === 'student'){
+    return { name: state.identity.name, roleLabel: 'Research Scholar' };
+  }
   const me = myCoSupervisorRecord();
   const assignment = me ? mentorAssignments_(me).find(a=>a.studentId===studentId) : null;
   return { name: state.identity.name, roleLabel: (assignment && assignment.category) || (me && me.category) || 'Co-Supervisor' };
