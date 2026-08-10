@@ -68,14 +68,19 @@
      (10 rows × ~34px) before the box itself takes over scrolling for the
      rest — a plain scrollable list rather than an auto-animating marquee,
      since links need to be readable and clickable, not flying past. */
-  .news-ticker{ width:100%; height:340px; overflow:hidden; background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:0; }
+  .news-ticker{ width:100%; height:340px; overflow:hidden; margin-bottom:0; }
   .news-ticker.compact{ height:auto; max-height:340px; }
   .news-ticker-track{ display:flex; flex-direction:column; }
   .news-ticker-track.animated{ animation: newsTickerScrollUp linear infinite; }
   .news-ticker:hover .news-ticker-track.animated{ animation-play-state:paused; }
   @keyframes newsTickerScrollUp{ from{ transform:translateY(0); } to{ transform:translateY(-50%); } }
-  .news-ticker-item{ display:block; padding:9px 18px; color:var(--ink); font-size:13.5px; border-bottom:1px solid var(--border); }
-  .news-ticker-item:last-child{ border-bottom:none; }
+  .news-ticker-item{ display:block; padding:9px 4px; color:var(--ink); font-size:13.5px; }
+  .watch-clock{
+    background:linear-gradient(135deg, var(--navy), var(--navy-dark)); color:#fff; border-radius:12px;
+    padding:14px 22px; text-align:center; margin:0 auto 14px; box-shadow:var(--shadow-md);
+    width:fit-content; max-width:100%;
+  }
+  .watch-clock #rightColClock{ font-size:19px; font-weight:600; letter-spacing:.01em; }
   button{ font-family:'Roboto', sans-serif; cursor:pointer; }
   input,select,textarea{ font-family:'Roboto', sans-serif; }
   ::selection{ background:var(--navy-wash); }
@@ -1293,7 +1298,7 @@ function newsTickerHtml(){
     </div>
   `;
   return `
-    <div class="entry-card compact-card" style="margin-bottom:14px; padding:12px 16px;">
+    <div style="margin-bottom:14px;">
       <h3 class="panel-title" style="margin:0;">Latest News Update.</h3>
       ${items.length===0 ? `<div class="entry-meta" style="margin-top:6px;">Nothing posted yet.</div>` : `
         <div class="news-ticker ${needsScroll?'':'compact'}" style="margin-top:10px; margin-bottom:0;">
@@ -1877,7 +1882,9 @@ function viewOverview(){
       </div>
       </div>
       <div>
-        <div id="rightColClock" class="mono" style="font-size:13px; color:var(--ink-soft); text-align:right; margin-bottom:10px;">⌚ ${nowISTWithSeconds()}</div>
+        <div class="watch-clock">
+          <div id="rightColClock" class="mono">⌚ ${nowISTWithSeconds()}</div>
+        </div>
         ${newsTickerHtml()}
       </div>
     </div>
