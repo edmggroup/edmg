@@ -162,6 +162,23 @@
   .brand-name{ font-family:'Roboto', sans-serif; font-weight:600; font-size:17px; letter-spacing:-0.005em; color:#fff; line-height:1.2; }
   .brand-subtitle{ font-size:11px; font-weight:500; letter-spacing:.03em; color:rgba(255,255,255,0.55); margin-top:1px; }
   .identity-pill{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:flex-end; }
+  .topbar-search{ position:relative; flex:1; max-width:340px; margin:0 20px; }
+  .topbar-search input{
+    width:100%; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.18); border-radius:8px;
+    padding:8px 12px; font-size:13px; color:#fff;
+  }
+  .topbar-search input::placeholder{ color:rgba(255,255,255,0.5); }
+  .topbar-search input:focus{ background:rgba(255,255,255,0.16); outline:none; }
+  .search-results-panel{
+    display:none; position:absolute; top:calc(100% + 6px); left:0; width:100%; max-height:400px; overflow-y:auto;
+    background:var(--surface); border:1px solid var(--border); border-radius:10px; box-shadow:var(--shadow-md); z-index:200;
+  }
+  .search-results-panel.open{ display:block; }
+  .search-result-item{ display:block; width:100%; text-align:left; padding:9px 14px; border-top:1px solid var(--border); cursor:pointer; }
+  .search-result-item:first-child{ border-top:none; }
+  .search-result-item:hover{ background:var(--bg); }
+  .search-result-title{ font-size:13px; font-weight:600; color:var(--ink); }
+  .search-result-meta{ font-size:11.5px; color:var(--ink-faint); margin-top:1px; }
   .identity-badge{ font-size:13.5px; padding:6px 13px; border-radius:20px; background:rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(255,255,255,0.14); }
   .identity-badge b{ font-weight:600; }
   .switch-link{ font-size:12.5px; color:rgba(255,255,255,0.65); background:none; border:none; text-decoration:none; padding:4px; font-weight:500; }
@@ -398,7 +415,12 @@
       </div>
       <span style="font-size:10.5px; color:rgba(255,255,255,0.45); font-weight:600; letter-spacing:.04em; border:1px solid rgba(255,255,255,0.2); border-radius:4px; padding:1px 6px;">v1.0</span>
     </div>
+    <div class="topbar-search">
+      <input type="text" id="globalSearchInput" placeholder="Search everything…" autocomplete="off" oninput="handleGlobalSearch(this.value)" onfocus="handleGlobalSearch(this.value)">
+      <div id="globalSearchResults" class="search-results-panel"></div>
+    </div>
     <div class="identity-pill">
+      <button class="switch-link" onclick="openHelpModal()">? Help</button>
       <span class="identity-badge" id="identityBadge"></span>
       <button class="switch-link" onclick="switchUser()">switch user</button>
     </div>
@@ -679,6 +701,7 @@ function applyDataValues(values){
   state.supervisorPinHash = supervisorProfile.hash || null;
   state.supervisorEmail = supervisorProfile.email || null;
   state.supervisorName = supervisorProfile.name || null;
+  state.supervisorNotifyPrefs = supervisorProfile.notifyPrefs || {};
 }
 const LOCAL_CACHE_KEY = 'rgms-data-cache-v1';
 function loadLocalCache(){
@@ -777,7 +800,7 @@ function renderLogin(){
     studentPickerHtml = `
       <label class="field-label">Select &amp; Sign-In with your User Name</label>
       <div class="student-pick-list" id="studentPickList">
-        ${state.students.map(s => `<button type="button" class="pick-chip ${state.loginPickId===s.id?'active':''}" onclick="pickStudent('${s.id}')">${escapeHtml(s.name)}</button>`).join('')}
+        ${state.students.filter(s=>!s.frozen).map(s => `<button type="button" class="pick-chip ${state.loginPickId===s.id?'active':''}" onclick="pickStudent('${s.id}')">${escapeHtml(s.name)}</button>`).join('')}
         <button type="button" class="pick-chip ${state.loginPickId==='__new__'?'active':''}" onclick="pickStudent('__new__')">+ New scholar</button>
       </div>
       ${state.loginPickId==='__new__' ? `
@@ -841,13 +864,14 @@ function renderLogin(){
   let coSupPickerHtml = '';
   if(role === 'cosupervisor'){
     const picked = state.loginPickId ? state.coSupervisors.find(x=>x.id===state.loginPickId) : null;
-    if(state.coSupervisors.length === 0){
+    const activeCoSups = state.coSupervisors.filter(c=>!c.frozen);
+    if(activeCoSups.length === 0){
       coSupPickerHtml = '';
     } else {
       coSupPickerHtml = `
         <label class="field-label">Select &amp; Sign-In with your User Name</label>
         <div class="student-pick-list" id="coSupPickList">
-          ${state.coSupervisors.map(c => `<button type="button" class="pick-chip ${state.loginPickId===c.id?'active':''}" onclick="pickCoSupervisor('${c.id}')">${escapeHtml(c.name)}</button>`).join('')}
+          ${activeCoSups.map(c => `<button type="button" class="pick-chip ${state.loginPickId===c.id?'active':''}" onclick="pickCoSupervisor('${c.id}')">${escapeHtml(c.name)}</button>`).join('')}
         </div>
         ${picked && picked.pinHash ? `
           <label class="field-label">Enter your PIN</label>
@@ -905,7 +929,7 @@ async function doLogin(){
         const email = (document.getElementById('supervisorEmailInput')?.value || '').trim();
         if(!isValidEmail(email)){ state.loginError = 'Please enter a valid email address.'; renderLogin(); return; }
         state.supervisorEmail = email;
-        await saveSupervisorProfile({ hash: state.supervisorPinHash, email, name: state.supervisorName });
+        await saveSupervisorProfile({ hash: state.supervisorPinHash, email, name: state.supervisorName, notifyPrefs: state.supervisorNotifyPrefs });
       }
     } else {
       const setupKey = document.getElementById('supervisorSetupKey')?.value || '';
@@ -920,7 +944,7 @@ async function doLogin(){
       state.supervisorPinHash = hash;
       state.supervisorEmail = email;
       state.supervisorName = name;
-      await saveSupervisorProfile({ hash, email, name });
+      await saveSupervisorProfile({ hash, email, name, notifyPrefs: state.supervisorNotifyPrefs });
     }
     state.identity = { role:'supervisor', id:'supervisor', name: state.supervisorName || 'Supervisor' };
     showApp();
@@ -944,6 +968,7 @@ async function doLogin(){
       showApp();
     } else if(state.loginPickId){
       const s = state.students.find(x=>x.id===state.loginPickId);
+      if(s.frozen){ state.loginError = 'This account has been frozen by your supervisor. Contact them if you believe this is a mistake.'; renderLogin(); return; }
       if(s.pinHash){
         const pin = document.getElementById('existingStudentPin')?.value || '';
         if(!pin){ state.loginError = 'Please enter your PIN.'; renderLogin(); return; }
@@ -976,6 +1001,7 @@ async function doLogin(){
     }
     const c = state.coSupervisors.find(x=>x.id===state.loginPickId);
     if(!c){ state.loginError = 'That account could not be found.'; renderLogin(); return; }
+    if(c.frozen){ state.loginError = 'This account has been frozen by the supervisor. Contact them if you believe this is a mistake.'; renderLogin(); return; }
     if(c.pinHash){
       const pin = document.getElementById('existingCoSupPin')?.value || '';
       if(!pin){ state.loginError = 'Please enter your PIN.'; renderLogin(); return; }
@@ -1000,6 +1026,42 @@ async function doLogin(){
     state.loginError = 'Please choose whether you are the supervisor, a mentor, or a research scholar.';
     renderLogin();
   }
+}
+function openHelpModal(){
+  const role = state.identity.role;
+  let body = '';
+  if(role==='student'){
+    body = `
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <div><b>How approval works</b><br>Almost everything you log — weekly plans, samples, papers, and more — starts as "Pending Approval." Your supervisor or an assigned mentor reviews it and either approves it or requests changes. You can freely edit anything before it's approved.</div>
+        <div><b>Once something is approved</b><br>It locks — you can't edit it further yourself. If it needs correcting after that, ask your supervisor or mentor to "Request changes," which reopens it for you.</div>
+        <div><b>Weekly Plan</b><br>Once a week's entry is logged and its week has ended, it locks the same way — even if it's still pending. This keeps the log honest as a record of what actually happened.</div>
+        <div><b>Linking your work</b><br>Many sections let you link related items — a weekly update to a paper, a sample to a Lab Work "sample code," and so on. This isn't required, but it makes your progress much easier to trace later.</div>
+        <div><b>Notifications</b><br>You'll get an email whenever your work is reviewed, edited by staff, or deleted. Your supervisor controls which of these you receive — this isn't something you can turn off yourself, so nothing important gets missed by accident.</div>
+      </div>
+    `;
+  } else if(role==='cosupervisor'){
+    body = `
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <div><b>Your role</b><br>You can see and review entries only for the research scholars specifically assigned to you — nothing else in the group. The supervisor sets your category (Advisor or Co-Supervisor) per scholar, so you can hold a different one for each.</div>
+        <div><b>Reviewing work</b><br>Approve, request changes, or add an additional comment on anything a scholar submits. If the supervisor has assigned a specific item to you directly, only you (or the supervisor) can act on it — otherwise, any mentor connected to that scholar can.</div>
+        <div><b>Notifications</b><br>The supervisor controls which emails you receive — including submission alerts and review-assignment notices — from the mentor list in their Account page. This isn't something you can turn off yourself.</div>
+        <div><b>Editing on a scholar's behalf</b><br>If you log or edit something directly for a scholar, they and the supervisor are both notified, and it's recorded with your name and the time.</div>
+      </div>
+    `;
+  } else {
+    body = `
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <div><b>The Pending Approval queue</b><br>Every item across the whole group waiting on a decision, in one place — oldest first. You can approve several at once with "Select all" for the simpler sections, or assign a specific item to a specific mentor so it's clear who's responsible.</div>
+        <div><b>Mentors &amp; Advisors</b><br>Add them in Account, and assign each one to specific scholars with a category (Advisor or Co-Supervisor) that can differ per scholar. You can freeze a mentor's or scholar's login once their time with the group ends — their data stays, they just can't log in anymore.</div>
+        <div><b>Notification control</b><br>You decide which emails each scholar and mentor receives — click "Notifications" next to their name. This is deliberately not self-serve: a scholar or mentor muting their own review feedback would defeat the purpose of the workflow, so you're the one who controls it.</div>
+        <div><b>Nothing is ever overwritten</b><br>Every review, edit, and status change is recorded as a new entry in that item's history — nothing replaces what came before. The full trail is visible on each item, and exportable from Account → Activity Log.</div>
+        <div><b>Deletion</b><br>Only you can permanently delete an entry, and it always requires a reason — logged, and the scholar is notified.</div>
+        <div><b>Backups</b><br>A full backup downloads on demand from Account, and — once you run the one-time setup in the Apps Script editor — the backend also backs itself up automatically once a day.</div>
+      </div>
+    `;
+  }
+  showModal('How this works', body, closeModal);
 }
 function switchUser(){
   state.identity = null;
@@ -1062,7 +1124,7 @@ const NAV_ITEM_COLORS = {
   proposal:'var(--stat-indigo)', thesis:'var(--stat-purple)',
   weekly:'var(--stat-blue)', fabrication:'var(--stat-teal)', samples:'var(--stat-cyan)', resultsAnalysis:'var(--stat-rose)', papers:'var(--stat-purple)',
   rac:'var(--stat-rose)', learning:'var(--stat-blue)', financial:'var(--stat-teal)', conferences:'var(--stat-rose)',
-  meetings:'var(--stat-indigo)', events:'var(--stat-purple)', instructions:'var(--navy)', links:'var(--stat-teal)', reports:'var(--navy)', account:'var(--ink-faint)'
+  meetings:'var(--stat-indigo)', events:'var(--stat-purple)', instructions:'var(--navy)', links:'var(--stat-teal)', analytics:'var(--stat-blue)', reports:'var(--navy)', account:'var(--ink-faint)'
 };
 const NAV_GROUPS = [
   { items: [
@@ -1093,6 +1155,7 @@ const NAV_GROUPS = [
     { key:'events', label:'Events' },
     { key:'instructions', label:'Instructions' },
     { key:'links', label:'News Update' },
+    { key:'analytics', label:'Analytics', supervisorOnly:true },
     { key:'reports', label:'Reports' },
     { key:'account', label:'Account' },
   ]},
@@ -1113,6 +1176,7 @@ function renderView(){
   const main = document.getElementById('main');
   if(state.view==='overview'){ main.innerHTML = viewOverview(); startLiveClock(); }
   else if(state.view==='links') main.innerHTML = viewLinks();
+  else if(state.view==='analytics') main.innerHTML = viewAnalytics();
   else if(state.view==='approvals') main.innerHTML = viewApprovals();
   else if(state.view==='changesRequested') main.innerHTML = viewChangesRequested();
   else if(state.view==='calendar') main.innerHTML = viewCalendar();
@@ -1259,13 +1323,95 @@ function startLiveClock(){
 // can post and everyone sees. Deliberately lightweight: no approval
 // workflow, no email notifications, just a quick share visible on the
 // dashboard for everyone.
+function viewAnalytics(){
+  const activity = buildFullActivityLog_();
+  const monthKeys = [];
+  for(let i=5;i>=0;i--){
+    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-i);
+    monthKeys.push({ key: d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'), label: d.toLocaleDateString('en-GB',{month:'short'}) });
+  }
+  const byMonth = monthKeys.map(mk => ({
+    label: mk.label,
+    count: activity.filter(r => { const t = parseISTTimestamp_(r.date); if(!t) return false; const d=new Date(t); return (d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'))===mk.key; }).length
+  }));
+  const maxCount = Math.max(1, ...byMonth.map(m=>m.count));
+
+  const papers = scopedList(state.papers);
+  const paperStageCounts = {};
+  papers.forEach(p => { paperStageCounts[p.stage] = (paperStageCounts[p.stage]||0) + 1; });
+
+  const scholars = visibleStudentsForIdentity();
+  const scholarLoad = scholars.map(s => {
+    let pending = 0, approved = 0, changes = 0;
+    Object.keys(REVIEWABLE_COLLECTIONS).forEach(type => {
+      REVIEWABLE_COLLECTIONS[type].list().filter(e=>e.studentId===s.id).forEach(e => {
+        const status = e.status || e.approvalStatus;
+        if(status==='pending') pending++;
+        else if(status==='approved') approved++;
+        else if(status==='changes_requested') changes++;
+      });
+    });
+    return { name: s.name, pending, approved, changes };
+  }).sort((a,b)=>b.pending-a.pending);
+
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Analytics</div>
+        <div class="view-sub">Activity trends and workload across the group — a snapshot, not a substitute for the detailed sections themselves.</div>
+      </div>
+    </div>
+
+    <h3 class="panel-title"><span class="dot" style="background:var(--stat-blue);"></span>Activity by month</h3>
+    <div class="entry-card compact-card" style="margin-bottom:18px;">
+      <div class="entry-meta" style="margin-bottom:8px;">Review decisions, edits, and deletions logged per month (last 6 months)</div>
+      <div style="display:flex; align-items:flex-end; gap:10px; height:90px;">
+        ${byMonth.map(m=>`
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; justify-content:flex-end;">
+            <div class="entry-meta mono" style="font-size:11px;">${m.count||''}</div>
+            <div style="width:100%; max-width:34px; height:${Math.max(4, (m.count/maxCount)*64)}px; background:var(--stat-blue); border-radius:4px 4px 0 0; opacity:${m.count===0?0.25:1};"></div>
+            <div class="entry-meta" style="font-size:11px;">${m.label}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="two-col-panels">
+      <div>
+        <h3 class="panel-title"><span class="dot" style="background:var(--stat-purple);"></span>Papers by stage</h3>
+        <div class="entry-card compact-card" style="margin-bottom:18px;">
+          ${papers.length===0 ? `<div class="entry-meta">No papers logged yet.</div>` :
+            PAPER_STAGES.map(stage=>`
+              <div style="display:flex; align-items:center; gap:10px; padding:5px 0;">
+                <span style="flex:1; font-size:13px;">${escapeHtml(stage)}</span>
+                <span style="font-weight:700; font-size:13px;">${paperStageCounts[stage]||0}</span>
+              </div>
+            `).join('')}
+        </div>
+      </div>
+      <div>
+        <h3 class="panel-title"><span class="dot" style="background:var(--warning);"></span>Approval workload by scholar</h3>
+        <div class="entry-card compact-card" style="margin-bottom:18px;">
+          ${scholarLoad.length===0 ? `<div class="entry-meta">No research scholars yet.</div>` :
+            scholarLoad.map(s=>`
+              <div style="display:flex; align-items:center; gap:10px; padding:5px 0;">
+                <span style="flex:1; font-size:13px;">${escapeHtml(s.name)}</span>
+                <span class="stamp ${s.pending>0?'warn':'good'}" style="font-size:11px;">${s.pending} pending</span>
+                <span class="entry-meta" style="font-size:11px;">${s.approved} approved</span>
+              </div>
+            `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
 function viewLinks(){
   const items = state.newsUpdates.slice().sort((a,b)=> (b.postedAt||'').localeCompare(a.postedAt||''));
   return `
     <div class="view-header">
       <div>
         <div class="view-title">News Update</div>
-        <div class="view-sub">Shared news items, magazine articles, and links for the whole group — anyone can post one, everyone sees it. Also shown as a scrolling box on the Overview dashboard.</div>
+        <div class="view-sub">Shared news items, magazine articles, and links for the whole group — anyone can post one, everyone sees it here and as a scrolling box on the Overview dashboard. The supervisor can freeze an item to pull it out of the dashboard scroll without deleting it — frozen items still show here.</div>
       </div>
       <button class="action-btn" onclick="openAddNewsModal()">+ Add link</button>
     </div>
@@ -1277,9 +1423,11 @@ function viewLinks(){
               <a href="${escapeHtml(n.link)}" target="_blank" rel="noopener" class="entry-title" style="text-decoration:none; display:inline-block;">${escapeHtml(n.text)}</a>
               <div class="entry-meta">${escapeHtml(n.postedByName)} (${escapeHtml(n.postedByRole)}) — ${escapeHtml(n.postedAt)}</div>
             </div>
+            ${n.frozen ? `<span class="stamp neutral">Frozen — not on dashboard</span>` : ''}
           </div>
           <div class="entry-actions">
             <a class="small-btn" href="${escapeHtml(n.link)}" target="_blank" rel="noopener">Open ↗</a>
+            ${isTrueSupervisor() ? `<button class="small-btn" onclick="toggleFreezeNews('${n.id}')">${n.frozen ? 'Unfreeze' : 'Freeze'}</button>` : ''}
             ${(isTrueSupervisor() || n.postedById===state.identity.id) ? `<button class="small-btn danger" onclick="deleteNewsUpdate('${n.id}')">Remove</button>` : ''}
           </div>
         </div>
@@ -1287,7 +1435,7 @@ function viewLinks(){
   `;
 }
 function newsTickerHtml(){
-  const items = state.newsUpdates.slice().sort((a,b)=> (b.postedAt||'').localeCompare(a.postedAt||''));
+  const items = state.newsUpdates.filter(n=>!n.frozen).sort((a,b)=> (b.postedAt||'').localeCompare(a.postedAt||''));
   // Roughly how many rows fit in the 340px box before it's worth animating —
   // below that, items are just listed normally with no motion; at or above
   // it, the list scrolls itself continuously from bottom to top.
@@ -1311,22 +1459,6 @@ function newsTickerHtml(){
     </div>
   `;
 }
-function openManageNewsModal(){
-  const items = state.newsUpdates.slice().sort((a,b)=> (b.postedAt||'').localeCompare(a.postedAt||''));
-  showModal('Manage links', `
-    <div style="display:flex; flex-direction:column; gap:2px;">
-      ${items.map((n,idx)=>`
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0; ${idx>0?'border-top:1px solid var(--border);':''}">
-          <div style="min-width:0;">
-            <div style="font-size:13.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(n.text)}</div>
-            <div class="entry-meta">${escapeHtml(n.postedByName)} (${escapeHtml(n.postedByRole)}) — ${escapeHtml(n.postedAt)}</div>
-          </div>
-          ${(isTrueSupervisor() || n.postedById===state.identity.id) ? `<button class="small-btn danger" onclick="deleteNewsUpdate('${n.id}')">Remove</button>` : ''}
-        </div>
-      `).join('')}
-    </div>
-  `, closeModal);
-}
 function openAddNewsModal(){
   showModal('Add link', `
     <label class="field-label">Title</label>
@@ -1349,10 +1481,16 @@ async function deleteNewsUpdate(id){
   state.newsUpdates = state.newsUpdates.filter(x=>x.id!==id);
   await saveCollection('news-updates', state.newsUpdates);
   renderView();
-  if(document.getElementById('modalRoot').innerHTML.trim()){
-    if(state.newsUpdates.length===0) closeModal();
-    else openManageNewsModal();
-  }
+}
+// Freezing pulls an item out of the public auto-scrolling display without
+// deleting it — the supervisor can still see and manage it on the News
+// Update page, and remove it permanently whenever they actually want to.
+async function toggleFreezeNews(id){
+  const n = state.newsUpdates.find(x=>x.id===id);
+  if(!n) return;
+  n.frozen = !n.frozen;
+  await saveCollection('news-updates', state.newsUpdates);
+  renderView();
 }
 
 // Whoever is clicking Approve/Reject right now — used to record "who
@@ -1391,7 +1529,7 @@ function supervisorFilterBar(){
       <div class="filter-row">
         <select onchange="setFilterStudent(this.value)">
           <option value="all" ${state.filterStudentId==='all'?'selected':''}>All research scholars</option>
-          ${state.students.map(s=>`<option value="${s.id}" ${state.filterStudentId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}
+          ${state.students.map(s=>`<option value="${s.id}" ${state.filterStudentId===s.id?'selected':''}>${escapeHtml(s.name)}${s.frozen?' (Frozen)':''}</option>`).join('')}
         </select>
       </div>`;
   }
@@ -1538,6 +1676,111 @@ function titleForReviewable(type, entry){
     default: return entry.title || '';
   }
 }
+const SEARCH_CATEGORY_LABEL = {
+  weekly:'Weekly Plan', sample:'Characterization', fabrication:'Lab Work', proposal:'Work Plan (Proposal)',
+  thesis:'Thesis Plan', rac:'RAC Reviews', conference:'Conferences', financial:'Proposals', course:'Learning & Courses',
+  analysis:'Results Analysis', paper:'Paper Pipeline', meeting:'Meetings', event:'Events', instruction:'Instructions', student:'Research Scholar'
+};
+// Scans every section the current person can already see (same scoping as
+// everywhere else in the app — a scholar only searches their own work, a
+// mentor only their assigned scholars) and returns simple title matches,
+// capped so the dropdown stays short and scannable.
+function globalSearchResults_(query){
+  const q = query.trim().toLowerCase();
+  if(q.length < 2) return [];
+  const results = [];
+  Object.keys(REVIEWABLE_COLLECTIONS).forEach(type => {
+    scopedList(REVIEWABLE_COLLECTIONS[type].list()).forEach(entry => {
+      const title = titleForReviewable(type, entry);
+      if(title && title.toLowerCase().includes(q)){
+        results.push({ type, id: entry.id, studentId: entry.studentId, title, category: SEARCH_CATEGORY_LABEL[type] });
+      }
+    });
+  });
+  scopedList(state.meetings).forEach(m => { if(m.title && m.title.toLowerCase().includes(q)) results.push({ type:'meeting', id:m.id, studentId:m.studentId, title:m.title, category:SEARCH_CATEGORY_LABEL.meeting }); });
+  visibleEvents().forEach(ev => { if(ev.title && ev.title.toLowerCase().includes(q)) results.push({ type:'event', id:ev.id, studentId:ev.assignedStudentId, title:ev.title, category:SEARCH_CATEGORY_LABEL.event }); });
+  scopedList(state.instructions).forEach(ins => { if(ins.text && ins.text.toLowerCase().includes(q)) results.push({ type:'instruction', id:ins.id, studentId:ins.studentId, title:ins.text.slice(0,80), category:SEARCH_CATEGORY_LABEL.instruction }); });
+  if(isSupervisorLike()){
+    visibleStudentsForIdentity().forEach(s => { if(s.name.toLowerCase().includes(q)) results.push({ type:'student', id:s.id, studentId:s.id, title:s.name, category:SEARCH_CATEGORY_LABEL.student }); });
+  }
+  return results.slice(0, 20);
+}
+function handleGlobalSearch(query){
+  const panel = document.getElementById('globalSearchResults');
+  const results = globalSearchResults_(query);
+  if(!query.trim() || results.length===0){
+    panel.classList.remove('open');
+    panel.innerHTML = query.trim().length>=2 ? `<div class="search-result-item" style="cursor:default;"><span class="search-result-meta">No matches for "${escapeHtml(query.trim())}"</span></div>` : '';
+    if(query.trim().length>=2) panel.classList.add('open');
+    return;
+  }
+  panel.innerHTML = results.map(r=>`
+    <div class="search-result-item" onclick="handleSearchResultClick('${r.type}','${r.id}','${r.studentId||''}')">
+      <div class="search-result-title">${escapeHtml(r.title)}</div>
+      <div class="search-result-meta">${escapeHtml(r.category)}${isSupervisorLike() && r.studentId ? ' · '+escapeHtml(studentName(r.studentId)) : ''}</div>
+    </div>
+  `).join('');
+  panel.classList.add('open');
+}
+function handleSearchResultClick(type, id, studentId){
+  document.getElementById('globalSearchResults').classList.remove('open');
+  document.getElementById('globalSearchInput').value = '';
+  if(type==='student'){
+    state.filterStudentId = id;
+    goView('overview');
+    return;
+  }
+  goToItem(type, id, studentId);
+}
+document.addEventListener('click', (e)=>{
+  const box = document.querySelector('.topbar-search');
+  if(box && !box.contains(e.target)){
+    const panel = document.getElementById('globalSearchResults');
+    if(panel) panel.classList.remove('open');
+  }
+});
+// The 10 sections with a plain approve/reject decision that bulk-approve
+// can act on directly. Papers (stage/detail proposals) and meetings
+// (confirm with a date/time) each have their own more involved flow and
+// aren't included here — those still go through individual review.
+const BULK_APPROVABLE_TYPES = ['weekly','sample','fabrication','proposal','thesis','rac','conference','financial','course','analysis'];
+const REVIEW_STATUS_FIELD = { weekly:'status', proposal:'status', thesis:'status', rac:'status', sample:'approvalStatus', fabrication:'approvalStatus', financial:'approvalStatus', course:'approvalStatus', analysis:'approvalStatus', conference:'approvalStatus' };
+const REVIEW_NOTIFY_EVENT = { weekly:'weeklyReviewed', sample:'sampleReviewed', fabrication:'fabricationReviewed', proposal:'proposalReviewed', thesis:'thesisReviewed', rac:'racReviewed', conference:'conferenceReviewed', financial:'financialReviewed', course:'courseReviewed', analysis:'analysisReviewed' };
+function reviewNotifyExtra_(type, entry){
+  switch(type){
+    case 'weekly': return { weekStart: entry.weekStart };
+    case 'sample': return { sampleName: entry.sampleName };
+    case 'fabrication': return { itemName: fabricationLabel(entry) };
+    case 'conference': return { eventName: entry.eventName };
+    default: return { title: entry.title };
+  }
+}
+async function bulkApproveOne_(type, id){
+  const coll = REVIEWABLE_COLLECTIONS[type];
+  const entry = coll.list().find(x=>x.id===id);
+  if(!entry) return;
+  const reviewer = reviewerIdentity(entry.studentId);
+  pushReviewHistory_(entry, 'approved', '');
+  entry[REVIEW_STATUS_FIELD[type]] = 'approved';
+  entry.reviewedByName = reviewer.name;
+  entry.reviewedByRole = reviewer.roleLabel;
+  entry.reviewedAt = nowIST();
+  await saveCollection(coll.key, coll.list());
+  apiNotify(REVIEW_NOTIFY_EVENT[type], { studentId: entry.studentId, decision:'approved', note:'', reviewedByName: reviewer.name, reviewedByRole: reviewer.roleLabel, ...reviewNotifyExtra_(type, entry) });
+}
+async function bulkApproveSelected(){
+  const checked = Array.from(document.querySelectorAll('.bulkApproveCheck:checked'));
+  if(checked.length===0){ alert('Select at least one item to approve first.'); return; }
+  if(!confirm(`Approve all ${checked.length} selected item(s)? Each will be recorded as approved by you, and the scholar will be notified for each one individually.`)) return;
+  for(const el of checked){
+    const [type, id] = el.value.split('|');
+    await bulkApproveOne_(type, id);
+  }
+  renderView();
+}
+function toggleSelectAllPending(masterCheckbox){
+  document.querySelectorAll('.bulkApproveCheck').forEach(cb => { cb.checked = masterCheckbox.checked; });
+}
 // Whether the current user is allowed to see/use the Review controls on a
 // given entry: the true supervisor always can; a mentor can only if the
 // entry isn't assigned to someone specific, or is assigned to them.
@@ -1563,7 +1806,7 @@ async function assignReviewer(type, id, mentorId){
     entry.assignedReviewerRole = (assignment && assignment.category) || 'Co-Supervisor';
     await saveCollection(coll.key, coll.list());
     if(mentor.email){
-      apiNotify('reviewAssigned', { mentorEmail: mentor.email, studentName: studentName(entry.studentId), title: titleForReviewable(type, entry), category: entry.assignedReviewerRole });
+      apiNotify('reviewAssigned', { mentorId, mentorEmail: mentor.email, studentName: studentName(entry.studentId), title: titleForReviewable(type, entry), category: entry.assignedReviewerRole });
     }
   } else {
     entry.assignedReviewerId = null;
@@ -1664,6 +1907,15 @@ function viewApprovals(){
     </div>
     ${supervisorFilterBar()}
     ${items.length===0 ? emptyState('Nothing waiting on you', 'When students submit something, it will show up here for review — nothing to do right now.') : `
+      ${isTrueSupervisor() ? `
+        <div class="entry-actions" style="margin-bottom:10px;">
+          <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--ink-soft);">
+            <input type="checkbox" onchange="toggleSelectAllPending(this)"> Select all
+          </label>
+          <button class="small-btn" onclick="bulkApproveSelected()">Approve selected</button>
+          <span class="view-sub" style="margin:0;">Papers and meetings need individual review — everything else can be approved in bulk.</span>
+        </div>
+      ` : ''}
       <div class="entry-card" style="padding:0;">
         ${items.map((it,idx)=>{
           const coll = REVIEWABLE_COLLECTIONS[it.type];
@@ -1671,6 +1923,7 @@ function viewApprovals(){
           const mentors = mentorsForStudent_(it.studentId);
           return `
           <div style="display:flex; align-items:center; gap:14px; padding:15px 20px; ${idx>0?'border-top:1px solid var(--border);':''}">
+            ${(isTrueSupervisor() && BULK_APPROVABLE_TYPES.includes(it.type)) ? `<input type="checkbox" class="bulkApproveCheck" value="${it.type}|${it.id}">` : `<span style="width:16px; flex-shrink:0;"></span>`}
             <span style="width:8px; height:8px; border-radius:50%; background:${it.color}; flex-shrink:0;"></span>
             <div style="flex:1; min-width:0;">
               <span class="task-link" style="font-weight:600; font-size:13.5px;" onclick="goToItem('${it.type}','${it.id}','${it.studentId}')">${escapeHtml(it.title)}</span>
@@ -2026,6 +2279,68 @@ function viewAccount(){
   `;
 }
 
+// Everything here defaults to on — nobody's email changes until they come
+// here and explicitly turn something off, matching the backend's
+// prefsAllow_() behavior (undefined always means allowed).
+const NOTIFY_PREF_LABELS = {
+  reviews: 'When my work is reviewed, approved, or commented on',
+  workItems: 'When staff create or edit an entry on my behalf',
+  deletions: 'When one of my entries is deleted',
+  meetings: 'When a meeting is confirmed at a different time than I requested',
+  assignments: 'When I\'m assigned to review something',
+  submissions: 'When a scholar submits something new for approval',
+};
+// The supervisor's own preference — this is fine to be self-serve, since
+// it's the supervisor's own inbox and no one else's oversight depends on
+// them seeing it. Scholar and mentor preferences, by contrast, are
+// controlled by the supervisor (see openEditNotifyPrefsModal below) — if a
+// scholar could freely mute "my work was reviewed," they could miss
+// feedback that requires changes, which defeats the point of the workflow.
+function notificationPrefsSection(){
+  const prefs = state.supervisorNotifyPrefs || {};
+  return `
+    <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Email notifications</h3>
+    <div class="entry-card">
+      <div class="entry-block" style="margin-bottom:10px;">Your own inbox — on by default. Scholar and mentor notification settings are controlled from their entries below, not by them.</div>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13.5px;">
+        <input type="checkbox" id="notifyPref_submissions" ${prefs.submissions===false?'':'checked'}> ${escapeHtml(NOTIFY_PREF_LABELS.submissions)}
+      </label>
+      <div class="entry-actions"><button class="small-btn" onclick="saveNotificationPrefs()">Save preference</button></div>
+    </div>
+  `;
+}
+async function saveNotificationPrefs(){
+  const prefs = { submissions: document.getElementById('notifyPref_submissions').checked };
+  state.supervisorNotifyPrefs = prefs;
+  await saveSupervisorProfile({ hash: state.supervisorPinHash, email: state.supervisorEmail, name: state.supervisorName, notifyPrefs: prefs });
+  renderView();
+}
+// The supervisor-controlled version — opened from a scholar's or mentor's
+// row in the admin list, not from their own account.
+function openEditNotifyPrefsModal(targetType, id){
+  const record = targetType==='student' ? state.students.find(x=>x.id===id) : state.coSupervisors.find(x=>x.id===id);
+  if(!record) return;
+  const keys = targetType==='student' ? ['reviews','workItems','deletions','meetings'] : ['assignments'];
+  const prefs = record.notifyPrefs || {};
+  showModal(`Email notifications for ${record.name}`, `
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      ${keys.map(k=>`
+        <label style="display:flex; align-items:center; gap:8px; font-size:13.5px;">
+          <input type="checkbox" id="notifyPrefAdmin_${k}" ${prefs[k]===false?'':'checked'}> ${escapeHtml(NOTIFY_PREF_LABELS[k])}
+        </label>
+      `).join('')}
+    </div>
+    <div class="view-sub" style="margin-top:8px;">All on by default. Turning something off means ${escapeHtml(record.name)} won't get that type of email — they can't change this themselves.</div>
+  `, ()=>submitEditNotifyPrefs(targetType, id, keys));
+}
+async function submitEditNotifyPrefs(targetType, id, keys){
+  const record = targetType==='student' ? state.students.find(x=>x.id===id) : state.coSupervisors.find(x=>x.id===id);
+  const prefs = {};
+  keys.forEach(k => { prefs[k] = document.getElementById('notifyPrefAdmin_'+k).checked; });
+  record.notifyPrefs = prefs;
+  await saveCollection(targetType==='student' ? 'students' : 'co-supervisors', targetType==='student' ? state.students : state.coSupervisors);
+  closeModal(); renderView();
+}
 function accessSection(){
   if(state.identity.role === 'student'){
     const me = state.students.find(x=>x.id===state.identity.id);
@@ -2049,6 +2364,7 @@ function accessSection(){
         <div class="entry-meta" style="margin-top:8px;">Keep this up to date yourself — your supervisor can see it but this is self-reported.</div>
         <div class="entry-actions"><button class="small-btn" onclick="openEditProgramDetailsModal()">Edit program details</button></div>
       </div>
+      <div class="entry-meta" style="margin:22px 0;">Which emails you receive is set by your supervisor, not by you — this keeps everyone on the same page about feedback and deadlines.</div>
       ${backupSection()}
     `;
   }
@@ -2070,6 +2386,7 @@ function accessSection(){
           <button class="small-btn" onclick="testMyEmail()">Send test email</button>
         </div>
       </div>
+      <div class="entry-meta" style="margin:22px 0;">Which emails you receive is set by your supervisor, not by you — this keeps everyone on the same page about who's responsible for reviewing what.</div>
       ${backupSection()}
     `;
   }
@@ -2084,8 +2401,10 @@ function accessSection(){
         state.students.map(s=>`
           <div style="padding:12px 2px; border-top:1px solid var(--border);">
             <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-              <span style="font-size:13.5px;">${escapeHtml(s.name)} <span class="entry-meta">${escapeHtml(s.email || 'no email on file')}</span></span>
+              <span style="font-size:13.5px;">${escapeHtml(s.name)} <span class="entry-meta">${escapeHtml(s.email || 'no email on file')}</span>${s.frozen ? ` <span class="stamp neutral">Frozen — can't log in</span>` : ''}</span>
               <div style="display:flex; gap:6px;">
+                <button class="small-btn" onclick="toggleFreezeStudent('${s.id}')">${s.frozen ? 'Unfreeze' : 'Freeze'}</button>
+                <button class="small-btn" onclick="openEditNotifyPrefsModal('student','${s.id}')">Notifications</button>
                 <button class="small-btn" onclick="openResetStudentPinModal('${s.id}')">Reset PIN</button>
                 <button class="small-btn danger" onclick="deleteStudentAccount('${s.id}')">Delete account</button>
               </div>
@@ -2100,8 +2419,10 @@ function accessSection(){
         <button class="small-btn" onclick="testMyEmail()">Send test email</button>
       </div>
     </div>
+    ${notificationPrefsSection()}
     ${coSupervisorAdminSection()}
     ${deletionLogSection()}
+    ${activityLogSection()}
     ${backupSection()}
   `;
 }
@@ -2119,8 +2440,73 @@ function deletionLogSection(){
             <div class="entry-meta" style="margin-top:2px;">Reason: ${escapeHtml(d.reason)}</div>
           </div>
         `).join('')}
+      ${log.length>0 ? `<div class="entry-actions" style="margin-top:10px;"><button class="small-btn" onclick="downloadDeletionLogCsv()">Download as CSV</button></div>` : ''}
     </div>
   `;
+}
+function activityLogSection(){
+  const rows = buildFullActivityLog_().slice(0, 30);
+  return `
+    <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Activity Log</h3>
+    <div class="entry-card">
+      <div class="entry-block" style="margin-bottom:10px;">Every review decision, staff edit, and deletion across the whole group, most recent first — the full audit trail, not just deletions.</div>
+      ${rows.length===0 ? `<div class="entry-meta">Nothing recorded yet.</div>` :
+        rows.map((r,idx)=>`
+          <div style="padding:8px 0; ${idx>0?'border-top:1px solid var(--border);':''}">
+            <div style="font-size:13px;"><b>${escapeHtml(r.action)}</b> — ${escapeHtml(r.title)} <span class="entry-meta">(${escapeHtml(r.category)})</span></div>
+            <div class="entry-meta">${r.studentId ? escapeHtml(studentName(r.studentId))+' · ' : ''}${escapeHtml(r.byName)} (${escapeHtml(r.byRole)}) — ${escapeHtml(r.date)}</div>
+          </div>
+        `).join('')}
+      <div class="entry-actions" style="margin-top:10px;">
+        <button class="small-btn" onclick="downloadFullActivityLogCsv()">Download full log as CSV</button>
+      </div>
+    </div>
+  `;
+}
+function downloadDeletionLogCsv(){
+  const headers = ['Date/Time', 'Title', 'Type', 'Research Scholar', 'Deleted By', 'Their Role', 'Reason'];
+  const rows = state.deletionLog.slice().reverse().map(d => [d.deletedAt, d.title, d.type, d.studentId ? studentName(d.studentId) : '', d.deletedByName, d.deletedByRole, d.reason]);
+  downloadCsvBlob(rowsToCsv(headers, rows), `deletion-log-${todayStr()}.csv`);
+}
+// Parses the "DD Mon YYYY, H:MM[:SS] AM/PM IST" strings nowIST()/
+// nowISTWithSeconds() produce, so activity from every section can be sorted
+// into one genuinely chronological timeline for export.
+function parseISTTimestamp_(s){
+  if(!s) return 0;
+  const m = s.match(/(\d{2}) (\w{3}) (\d{4}), (\d{1,2}):(\d{2})(?::(\d{2}))? (AM|PM)/);
+  if(!m) return 0;
+  const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  let h = parseInt(m[4],10);
+  if(m[7]==='PM' && h!==12) h+=12;
+  if(m[7]==='AM' && h===12) h=0;
+  return new Date(parseInt(m[3],10), months[m[2]], parseInt(m[1],10), h, parseInt(m[5],10), parseInt(m[6]||'0',10)).getTime();
+}
+// Combines every review decision, staff edit, and deletion across every
+// section into one timeline — the fuller audit trail complementing the
+// Deletion Log above, which only covers removals.
+function buildFullActivityLog_(){
+  const rows = [];
+  Object.keys(REVIEWABLE_COLLECTIONS).forEach(type => {
+    scopedList(REVIEWABLE_COLLECTIONS[type].list()).forEach(entry => {
+      const title = titleForReviewable(type, entry);
+      (entry.reviewHistory||[]).forEach(h => {
+        rows.push({ date: h.reviewedAt, category: SEARCH_CATEGORY_LABEL[type], title, studentId: entry.studentId, action: h.decision, byName: h.reviewedByName, byRole: h.reviewedByRole, detail: h.note||'' });
+      });
+      (entry.editHistory||[]).forEach(h => {
+        rows.push({ date: h.editedAt, category: SEARCH_CATEGORY_LABEL[type], title, studentId: entry.studentId, action: 'edited', byName: h.editedByName, byRole: h.editedByRole, detail: '' });
+      });
+    });
+  });
+  state.deletionLog.forEach(d => {
+    rows.push({ date: d.deletedAt, category: d.type, title: d.title, studentId: d.studentId, action: 'deleted', byName: d.deletedByName, byRole: d.deletedByRole, detail: d.reason });
+  });
+  return rows.sort((a,b)=> parseISTTimestamp_(b.date) - parseISTTimestamp_(a.date));
+}
+function downloadFullActivityLogCsv(){
+  const rows = buildFullActivityLog_();
+  const headers = ['Date/Time', 'Section', 'Title', 'Research Scholar', 'Action', 'By', 'Their Role', 'Note/Reason'];
+  const csvRows = rows.map(r => [r.date, r.category, r.title, r.studentId ? studentName(r.studentId) : '', r.action, r.byName, r.byRole, r.detail]);
+  downloadCsvBlob(rowsToCsv(headers, csvRows), `activity-log-${todayStr()}.csv`);
 }
 
 function coSupervisorAdminSection(){
@@ -2134,8 +2520,10 @@ function coSupervisorAdminSection(){
           return `
           <div style="padding:10px 0; border-top:1px solid var(--border);">
             <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-              <span style="font-size:13.5px; font-weight:600;">${escapeHtml(c.name)} <span class="entry-meta" style="font-weight:400;">${escapeHtml(c.email||'no email on file')}</span></span>
+              <span style="font-size:13.5px; font-weight:600;">${escapeHtml(c.name)} <span class="entry-meta" style="font-weight:400;">${escapeHtml(c.email||'no email on file')}</span>${c.frozen ? ` <span class="stamp neutral">Frozen — can't log in</span>` : ''}</span>
               <div style="display:flex; gap:6px;">
+                <button class="small-btn" onclick="toggleFreezeCoSupervisor('${c.id}')">${c.frozen ? 'Unfreeze' : 'Freeze'}</button>
+                <button class="small-btn" onclick="openEditNotifyPrefsModal('cosupervisor','${c.id}')">Notifications</button>
                 <button class="small-btn" onclick="openEditCoSupAssignmentModal('${c.id}')">Edit scholars &amp; alerts</button>
                 <button class="small-btn" onclick="openResetCoSupPinModal('${c.id}')">Reset PIN</button>
                 <button class="small-btn danger" onclick="removeCoSupervisor('${c.id}')">Remove</button>
@@ -2246,6 +2634,17 @@ async function removeCoSupervisor(id){
   await saveCollection('co-supervisors', state.coSupervisors);
   renderView();
 }
+// Freezing blocks login without touching any of their data or their
+// scholar assignments — everything they ever reviewed or commented on
+// stays exactly as it was, and the supervisor can still filter to a frozen
+// mentor's history. Unfreezing restores login immediately.
+async function toggleFreezeCoSupervisor(id){
+  const c = state.coSupervisors.find(x=>x.id===id);
+  if(!c) return;
+  c.frozen = !c.frozen;
+  await saveCollection('co-supervisors', state.coSupervisors);
+  renderView();
+}
 function openResetCoSupPinModal(id){
   const c = state.coSupervisors.find(x=>x.id===id);
   showModal(`Reset PIN for ${c.name}`, `
@@ -2336,7 +2735,7 @@ function downloadBackup(){
     exportedAt: new Date().toISOString(),
     exportedBy: state.identity.name,
     scope,
-    students: visible.map(s=>({id:s.id, name:s.name, email:s.email||''})),
+    students: visible.map(s=>({id:s.id, name:s.name, email:s.email||'', frozen:!!s.frozen, notifyPrefs:s.notifyPrefs||{}, joiningDate:s.joiningDate||'', courseDuration:s.courseDuration||''})),
     weeklyReports: scopedList(state.weekly),
     samples: scopedList(state.samples),
     papers: scopedList(state.papers),
@@ -2354,7 +2753,7 @@ function downloadBackup(){
     newsUpdates: state.newsUpdates,
     instructions: scopedList(state.instructions),
     meetings: scopedList(state.meetings),
-    coSupervisors: isSupervisor ? state.coSupervisors.map(c=>({id:c.id, name:c.name, email:c.email||'', assignments:mentorAssignments_(c)})) : undefined
+    coSupervisors: isSupervisor ? state.coSupervisors.map(c=>({id:c.id, name:c.name, email:c.email||'', assignments:mentorAssignments_(c), frozen:!!c.frozen, notifyPrefs:c.notifyPrefs||{}})) : undefined
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
   const url = URL.createObjectURL(blob);
@@ -2494,7 +2893,7 @@ async function submitChangeSupervisorPin(){
   if(next.length < 4){ alert('New passcode must be at least 4 characters.'); return; }
   if(next !== confirmNext){ alert('New passcodes do not match.'); return; }
   state.supervisorPinHash = await hashPin(next);
-  await saveSupervisorProfile({ hash: state.supervisorPinHash, email: state.supervisorEmail, name: state.supervisorName });
+  await saveSupervisorProfile({ hash: state.supervisorPinHash, email: state.supervisorEmail, name: state.supervisorName, notifyPrefs: state.supervisorNotifyPrefs });
   closeModal(); renderView();
 }
 function openChangeStudentEmailModal(){
@@ -2527,6 +2926,19 @@ async function submitProgramDetails(){
   me.courseDuration = document.getElementById('f_courseDuration').value.trim();
   await saveCollection('students', state.students);
   closeModal(); renderView();
+}
+// Freezing blocks login without touching a single record — all of a
+// scholar's weekly reports, samples, papers, and everything else stays
+// exactly as it was, still visible to the supervisor via the student
+// filter. This is the option to use once a scholar has finished their
+// duration, rather than deleteStudentAccount below, which is permanent and
+// erases their data entirely.
+async function toggleFreezeStudent(id){
+  const s = state.students.find(x=>x.id===id);
+  if(!s) return;
+  s.frozen = !s.frozen;
+  await saveCollection('students', state.students);
+  renderView();
 }
 async function deleteStudentAccount(studentId){
   const s = state.students.find(x=>x.id===studentId);
@@ -2588,7 +3000,7 @@ async function submitChangeSupervisorName(){
   if(!name){ alert('Please enter a name.'); return; }
   state.supervisorName = name;
   state.identity.name = name;
-  await saveSupervisorProfile({ hash: state.supervisorPinHash, email: state.supervisorEmail, name });
+  await saveSupervisorProfile({ hash: state.supervisorPinHash, email: state.supervisorEmail, name, notifyPrefs: state.supervisorNotifyPrefs });
   document.getElementById('identityBadge').innerHTML = `<b>${escapeHtml(state.identity.name)}</b> · Supervisor`;
   closeModal(); renderView();
 }
@@ -2602,7 +3014,7 @@ async function submitChangeSupervisorEmail(){
   const email = document.getElementById('f_supEmail').value.trim();
   if(!isValidEmail(email)){ alert('Please enter a valid email address.'); return; }
   state.supervisorEmail = email;
-  await saveSupervisorProfile({ hash: state.supervisorPinHash, email, name: state.supervisorName });
+  await saveSupervisorProfile({ hash: state.supervisorPinHash, email, name: state.supervisorName, notifyPrefs: state.supervisorNotifyPrefs });
   closeModal(); renderView();
 }
 
@@ -2643,6 +3055,24 @@ function weekDates(monday){
   for(let i=0;i<7;i++) out.push(shiftDate(monday, i));
   return out;
 }
+// Every deadline source in the app, in one chronological list from today
+// forward — the same sources eventsForDate() shows on the calendar grid,
+// just flattened into a scannable list instead of needing to browse month
+// by month for what's coming up.
+function upcomingDeadlines_(limit){
+  const today = todayStr();
+  const items = [];
+  scopedList(state.meetings).forEach(m=>{ if(m.plannedDate>=today) items.push({ date:m.plannedDate, type:'meeting', id:m.id, studentId:m.studentId, title:`${m.type}: ${m.title}`, category:'Meeting' }); });
+  scopedList(state.conferences).forEach(c=>{ if(c.startDate>=today) items.push({ date:c.startDate, type:'conference', id:c.id, studentId:c.studentId, title:c.eventName, category:'Conference' }); });
+  scopedList(state.fabricationItems).forEach(it=>{ if(it.targetDate && it.targetDate>=today && it.stage!=='completed') items.push({ date:it.targetDate, type:'fabrication', id:it.id, studentId:it.studentId, title:fabricationLabel(it), category:'Lab Work' }); });
+  scopedList(state.resultsAnalysis).forEach(a=>{ if(a.targetDate && a.targetDate>=today && a.status!=='completed') items.push({ date:a.targetDate, type:'analysis', id:a.id, studentId:a.studentId, title:a.title, category:'Results Analysis' }); });
+  scopedList(state.papers).forEach(p=>{ if(p.targetDate && p.targetDate>=today && p.stage!=='Published') items.push({ date:p.targetDate, type:'paper', id:p.id, studentId:p.studentId, title:p.title, category:'Paper Pipeline' }); });
+  scopedList(state.thesisPlans).forEach(tp=>{
+    (tp.chapters||[]).forEach(ch=>{ if(ch.targetDate && ch.targetDate>=today && ch.status!=='done') items.push({ date:ch.targetDate, type:'thesis', id:tp.id, studentId:tp.studentId, title:`Chapter: ${ch.title}`, category:'Thesis Plan' }); });
+  });
+  visibleEvents().forEach(ev=>{ if(ev.date && ev.date>=today) items.push({ date:ev.date, type:'event', id:ev.id, studentId:ev.assignedStudentId, title:ev.title, category:'Event' }); });
+  return items.sort((a,b)=>a.date.localeCompare(b.date)).slice(0, limit||10);
+}
 function eventsForDate(dateStr){
   const out = [];
   scopedList(state.meetings).forEach(m=>{ if(m.plannedDate===dateStr) out.push({ type:'meeting', label:`${m.type}: ${m.title}`, cls:'indigo' }); });
@@ -2654,6 +3084,13 @@ function eventsForDate(dateStr){
     (pr.goals||[]).forEach(g=>{ if(g.targetDate===dateStr) out.push({ type:'goal', label:g.text, cls:'teal' }); });
   });
   scopedList(state.plannerTasks).forEach(t=>{ if(t.date===dateStr) out.push({ type:'task', label:t.text, cls:'blue' }); });
+  scopedList(state.fabricationItems).forEach(it=>{ if(it.targetDate===dateStr && it.stage!=='completed') out.push({ type:'fabrication', label:`Sample due: ${fabricationLabel(it)}`, cls:'teal' }); });
+  scopedList(state.resultsAnalysis).forEach(a=>{ if(a.targetDate===dateStr && a.status!=='completed') out.push({ type:'analysis', label:`Analysis due: ${a.title}`, cls:'rose' }); });
+  scopedList(state.papers).forEach(p=>{ if(p.targetDate===dateStr && p.stage!=='Published') out.push({ type:'paper', label:`Paper milestone: ${p.title}`, cls:'purple' }); });
+  scopedList(state.thesisPlans).forEach(tp=>{
+    (tp.chapters||[]).forEach(ch=>{ if(ch.targetDate===dateStr && ch.status!=='done') out.push({ type:'thesis', label:`Chapter due: ${ch.title}`, cls:'purple' }); });
+  });
+  visibleEvents().forEach(ev=>{ if(ev.date===dateStr) out.push({ type:'event', label:ev.title, cls:'purple' }); });
   return out;
 }
 function viewCalendar(){
@@ -2696,6 +3133,23 @@ function viewCalendar(){
       <span><span class="cal-dot blue"></span> Planner tasks</span>
     </div>
     <div class="entry-meta" style="margin-bottom:10px;">Click any day to jump the planner below to that week.</div>
+
+    <h3 class="panel-title"><span class="dot" style="background:var(--navy);"></span>Upcoming deadlines</h3>
+    <div class="entry-card compact-card" style="margin-bottom:18px;">
+      ${(() => {
+        const deadlines = upcomingDeadlines_(10);
+        if(deadlines.length===0) return `<div class="entry-meta">Nothing due soon.</div>`;
+        return deadlines.map((d,idx)=>`
+          <div style="display:flex; align-items:center; gap:12px; padding:10px 4px; ${idx>0?'border-top:1px solid var(--border);':''}">
+            <div class="mono" style="font-size:12px; color:var(--ink-soft); width:78px; flex-shrink:0;">${fmtDate(d.date)}</div>
+            <div style="flex:1; min-width:0;">
+              <span class="task-link" style="font-weight:600; font-size:13.5px;" onclick="goToItem('${d.type}','${d.id}','${d.studentId||''}')">${escapeHtml(d.title)}</span>
+              <div class="entry-meta">${escapeHtml(d.category)}${isSupervisorLike() && d.studentId ? ' · '+escapeHtml(studentName(d.studentId)) : ''}</div>
+            </div>
+          </div>
+        `).join('');
+      })()}
+    </div>
 
     ${weeklyPlannerPanel()}
   `;
