@@ -64,6 +64,13 @@
   h1,h2,h3{ font-family:'Roboto', sans-serif; letter-spacing:-0.005em; }
   .heading{ font-family:'Roboto', sans-serif; letter-spacing:-0.005em; }
   .mono{ font-family:'IBM Plex Mono', monospace; }
+  /* Vertical scrolling box, sized so roughly 10 items are visible at once
+     (10 rows × ~34px) before the box itself takes over scrolling for the
+     rest — a plain scrollable list rather than an auto-animating marquee,
+     since links need to be readable and clickable, not flying past. */
+  .news-ticker{ width:100%; height:340px; overflow-y:auto; background:var(--navy); border-radius:10px; margin-bottom:18px; }
+  .news-ticker-item{ display:block; padding:9px 18px; color:#fff; font-size:13.5px; border-bottom:1px solid rgba(255,255,255,0.08); }
+  .news-ticker-item:last-child{ border-bottom:none; }
   button{ font-family:'Roboto', sans-serif; cursor:pointer; }
   input,select,textarea{ font-family:'Roboto', sans-serif; }
   ::selection{ background:var(--navy-wash); }
@@ -354,6 +361,7 @@
     .report-doc{ box-shadow:none; border:none; padding:0; background:#fff; }
   }
 
+  .overview-grid{ display:grid; grid-template-columns: 1fr 320px; gap:20px; align-items:start; }
   @media (max-width: 760px){
     .layout{ flex-direction:column; }
     .sidebar{ position:static; width:100%; height:auto; display:flex; flex-wrap:wrap; gap:6px; padding:12px 16px; border-right:none; border-bottom:1px solid var(--border); }
@@ -362,6 +370,7 @@
     .entry-grid{ grid-template-columns:1fr; }
     .two-col{ grid-template-columns:1fr; }
     .topbar{ padding:12px 16px; }
+    .overview-grid{ grid-template-columns:1fr; }
   }
 </style>
 </head>
@@ -414,6 +423,7 @@ const state = {
   events: [],
   resultsAnalysis: [],
   deletionLog: [],
+  newsUpdates: [],
   calendarMonth: null,
   plannerWeekStart: null,
   view: 'overview',
@@ -600,7 +610,7 @@ async function saveSupervisorProfile(profile){
 
 /* ============================ INIT ============================ */
 // Every collection key the app needs at startup, fetched in one batched request.
-const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','deletion-log','supervisor-pin'];
+const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','deletion-log','news-updates','supervisor-pin'];
 
 async function init(){
   if(!backendConfigured()){
@@ -653,6 +663,7 @@ function applyDataValues(values){
   state.events = arr('events');
   state.resultsAnalysis = arr('results-analysis');
   state.deletionLog = arr('deletion-log');
+  state.newsUpdates = arr('news-updates');
   let supervisorProfile = {};
   try{ supervisorProfile = values['supervisor-pin'] ? JSON.parse(values['supervisor-pin']) : {}; }catch(e){ supervisorProfile = {}; }
   state.supervisorPinHash = supervisorProfile.hash || null;
@@ -1041,7 +1052,7 @@ const NAV_ITEM_COLORS = {
   proposal:'var(--stat-indigo)', thesis:'var(--stat-purple)',
   weekly:'var(--stat-blue)', fabrication:'var(--stat-teal)', samples:'var(--stat-cyan)', resultsAnalysis:'var(--stat-rose)', papers:'var(--stat-purple)',
   rac:'var(--stat-rose)', learning:'var(--stat-blue)', financial:'var(--stat-teal)', conferences:'var(--stat-rose)',
-  meetings:'var(--stat-indigo)', events:'var(--stat-purple)', instructions:'var(--navy)', reports:'var(--navy)', account:'var(--ink-faint)'
+  meetings:'var(--stat-indigo)', events:'var(--stat-purple)', instructions:'var(--navy)', links:'var(--stat-teal)', reports:'var(--navy)', account:'var(--ink-faint)'
 };
 const NAV_GROUPS = [
   { items: [
@@ -1071,6 +1082,7 @@ const NAV_GROUPS = [
     { key:'meetings', label:'Meetings' },
     { key:'events', label:'Events' },
     { key:'instructions', label:'Instructions' },
+    { key:'links', label:'News Update' },
     { key:'reports', label:'Reports' },
     { key:'account', label:'Account' },
   ]},
@@ -1089,7 +1101,8 @@ function goView(key){ state.view = key; renderSidebar(); renderView(); }
 
 function renderView(){
   const main = document.getElementById('main');
-  if(state.view==='overview') main.innerHTML = viewOverview();
+  if(state.view==='overview'){ main.innerHTML = viewOverview(); startLiveClock(); }
+  else if(state.view==='links') main.innerHTML = viewLinks();
   else if(state.view==='approvals') main.innerHTML = viewApprovals();
   else if(state.view==='changesRequested') main.innerHTML = viewChangesRequested();
   else if(state.view==='calendar') main.innerHTML = viewCalendar();
@@ -1163,7 +1176,7 @@ function myCoSupervisorRecord(){
 function mentorAssignments_(c){
   if(!c) return [];
   if(Array.isArray(c.assignments)) return c.assignments;
-  return (c.assignedStudentIds||[]).map(studentId => ({ studentId, category: c.category || 'Co-Supervisor' }));
+  return (c.assignedStudentIds||[]).map(studentId => ({ studentId, category: c.category || 'Co-Supervisor', notifySubmissions: !!c.notifySubmissions }));
 }
 // Only the true supervisor ever sees a Delete button (enforced per-section
 // already via isTrueSupervisor() gates) — but this centralizes what happens
@@ -1197,6 +1210,136 @@ function nowIST(){
   h = h % 12; if(h===0) h = 12;
   return `${datePart}, ${h}:${m} ${ampm} IST`;
 }
+function nowISTWithSeconds(){
+  const now = new Date();
+  const istMs = now.getTime() + (now.getTimezoneOffset() * 60000) + (5.5 * 60 * 60000);
+  const ist = new Date(istMs);
+  const datePart = ist.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  let h = ist.getHours();
+  const m = String(ist.getMinutes()).padStart(2,'0');
+  const sec = String(ist.getSeconds()).padStart(2,'0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12; if(h===0) h = 12;
+  return `${datePart}, ${h}:${m}:${sec} ${ampm} IST`;
+}
+let liveClockTimer = null;
+// Ticks every second while the Overview page is showing. Since this app
+// re-renders by replacing innerHTML rather than using a component
+// framework, there's no "unmount" hook to clean this up when navigating
+// away — so instead, each tick checks whether its own element is still in
+// the page, and quietly stops itself the moment it isn't, rather than
+// leaving a stray timer running (or stacking up a second one) once the
+// person clicks to another section.
+function startLiveClock(){
+  if(liveClockTimer) clearInterval(liveClockTimer);
+  const tick = () => {
+    const el = document.getElementById('liveClock');
+    if(!el){ clearInterval(liveClockTimer); liveClockTimer = null; return; }
+    el.textContent = nowISTWithSeconds();
+  };
+  tick();
+  liveClockTimer = setInterval(tick, 1000);
+}
+/* ============================ NEWS TICKER ============================ */
+// A shared scrolling strip of quick updates — magazine articles, group news,
+// anything worth a heads-up — that anyone (supervisor, mentor, or scholar)
+// can post and everyone sees. Deliberately lightweight: no approval
+// workflow, no email notifications, just a quick share visible on the
+// dashboard for everyone.
+function viewLinks(){
+  const items = state.newsUpdates.slice().sort((a,b)=> (b.postedAt||'').localeCompare(a.postedAt||''));
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">News Update</div>
+        <div class="view-sub">Shared news items, magazine articles, and links for the whole group — anyone can post one, everyone sees it. Also shown as a scrolling box on the Overview dashboard.</div>
+      </div>
+      <button class="action-btn" onclick="openAddNewsModal()">+ Add link</button>
+    </div>
+    ${items.length===0 ? emptyState('Nothing posted yet', 'Share a news item, magazine link, or quick update for the group.') :
+      items.map((n,idx)=>`
+        <div class="entry-card cat-teal">
+          <div class="entry-top">
+            <div>
+              <a href="${escapeHtml(n.link)}" target="_blank" rel="noopener" class="entry-title" style="text-decoration:underline; display:inline-block;">${escapeHtml(n.text)}</a>
+              <div class="entry-meta">${escapeHtml(n.postedByName)} (${escapeHtml(n.postedByRole)}) — ${escapeHtml(n.postedAt)}</div>
+            </div>
+          </div>
+          <div class="entry-actions">
+            <a class="small-btn" href="${escapeHtml(n.link)}" target="_blank" rel="noopener">Open ↗</a>
+            ${(isTrueSupervisor() || n.postedById===state.identity.id) ? `<button class="small-btn danger" onclick="deleteNewsUpdate('${n.id}')">Remove</button>` : ''}
+          </div>
+        </div>
+      `).join('')}
+  `;
+}
+function newsTickerHtml(){
+  const items = state.newsUpdates.slice().sort((a,b)=> (b.postedAt||'').localeCompare(a.postedAt||''));
+  return `
+    <div class="entry-card compact-card" style="margin-bottom:14px; padding:12px 16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+        <span class="lbl" style="margin:0;">Latest News Updates.</span>
+        <div style="display:flex; gap:14px; align-items:center;">
+          ${items.length>0 ? `<span class="task-link" style="font-size:12px;" onclick="openManageNewsModal()">Manage</span>` : ''}
+          <button class="small-btn" onclick="openAddNewsModal()">+ Add link</button>
+        </div>
+      </div>
+      ${items.length===0 ? `<div class="entry-meta" style="margin-top:6px;">No links added yet — share a news item or magazine link for the group.</div>` : `
+        <div class="news-ticker" style="margin-top:10px; margin-bottom:0;">
+          ${items.map(n=>`
+            <div class="news-ticker-item">
+              <a href="${escapeHtml(n.link)}" target="_blank" rel="noopener" style="color:#fff; text-decoration:underline;">${escapeHtml(n.text)}</a>
+            </div>
+          `).join('')}
+        </div>
+      `}
+    </div>
+  `;
+}
+function openManageNewsModal(){
+  const items = state.newsUpdates.slice().sort((a,b)=> (b.postedAt||'').localeCompare(a.postedAt||''));
+  showModal('Manage links', `
+    <div style="display:flex; flex-direction:column; gap:2px;">
+      ${items.map((n,idx)=>`
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0; ${idx>0?'border-top:1px solid var(--border);':''}">
+          <div style="min-width:0;">
+            <div style="font-size:13.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(n.text)}</div>
+            <div class="entry-meta">${escapeHtml(n.postedByName)} (${escapeHtml(n.postedByRole)}) — ${escapeHtml(n.postedAt)}</div>
+          </div>
+          ${(isTrueSupervisor() || n.postedById===state.identity.id) ? `<button class="small-btn danger" onclick="deleteNewsUpdate('${n.id}')">Remove</button>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `, closeModal);
+}
+function openAddNewsModal(){
+  showModal('Add link', `
+    <label class="field-label">Title</label>
+    <input class="text-input" id="f_newsText" placeholder="e.g. New paper on solid-state electrolytes — Nature Energy">
+    <label class="field-label">Link</label>
+    <input class="text-input" id="f_newsLink" placeholder="https://...">
+  `, submitAddNews);
+}
+async function submitAddNews(){
+  const text = document.getElementById('f_newsText').value.trim();
+  const link = document.getElementById('f_newsLink').value.trim();
+  if(!text || !link){ alert('Please add both a title and a link.'); return; }
+  const roleLabel = state.identity.role==='supervisor' ? 'Research Supervisor' : state.identity.role==='student' ? 'Research Scholar' : 'Advisor / Co-Supervisor';
+  state.newsUpdates.push({ id: uid('news'), text, link, postedByName: state.identity.name, postedByRole: roleLabel, postedById: state.identity.id, postedAt: nowIST() });
+  await saveCollection('news-updates', state.newsUpdates);
+  closeModal(); renderView();
+}
+async function deleteNewsUpdate(id){
+  if(!confirm('Remove this update?')) return;
+  state.newsUpdates = state.newsUpdates.filter(x=>x.id!==id);
+  await saveCollection('news-updates', state.newsUpdates);
+  renderView();
+  if(document.getElementById('modalRoot').innerHTML.trim()){
+    if(state.newsUpdates.length===0) closeModal();
+    else openManageNewsModal();
+  }
+}
+
 // Whoever is clicking Approve/Reject right now — used to record "who
 // reviewed this" on the entry itself, and to tell the backend who to credit
 // in the notification email (the true supervisor, or a specific mentor by
@@ -1639,12 +1782,15 @@ function viewOverview(){
   const roleSub = { supervisor:'Everything here is final only once you approve it.', cosupervisor:'A view of the students assigned to you — everything here is final only once approved.', student:'A snapshot of your progress, samples, and papers.' }[state.identity.role];
 
   return `
+    <div class="overview-grid">
+      <div style="min-width:0;">
     ${supervisorFilterBar()}
     <div class="view-header" style="margin-bottom:14px; padding-bottom:12px;">
       <div>
         <div class="view-title">${roleTitle}</div>
         <div class="view-sub">${roleSub}</div>
       </div>
+      <div id="liveClock" class="mono" style="font-size:13px; color:var(--ink-soft); white-space:nowrap;"></div>
     </div>
     <div class="stat-grid compact">
       ${isSupervisorLike()
@@ -1717,6 +1863,10 @@ function viewOverview(){
                 <div class="feed-body"><b>${escapeHtml(studentName(m.studentId))}</b> — ${escapeHtml(m.type)}: ${escapeHtml(m.title)} <span class="feed-date">· ${m.status}</span></div>
               </div>`).join('')}
         </div>
+      </div>
+      </div>
+      <div>
+        ${newsTickerHtml()}
       </div>
     </div>
   `;
@@ -1974,8 +2124,7 @@ function coSupervisorAdminSection(){
             </div>
             <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px;">
               ${assignments.length===0 ? `<span class="entry-meta">No students assigned yet</span>` :
-                assignments.map(a=>`<span class="stamp neutral">${escapeHtml(studentName(a.studentId))} — ${escapeHtml(a.category)}</span>`).join('')}
-              ${c.notifySubmissions ? `<span class="stamp good">Submission alerts on</span>` : ''}
+                assignments.map(a=>`<span class="stamp neutral">${escapeHtml(studentName(a.studentId))} — ${escapeHtml(a.category)}${a.notifySubmissions?' · alerts on':''}</span>`).join('')}
             </div>
           </div>
         `;}).join('')}
@@ -1993,35 +2142,39 @@ function openAddCoSupervisorModal(){
     <label class="field-label">Email</label>
     <input class="text-input" id="f_coSupEmail" type="email" placeholder="e.g. sharma@university.edu">
     <label class="field-label">Assign to research scholars</label>
-    <div class="view-sub" style="margin-top:-2px; margin-bottom:6px;">The same person can be an Advisor for one scholar and a Co-Supervisor for another — set the category per scholar, not once for the whole mentor.</div>
-    <div style="display:flex; flex-direction:column; gap:8px; margin-top:4px;">
+    <div class="view-sub" style="margin-top:-2px; margin-bottom:6px;">The same person can be an Advisor for one scholar and a Co-Supervisor for another, and can choose to get submission alerts for one scholar but not another — set both per scholar, not once for the whole mentor.</div>
+    <div style="display:flex; flex-direction:column; gap:10px; margin-top:4px;">
       ${state.students.map(s=>`
-        <div style="display:flex; align-items:center; gap:8px;">
-          <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; flex:1;">
-            <input type="checkbox" class="coSupStudentCheck" value="${s.id}" onchange="document.getElementById('coSupCat-${s.id}').style.display=this.checked?'inline-block':'none'"> ${escapeHtml(s.name)}
+        <div style="border:1px solid var(--border); border-radius:8px; padding:8px 10px;">
+          <label style="display:flex; align-items:center; gap:8px; font-size:13.5px;">
+            <input type="checkbox" class="coSupStudentCheck" value="${s.id}" onchange="document.getElementById('coSupOpts-${s.id}').style.display=this.checked?'flex':'none'"> ${escapeHtml(s.name)}
           </label>
-          <select class="text-input" id="coSupCat-${s.id}" style="display:none; width:auto; padding:4px 8px; font-size:12.5px;">
-            <option value="Advisor">Advisor</option>
-            <option value="Co-Supervisor">Co-Supervisor</option>
-          </select>
+          <div id="coSupOpts-${s.id}" style="display:none; align-items:center; gap:14px; margin-top:6px; padding-left:24px;">
+            <select class="text-input" id="coSupCat-${s.id}" style="width:auto; padding:4px 8px; font-size:12.5px;">
+              <option value="Advisor">Advisor</option>
+              <option value="Co-Supervisor">Co-Supervisor</option>
+            </select>
+            <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink-soft);">
+              <input type="checkbox" id="coSupNotify-${s.id}"> Email me for this scholar's new submissions
+            </label>
+          </div>
         </div>
       `).join('')}
     </div>
-    <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; margin-top:14px;">
-      <input type="checkbox" id="f_coSupNotify"> Email this mentor when their assigned scholars submit something new for approval
-    </label>
-    <div class="view-sub" style="margin-top:4px;">Optional — off by default. This is separate from review notifications, which the mentor already gets whenever they approve or request changes on their own.</div>
   `, submitAddCoSupervisor);
 }
 async function submitAddCoSupervisor(){
   const name = document.getElementById('f_coSupName').value.trim();
   const email = document.getElementById('f_coSupEmail').value.trim();
   const checked = Array.from(document.querySelectorAll('.coSupStudentCheck:checked'));
-  const assignments = checked.map(el => ({ studentId: el.value, category: document.getElementById('coSupCat-'+el.value).value }));
-  const notifySubmissions = document.getElementById('f_coSupNotify').checked;
+  const assignments = checked.map(el => ({
+    studentId: el.value,
+    category: document.getElementById('coSupCat-'+el.value).value,
+    notifySubmissions: document.getElementById('coSupNotify-'+el.value).checked
+  }));
   if(!name){ alert('Please enter a name.'); return; }
   if(!isValidEmail(email)){ alert('Please enter a valid email address.'); return; }
-  state.coSupervisors.push({ id: uid('cos'), name, email, pinHash: null, assignments, notifySubmissions });
+  state.coSupervisors.push({ id: uid('cos'), name, email, pinHash: null, assignments });
   await saveCollection('co-supervisors', state.coSupervisors);
   closeModal(); renderView();
 }
@@ -2030,35 +2183,40 @@ function openEditCoSupAssignmentModal(id){
   const assignments = mentorAssignments_(c);
   showModal(`Edit ${c.name}`, `
     <label class="field-label">Assigned research scholars</label>
-    <div class="view-sub" style="margin-top:-2px; margin-bottom:6px;">The same person can be an Advisor for one scholar and a Co-Supervisor for another — set the category per scholar.</div>
-    <div style="display:flex; flex-direction:column; gap:8px; margin-top:4px;">
+    <div class="view-sub" style="margin-top:-2px; margin-bottom:6px;">The same person can be an Advisor for one scholar and a Co-Supervisor for another, and can choose to get submission alerts for one scholar but not another — set both per scholar.</div>
+    <div style="display:flex; flex-direction:column; gap:10px; margin-top:4px;">
       ${state.students.map(s=>{
         const existing = assignments.find(a=>a.studentId===s.id);
         return `
-        <div style="display:flex; align-items:center; gap:8px;">
-          <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; flex:1;">
-            <input type="checkbox" class="coSupEditCheck" value="${s.id}" ${existing?'checked':''} onchange="document.getElementById('coSupCatEdit-${s.id}').style.display=this.checked?'inline-block':'none'"> ${escapeHtml(s.name)}
+        <div style="border:1px solid var(--border); border-radius:8px; padding:8px 10px;">
+          <label style="display:flex; align-items:center; gap:8px; font-size:13.5px;">
+            <input type="checkbox" class="coSupEditCheck" value="${s.id}" ${existing?'checked':''} onchange="document.getElementById('coSupOptsEdit-${s.id}').style.display=this.checked?'flex':'none'"> ${escapeHtml(s.name)}
           </label>
-          <select class="text-input" id="coSupCatEdit-${s.id}" style="${existing?'':'display:none;'} width:auto; padding:4px 8px; font-size:12.5px;">
-            <option value="Advisor" ${existing && existing.category==='Advisor'?'selected':''}>Advisor</option>
-            <option value="Co-Supervisor" ${!existing || existing.category!=='Advisor'?'selected':''}>Co-Supervisor</option>
-          </select>
+          <div id="coSupOptsEdit-${s.id}" style="display:${existing?'flex':'none'}; align-items:center; gap:14px; margin-top:6px; padding-left:24px;">
+            <select class="text-input" id="coSupCatEdit-${s.id}" style="width:auto; padding:4px 8px; font-size:12.5px;">
+              <option value="Advisor" ${existing && existing.category==='Advisor'?'selected':''}>Advisor</option>
+              <option value="Co-Supervisor" ${!existing || existing.category!=='Advisor'?'selected':''}>Co-Supervisor</option>
+            </select>
+            <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink-soft);">
+              <input type="checkbox" id="coSupNotifyEdit-${s.id}" ${existing && existing.notifySubmissions?'checked':''}> Email me for this scholar's new submissions
+            </label>
+          </div>
         </div>
       `;}).join('')}
     </div>
-    <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; margin-top:14px;">
-      <input type="checkbox" id="f_coSupNotifyEdit" ${c.notifySubmissions?'checked':''}> Email this mentor when their assigned scholars submit something new for approval
-    </label>
-    <div class="view-sub" style="margin-top:4px;">Optional — off by default. This is separate from review notifications, which the mentor already gets whenever they approve or request changes on their own.</div>
   `, ()=>submitEditCoSupAssignment(id));
 }
 async function submitEditCoSupAssignment(id){
   const c = state.coSupervisors.find(x=>x.id===id);
   const checked = Array.from(document.querySelectorAll('.coSupEditCheck:checked'));
-  c.assignments = checked.map(el => ({ studentId: el.value, category: document.getElementById('coSupCatEdit-'+el.value).value }));
+  c.assignments = checked.map(el => ({
+    studentId: el.value,
+    category: document.getElementById('coSupCatEdit-'+el.value).value,
+    notifySubmissions: document.getElementById('coSupNotifyEdit-'+el.value).checked
+  }));
   delete c.assignedStudentIds;
   delete c.category;
-  c.notifySubmissions = document.getElementById('f_coSupNotifyEdit').checked;
+  delete c.notifySubmissions;
   await saveCollection('co-supervisors', state.coSupervisors);
   closeModal(); renderView();
 }
@@ -2174,9 +2332,10 @@ function downloadBackup(){
     events: visibleEvents(),
     resultsAnalysis: scopedList(state.resultsAnalysis),
     deletionLog: scopedList(state.deletionLog),
+    newsUpdates: state.newsUpdates,
     instructions: scopedList(state.instructions),
     meetings: scopedList(state.meetings),
-    coSupervisors: isSupervisor ? state.coSupervisors.map(c=>({id:c.id, name:c.name, email:c.email||'', assignments:mentorAssignments_(c), notifySubmissions:!!c.notifySubmissions})) : undefined
+    coSupervisors: isSupervisor ? state.coSupervisors.map(c=>({id:c.id, name:c.name, email:c.email||'', assignments:mentorAssignments_(c)})) : undefined
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
   const url = URL.createObjectURL(blob);
@@ -2221,6 +2380,7 @@ function handleRestoreFile(event){
     state.events = Array.isArray(parsed.events) ? parsed.events : state.events;
     state.resultsAnalysis = Array.isArray(parsed.resultsAnalysis) ? parsed.resultsAnalysis : state.resultsAnalysis;
     state.deletionLog = Array.isArray(parsed.deletionLog) ? parsed.deletionLog : state.deletionLog;
+    state.newsUpdates = Array.isArray(parsed.newsUpdates) ? parsed.newsUpdates : state.newsUpdates;
     if(Array.isArray(parsed.coSupervisors)){
       state.coSupervisors = parsed.coSupervisors.map(c => {
         const existing = state.coSupervisors.find(x=>x.id===c.id);
@@ -2245,6 +2405,7 @@ function handleRestoreFile(event){
       saveCollection('events', state.events),
       saveCollection('results-analysis', state.resultsAnalysis),
       saveCollection('deletion-log', state.deletionLog),
+      saveCollection('news-updates', state.newsUpdates),
       saveCollection('co-supervisors', state.coSupervisors)
     ]);
     event.target.value = '';
@@ -2696,6 +2857,7 @@ function proposalCard(pr, i, total){
       ${pr.supervisorNote ? `<div class="comment-box"><span class="lbl">${pr.reviewedByName ? `Feedback from ${escapeHtml(pr.reviewedByName)} (${escapeHtml(pr.reviewedByRole)}) on ${escapeHtml(pr.reviewedAt||'')}` : 'Supervisor feedback'}</span><div class="comment-existing">${nl2br(pr.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(pr)}
       ${editHistoryHtml(pr)}
+      ${createdByHtml(pr)}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved plans are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${canReview_(pr) ? `<button class="small-btn" onclick="openProposalReviewBox('${pr.id}')">Review</button>` : (isSupervisorLike() && pr.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(pr.assignedReviewerName)} for review</span>` : '')}
@@ -2728,13 +2890,16 @@ async function submitProposal(){
   if(!title || !objective){ alert('Please add a title and objective.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
   if(!studentId){ alert('Add a research scholar first.'); return; }
-  state.proposals.push({
+  const newProposal = {
     id: uid('pr'), studentId, title, objective, methodology, expectedOutcomes, goals: [], linkedPaperIds: [],
     status: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:'', lastUpdate: todayStr()
-  });
+  };
+  state.proposals.push(newProposal);
   await saveCollection('proposals', state.proposals);
   if(!isSupervisorLike()){
     apiNotify('proposalSubmitted', { studentId, title });
+  } else {
+    logStaffCreate_(newProposal, title, 'proposal');
   }
   closeModal(); renderView();
 }
@@ -2985,6 +3150,7 @@ function thesisCard(tp, i, total){
       ${tp.supervisorNote ? `<div class="comment-box"><span class="lbl">${tp.reviewedByName ? `Feedback from ${escapeHtml(tp.reviewedByName)} (${escapeHtml(tp.reviewedByRole)}) on ${escapeHtml(tp.reviewedAt||'')}` : 'Supervisor feedback'}</span><div class="comment-existing">${nl2br(tp.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(tp)}
       ${editHistoryHtml(tp)}
+      ${createdByHtml(tp)}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved thesis plans are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${canReview_(tp) ? `<button class="small-btn" onclick="openThesisReviewBox('${tp.id}')">Review</button>` : (isSupervisorLike() && tp.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(tp.assignedReviewerName)} for review</span>` : '')}
@@ -3015,13 +3181,16 @@ async function submitThesis(){
     alert('Only one thesis plan is allowed per research scholar. Edit the existing one instead of creating a new one.');
     return;
   }
-  state.thesisPlans.push({
+  const newThesis = {
     id: uid('th'), studentId, title, totalPlannedPapers, chapters: [],
     status: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:'', lastUpdate: todayStr()
-  });
+  };
+  state.thesisPlans.push(newThesis);
   await saveCollection('thesis-plans', state.thesisPlans);
   if(!isSupervisorLike()){
     apiNotify('thesisSubmitted', { studentId, title });
+  } else {
+    logStaffCreate_(newThesis, title, 'thesis');
   }
   closeModal(); renderView();
 }
@@ -3233,6 +3402,7 @@ function racCard(r, i, total){
       ${r.supervisorNote ? `<div class="comment-box"><span class="lbl">${r.reviewedByName ? `Feedback from ${escapeHtml(r.reviewedByName)} (${escapeHtml(r.reviewedByRole)}) on ${escapeHtml(r.reviewedAt||'')}` : 'Supervisor feedback'}</span><div class="comment-existing">${nl2br(r.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(r)}
       ${editHistoryHtml(r)}
+      ${createdByHtml(r)}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved reviews are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${canReview_(r) ? `<button class="small-btn" onclick="openRacReviewBox('${r.id}')">Review</button>` : (isSupervisorLike() && r.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(r.assignedReviewerName)} for review</span>` : '')}
@@ -3285,15 +3455,18 @@ async function submitRac(){
   if(!title || !reviewDate){ alert('Please add a title and review date.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
   if(!studentId){ alert('Add a research scholar first.'); return; }
-  state.racReviews.push({
+  const newRac = {
     id: uid('rac'), studentId, title, reviewDate,
     committeeMembers: document.getElementById('f_racMembers').value.trim(),
     comments: document.getElementById('f_racComments').value.trim(),
     actionItems: [], status: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:'', lastUpdate: todayStr()
-  });
+  };
+  state.racReviews.push(newRac);
   await saveCollection('rac-reviews', state.racReviews);
   if(!isSupervisorLike()){
     apiNotify('racSubmitted', { studentId, title });
+  } else {
+    logStaffCreate_(newRac, title, 'rac');
   }
   closeModal(); renderView();
 }
@@ -3447,6 +3620,15 @@ function financialCard(f, i, total){
       ${f.supervisorNote ? `<div class="comment-box"><span class="lbl">${f.reviewedByName ? `Note from ${escapeHtml(f.reviewedByName)} (${escapeHtml(f.reviewedByRole)}) on ${escapeHtml(f.reviewedAt||'')}` : 'Supervisor note'}</span><div class="comment-existing">${nl2br(f.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(f)}
       ${editHistoryHtml(f)}
+      ${createdByHtml(f)}
+      ${(f.outcomeHistory && f.outcomeHistory.length>0) ? `
+        <div class="entry-block" style="margin-top:8px;">
+          <span class="lbl">Outcome history</span>
+          <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">
+            ${f.outcomeHistory.slice().reverse().map(h=>`<div class="entry-meta">${escapeHtml(h.outcomeStatus)}${h.resultDate ? ' — '+fmtDate(h.resultDate) : ''} — recorded by ${escapeHtml(h.recordedByName)} (${escapeHtml(h.recordedByRole)}) on ${escapeHtml(h.recordedAt)}</div>`).join('')}
+          </div>
+        </div>
+      ` : ''}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved applications are locked — you can still record the outcome, but contact your supervisor to change the application details.</div>` : ''}
       <div class="entry-actions">
         ${canEdit ? `<button class="small-btn" onclick="openEditFinancialModal('${f.id}')">Edit application</button>` : ''}
@@ -3495,7 +3677,7 @@ async function submitFinancial(){
   if(!title || !applicationDate){ alert('Please add a title and application date.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
   if(!studentId){ alert('Add a research scholar first.'); return; }
-  state.financialApps.push({
+  const newFinancial = {
     id: uid('fin'), studentId,
     title, type: document.getElementById('f_finType').value,
     hostInstitution: document.getElementById('f_finHost').value.trim(),
@@ -3504,10 +3686,13 @@ async function submitFinancial(){
     notes: document.getElementById('f_finNotes').value.trim(),
     resultDate: '', outcomeStatus: 'awaiting_result',
     approvalStatus: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:''
-  });
+  };
+  state.financialApps.push(newFinancial);
   await saveCollection('financial-applications', state.financialApps);
   if(!isSupervisorLike()){
     apiNotify('financialSubmitted', { studentId, title });
+  } else {
+    logStaffCreate_(newFinancial, title, 'financial');
   }
   closeModal(); renderView();
 }
@@ -3552,8 +3737,13 @@ function openFinancialOutcomeModal(id){
 }
 async function submitFinancialOutcome(id){
   const f = state.financialApps.find(x=>x.id===id);
-  f.outcomeStatus = document.getElementById('f_finOutcome').value;
-  f.resultDate = document.getElementById('f_finResultDate').value;
+  const newStatus = document.getElementById('f_finOutcome').value;
+  const newResultDate = document.getElementById('f_finResultDate').value;
+  if(!f.outcomeHistory) f.outcomeHistory = [];
+  const recorder = reviewerIdentity(f.studentId);
+  f.outcomeHistory.push({ outcomeStatus: newStatus, resultDate: newResultDate, recordedByName: recorder.name, recordedByRole: recorder.roleLabel, recordedAt: nowIST() });
+  f.outcomeStatus = newStatus;
+  f.resultDate = newResultDate;
   await saveCollection('financial-applications', state.financialApps);
   closeModal(); renderView();
 }
@@ -3649,6 +3839,7 @@ function courseCard(c, i, total){
       ${c.supervisorNote ? `<div class="comment-box"><span class="lbl">${c.reviewedByName ? `Note from ${escapeHtml(c.reviewedByName)} (${escapeHtml(c.reviewedByRole)}) on ${escapeHtml(c.reviewedAt||'')}` : 'Supervisor note'}</span><div class="comment-existing">${nl2br(c.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(c)}
       ${editHistoryHtml(c)}
+      ${createdByHtml(c)}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${canReview_(c) ? `<button class="small-btn" onclick="openCourseReviewBox('${c.id}')">Review</button>` : (isSupervisorLike() && c.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(c.assignedReviewerName)} for review</span>` : '')}
@@ -3702,7 +3893,7 @@ async function submitCourse(){
   if(!title || !startDate){ alert('Please add a title and start date.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
   if(!studentId){ alert('Add a research scholar first.'); return; }
-  state.courses.push({
+  const newCourse = {
     id: uid('crs'), studentId, title,
     type: document.getElementById('f_courseType').value,
     provider: document.getElementById('f_courseProvider').value.trim(),
@@ -3711,10 +3902,13 @@ async function submitCourse(){
     certificateLink: document.getElementById('f_courseLink').value.trim(),
     notes: document.getElementById('f_courseNotes').value.trim(),
     approvalStatus: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:''
-  });
+  };
+  state.courses.push(newCourse);
   await saveCollection('courses', state.courses);
   if(!isSupervisorLike()){
     apiNotify('courseSubmitted', { studentId, title });
+  } else {
+    logStaffCreate_(newCourse, title, 'course');
   }
   closeModal(); renderView();
 }
@@ -3875,6 +4069,7 @@ function fabricationCard(it, i, total){
       ${it.supervisorNote ? `<div class="comment-box"><span class="lbl">${it.reviewedByName ? `Note from ${escapeHtml(it.reviewedByName)} (${escapeHtml(it.reviewedByRole)}) on ${escapeHtml(it.reviewedAt||'')}` : 'Supervisor note'}</span><div class="comment-existing">${nl2br(it.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(it)}
       ${editHistoryHtml(it)}
+      ${createdByHtml(it)}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${(canManage || isOwner) ? `
@@ -3945,7 +4140,7 @@ async function submitFabrication(){
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
   if(!studentId){ alert('Add a research scholar first.'); return; }
   const papersSelect = document.getElementById('f_fabPaper');
-  state.fabricationItems.push({
+  const newFab = {
     id: uid('fab'), studentId, title, itemName,
     stage: document.getElementById('f_fabStage').value,
     linkedPaperIds: papersSelect ? Array.from(papersSelect.selectedOptions).map(el=>el.value) : [],
@@ -3954,10 +4149,13 @@ async function submitFabrication(){
     notes: document.getElementById('f_fabNotes').value.trim(),
     roadmap: [],
     approvalStatus: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:'', lastUpdate: todayStr()
-  });
+  };
+  state.fabricationItems.push(newFab);
   await saveCollection('fabrication-items', state.fabricationItems);
   if(!isSupervisorLike()){
     apiNotify('fabricationSubmitted', { studentId, itemName: `${title} (${itemName})` });
+  } else {
+    logStaffCreate_(newFab, fabricationLabel(newFab), 'fabrication');
   }
   closeModal(); renderView();
 }
@@ -4121,6 +4319,19 @@ function logStaffEdit_(entry, title, type){
   entry.editHistory.push({ editedByName: editor.name, editedByRole: editor.roleLabel, editedAt: nowIST() });
   apiNotify('workItemEdited', { studentId: entry.studentId, title, type, editedByName: editor.name, editedByRole: editor.roleLabel, commenterId: state.identity.id });
 }
+// Same idea, but for a brand-new entry logged by staff on a scholar's
+// behalf rather than an edit to something that already existed — the
+// scholar had no part in creating it, so they need to be told it exists.
+// A scholar creating their own entry isn't flagged; only staff-authored
+// creation is.
+function logStaffCreate_(entry, title, type){
+  if(!isSupervisorLike()) return;
+  const creator = reviewerIdentity(entry.studentId);
+  entry.createdByName = creator.name;
+  entry.createdByRole = creator.roleLabel;
+  entry.createdAt = nowIST();
+  apiNotify('workItemEdited', { studentId: entry.studentId, title, type, editedByName: creator.name, editedByRole: creator.roleLabel, commenterId: state.identity.id, isNewEntry: true });
+}
 function editHistoryHtml(entry){
   if(!entry.editHistory || entry.editHistory.length===0) return '';
   return `
@@ -4131,6 +4342,10 @@ function editHistoryHtml(entry){
       </div>
     </div>
   `;
+}
+function createdByHtml(entry){
+  if(!entry.createdByName) return '';
+  return `<div class="entry-meta" style="margin-top:2px;">Logged by ${escapeHtml(entry.createdByName)} (${escapeHtml(entry.createdByRole)}) on ${escapeHtml(entry.createdAt)}</div>`;
 }
 function pushStatusHistory_(entry, fromStatus, toStatus, studentIdOverride){
   if(!entry.statusHistory) entry.statusHistory = [];
@@ -4261,6 +4476,7 @@ function weeklyCard(w, i, total){
       ` : ''}
       ${reviewHistoryHtml(w)}
       ${editHistoryHtml(w)}
+      ${createdByHtml(w)}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">${w.status==='approved' ? 'Approved entries are locked' : 'This week has ended, so this entry is locked'} — ask your supervisor to request changes if this needs to be corrected.</div>` : ''}
       <div class="entry-actions">
         ${canReview_(w) ? `<button class="small-btn" onclick="openReviewBox('${w.id}')">Review</button>` : (isSupervisorLike() && w.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(w.assignedReviewerName)} for review</span>` : '')}
@@ -4533,6 +4749,15 @@ function sampleCard(s, i, total){
       ${s.supervisorNote ? `<div class="comment-box"><span class="lbl">${s.reviewedByName ? `Note from ${escapeHtml(s.reviewedByName)} (${escapeHtml(s.reviewedByRole)}) on ${escapeHtml(s.reviewedAt||'')}` : 'Supervisor note'}</span><div class="comment-existing">${nl2br(s.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(s)}
       ${editHistoryHtml(s)}
+      ${createdByHtml(s)}
+      ${(s.resultsHistory && s.resultsHistory.length>0) ? `
+        <div class="entry-block" style="margin-top:8px;">
+          <span class="lbl">Results / data entry history</span>
+          <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">
+            ${s.resultsHistory.slice().reverse().map(h=>`<div class="entry-meta">Received ${fmtDate(h.resultsReceivedDate)}${h.dataLink ? ' — data link updated' : ''} — recorded by ${escapeHtml(h.recordedByName)} (${escapeHtml(h.recordedByRole)}) on ${escapeHtml(h.recordedAt)}</div>`).join('')}
+          </div>
+        </div>
+      ` : ''}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved submissions are locked — you can still log results, but contact your supervisor to change the submission details.</div>` : ''}
       <div class="entry-actions">
         ${canEditSubmission ? `<button class="small-btn" onclick="openEditSampleModal('${s.id}')">Edit submission</button>` : ''}
@@ -4590,14 +4815,17 @@ async function submitSample(){
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
   if(!studentId){ alert('Add a research scholar first.'); return; }
   const fabSelect = document.getElementById('f_sampleFab');
-  state.samples.push({
+  const newSample = {
     id: uid('smp'), studentId, sampleName, technique, facility, submittedDate, expectedDate, resultsReceivedDate:'', notes, dataLink:'',
     linkedFabricationIds: fabSelect ? Array.from(fabSelect.selectedOptions).map(el=>el.value) : [],
     approvalStatus: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:''
-  });
+  };
+  state.samples.push(newSample);
   await saveCollection('samples', state.samples);
   if(state.identity.role==='student'){
     apiNotify('sampleSubmitted', { studentId, sampleName, technique });
+  } else {
+    logStaffCreate_(newSample, sampleName, 'sample');
   }
   closeModal(); renderView();
 }
@@ -4618,6 +4846,9 @@ async function submitReceive(id){
   const notes = document.getElementById('f_resultsNotes').value.trim();
   if(!date){ alert('Please add a date.'); return; }
   const s = state.samples.find(x=>x.id===id);
+  if(!s.resultsHistory) s.resultsHistory = [];
+  const recorder = reviewerIdentity(s.studentId);
+  s.resultsHistory.push({ resultsReceivedDate: date, dataLink, notes, recordedByName: recorder.name, recordedByRole: recorder.roleLabel, recordedAt: nowIST() });
   s.resultsReceivedDate = date;
   s.dataLink = dataLink;
   s.notes = notes;
@@ -4819,6 +5050,7 @@ function analysisCard(a, i, total){
       ${a.supervisorNote ? `<div class="comment-box"><span class="lbl">${a.reviewedByName ? `Note from ${escapeHtml(a.reviewedByName)} (${escapeHtml(a.reviewedByRole)}) on ${escapeHtml(a.reviewedAt||'')}` : 'Supervisor note'}</span><div class="comment-existing">${nl2br(a.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(a)}
       ${editHistoryHtml(a)}
+      ${createdByHtml(a)}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${(canManage || isOwner) ? `
@@ -4903,7 +5135,7 @@ async function submitAnalysis(){
   const fabSelect = document.getElementById('f_anFab');
   const papersSelect = document.getElementById('f_anPapers');
   const thesisSelect = document.getElementById('f_anThesis');
-  state.resultsAnalysis.push({
+  const newAnalysis = {
     id: uid('an'), studentId, title,
     targetDate: document.getElementById('f_anTargetDate').value,
     linkedSampleIds: samplesSelect ? Array.from(samplesSelect.selectedOptions).map(el=>el.value) : [],
@@ -4913,10 +5145,13 @@ async function submitAnalysis(){
     notes: document.getElementById('f_anNotes').value.trim(),
     status: 'not_started',
     approvalStatus: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:'', lastUpdate: todayStr()
-  });
+  };
+  state.resultsAnalysis.push(newAnalysis);
   await saveCollection('results-analysis', state.resultsAnalysis);
   if(!isSupervisorLike()){
     apiNotify('analysisSubmitted', { studentId, title });
+  } else {
+    logStaffCreate_(newAnalysis, title, 'analysis');
   }
   closeModal(); renderView();
 }
@@ -5109,6 +5344,7 @@ function paperCard(p, i, total){
       ${p.supervisorNote ? `<div class="comment-box"><span class="lbl">${p.reviewedByName ? `Note from ${escapeHtml(p.reviewedByName)} (${escapeHtml(p.reviewedByRole)}) on ${escapeHtml(p.reviewedAt||'')}` : 'Supervisor note'}</span><div class="comment-existing">${nl2br(p.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(p)}
       ${editHistoryHtml(p)}
+      ${createdByHtml(p)}
       <div class="entry-meta" style="margin-top:8px;">Last updated ${fmtDate(p.lastUpdate)}</div>
       ${locked ? `<div class="entry-meta" style="margin-top:6px;">Published papers are locked — contact your supervisor for any changes.</div>` : ''}
       ${hasPending ? `
@@ -5203,11 +5439,15 @@ async function submitPaper(){
   if(!title){ alert('Please add a title.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
   if(!studentId){ alert('Add a research scholar first.'); return; }
-  state.papers.push({
+  const newPaper = {
     id: uid('pap'), studentId, title, targetJournal, targetDate, manuscriptLink, referenceLinks: [], stage: 'Planning', pendingStage: null,
     notes, supervisorNote:'', lastUpdate: todayStr()
-  });
+  };
+  state.papers.push(newPaper);
   await saveCollection('papers', state.papers);
+  if(isSupervisorLike()){
+    logStaffCreate_(newPaper, title, 'paper');
+  }
   closeModal(); renderView();
 }
 async function requestStageChange(id, newStage){
@@ -5442,6 +5682,7 @@ function conferenceCard(c, i, total){
       ${c.supervisorNote ? `<div class="comment-box"><span class="lbl">${c.reviewedByName ? `Note from ${escapeHtml(c.reviewedByName)} (${escapeHtml(c.reviewedByRole)}) on ${escapeHtml(c.reviewedAt||'')}` : 'Supervisor note'}</span><div class="comment-existing">${nl2br(c.supervisorNote)}</div></div>` : ''}
       ${reviewHistoryHtml(c)}
       ${editHistoryHtml(c)}
+      ${createdByHtml(c)}
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${canReview_(c) ? `<button class="small-btn" onclick="openConferenceReviewBox('${c.id}')">Review</button>` : (isSupervisorLike() && c.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(c.assignedReviewerName)} for review</span>` : '')}
@@ -5493,7 +5734,7 @@ async function submitConference(){
   if(!eventName || !startDate){ alert('Please add an event name and start date.'); return; }
   const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
   if(!studentId){ alert('Add a research scholar first.'); return; }
-  state.conferences.push({
+  const newConference = {
     id: uid('conf'), studentId, eventName,
     eventType: document.getElementById('f_confType').value,
     role: document.getElementById('f_confRole').value,
@@ -5503,10 +5744,13 @@ async function submitConference(){
     link: document.getElementById('f_confLink').value.trim(),
     notes: document.getElementById('f_confNotes').value.trim(),
     approvalStatus: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:''
-  });
+  };
+  state.conferences.push(newConference);
   await saveCollection('conferences', state.conferences);
   if(!isSupervisorLike()){
     apiNotify('conferenceSubmitted', { studentId, eventName });
+  } else {
+    logStaffCreate_(newConference, eventName, 'conference');
   }
   closeModal(); renderView();
 }
