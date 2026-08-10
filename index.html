@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Energy Devices and Materials Group — Research Logbook</title>
+<title>Energy Devices and Materials Group, Christ University, Bengaluru</title>
 <meta name="description" content="Weekly progress, characterization tracking, and paper pipeline management for research groups.">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1F3A5F">
@@ -214,6 +214,8 @@
   /* ---------- Dashboard cards ---------- */
   .stat-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(168px,1fr)); gap:14px; margin-bottom:30px; }
   .stat-grid.compact{ grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:14px; margin-bottom:24px; }
+  .stat-grid.dash{ grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:22px; }
+  @media (max-width: 900px){ .stat-grid.dash{ grid-template-columns:repeat(2, 1fr); } }
   .stat-card{ background:var(--surface); border:1px solid var(--border); border-top:3px solid var(--border-strong); border-radius:var(--radius); padding:17px 19px; box-shadow:var(--shadow-sm); transition:box-shadow .15s, transform .15s; }
   .stat-card:hover{ box-shadow:var(--shadow-md); transform:translateY(-2px); }
   .stat-card.compact{ padding:14px 16px; }
@@ -410,8 +412,8 @@
     <div class="brand">
       <div class="brand-mark">RG</div>
       <div>
-        <div class="brand-name">Research Group Management System</div>
-        <div class="brand-subtitle">Energy Devices and Materials Group</div>
+        <div class="brand-name">Energy Devices and Materials Group</div>
+        <div class="brand-subtitle">Christ University, Bengaluru</div>
       </div>
       <span style="font-size:10.5px; color:rgba(255,255,255,0.45); font-weight:600; letter-spacing:.04em; border:1px solid rgba(255,255,255,0.2); border-radius:4px; padding:1px 6px;">v1.0</span>
     </div>
@@ -456,6 +458,11 @@ const state = {
   resultsAnalysis: [],
   deletionLog: [],
   newsUpdates: [],
+  patents: [],
+  plagiarismReports: [],
+  awards: [],
+  collaborators: [],
+  leaveRecords: [],
   calendarMonth: null,
   plannerWeekStart: null,
   view: 'overview',
@@ -642,7 +649,7 @@ async function saveSupervisorProfile(profile){
 
 /* ============================ INIT ============================ */
 // Every collection key the app needs at startup, fetched in one batched request.
-const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','deletion-log','news-updates','supervisor-pin'];
+const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','deletion-log','news-updates','patents','plagiarism-reports','awards','collaborators','leave-records','supervisor-pin'];
 
 async function init(){
   if(!backendConfigured()){
@@ -696,6 +703,11 @@ function applyDataValues(values){
   state.resultsAnalysis = arr('results-analysis');
   state.deletionLog = arr('deletion-log');
   state.newsUpdates = arr('news-updates');
+  state.patents = arr('patents');
+  state.plagiarismReports = arr('plagiarism-reports');
+  state.awards = arr('awards');
+  state.collaborators = arr('collaborators');
+  state.leaveRecords = arr('leave-records');
   let supervisorProfile = {};
   try{ supervisorProfile = values['supervisor-pin'] ? JSON.parse(values['supervisor-pin']) : {}; }catch(e){ supervisorProfile = {}; }
   state.supervisorPinHash = supervisorProfile.hash || null;
@@ -1124,7 +1136,8 @@ const NAV_ITEM_COLORS = {
   proposal:'var(--stat-indigo)', thesis:'var(--stat-purple)',
   weekly:'var(--stat-blue)', fabrication:'var(--stat-teal)', samples:'var(--stat-cyan)', resultsAnalysis:'var(--stat-rose)', papers:'var(--stat-purple)',
   rac:'var(--stat-rose)', learning:'var(--stat-blue)', financial:'var(--stat-teal)', conferences:'var(--stat-rose)',
-  meetings:'var(--stat-indigo)', events:'var(--stat-purple)', instructions:'var(--navy)', links:'var(--stat-teal)', analytics:'var(--stat-blue)', reports:'var(--navy)', account:'var(--ink-faint)'
+  patents:'var(--stat-indigo)', plagiarism:'var(--stat-cyan)', awards:'var(--stat-purple)', collaborators:'var(--stat-teal)',
+  meetings:'var(--stat-indigo)', events:'var(--stat-purple)', leave:'var(--warning)', instructions:'var(--navy)', links:'var(--stat-teal)', analytics:'var(--stat-blue)', activityLog:'var(--ink-faint)', reports:'var(--navy)', account:'var(--ink-faint)'
 };
 const NAV_GROUPS = [
   { items: [
@@ -1149,13 +1162,19 @@ const NAV_GROUPS = [
     { key:'learning', label:'Learning & Courses' },
     { key:'financial', label:'Proposals' },
     { key:'conferences', label:'Conferences' },
+    { key:'patents', label:'Patents' },
+    { key:'plagiarism', label:'Similarity Reports' },
+    { key:'awards', label:'Awards & Recognitions' },
+    { key:'collaborators', label:'Collaborators' },
   ]},
   { label:'Admin', items: [
     { key:'meetings', label:'Meetings' },
     { key:'events', label:'Events' },
+    { key:'leave', label:'Leave / OD' },
     { key:'instructions', label:'Instructions' },
     { key:'links', label:'News Update' },
     { key:'analytics', label:'Analytics', supervisorOnly:true },
+    { key:'activityLog', label:'Activity Log', supervisorOnly:true },
     { key:'reports', label:'Reports' },
     { key:'account', label:'Account' },
   ]},
@@ -1177,6 +1196,12 @@ function renderView(){
   if(state.view==='overview'){ main.innerHTML = viewOverview(); startLiveClock(); }
   else if(state.view==='links') main.innerHTML = viewLinks();
   else if(state.view==='analytics') main.innerHTML = viewAnalytics();
+  else if(state.view==='activityLog') main.innerHTML = viewActivityLog();
+  else if(state.view==='patents') main.innerHTML = viewGenericSection('patent');
+  else if(state.view==='plagiarism') main.innerHTML = viewGenericSection('plagiarism');
+  else if(state.view==='awards') main.innerHTML = viewGenericSection('award');
+  else if(state.view==='collaborators') main.innerHTML = viewGenericSection('collaborator');
+  else if(state.view==='leave') main.innerHTML = viewGenericSection('leave');
   else if(state.view==='approvals') main.innerHTML = viewApprovals();
   else if(state.view==='changesRequested') main.innerHTML = viewChangesRequested();
   else if(state.view==='calendar') main.innerHTML = viewCalendar();
@@ -1201,7 +1226,8 @@ function renderView(){
 const ITEM_TYPE_VIEW = {
   instruction:'instructions', proposal:'proposal', thesis:'thesis', rac:'rac',
   financial:'financial', course:'learning', weekly:'weekly', sample:'samples',
-  paper:'papers', conference:'conferences', meeting:'meetings', fabrication:'fabrication', event:'events', analysis:'resultsAnalysis'
+  paper:'papers', conference:'conferences', meeting:'meetings', fabrication:'fabrication', event:'events', analysis:'resultsAnalysis',
+  patent:'patents', plagiarism:'plagiarism', award:'awards', collaborator:'collaborators', leave:'leave'
 };
 function goToItem(type, id, studentId){
   const view = ITEM_TYPE_VIEW[type];
@@ -1666,6 +1692,11 @@ const REVIEWABLE_COLLECTIONS = {
   course:       { list: () => state.courses,           key: 'courses' },
   analysis:     { list: () => state.resultsAnalysis,   key: 'results-analysis' },
   paper:        { list: () => state.papers,            key: 'papers' },
+  patent:       { list: () => state.patents,           key: 'patents' },
+  plagiarism:   { list: () => state.plagiarismReports, key: 'plagiarism-reports' },
+  award:        { list: () => state.awards,            key: 'awards' },
+  collaborator: { list: () => state.collaborators,     key: 'collaborators' },
+  leave:        { list: () => state.leaveRecords,      key: 'leave-records' },
 };
 function titleForReviewable(type, entry){
   switch(type){
@@ -1673,13 +1704,17 @@ function titleForReviewable(type, entry){
     case 'sample': return entry.sampleName;
     case 'fabrication': return fabricationLabel(entry);
     case 'conference': return entry.eventName;
+    case 'plagiarism': return entry.documentTitle;
+    case 'collaborator': return entry.name;
+    case 'leave': return `${entry.leaveType} — ${fmtDate(entry.fromDate)} to ${fmtDate(entry.toDate)}`;
     default: return entry.title || '';
   }
 }
 const SEARCH_CATEGORY_LABEL = {
   weekly:'Weekly Plan', sample:'Characterization', fabrication:'Lab Work', proposal:'Work Plan (Proposal)',
   thesis:'Thesis Plan', rac:'RAC Reviews', conference:'Conferences', financial:'Proposals', course:'Learning & Courses',
-  analysis:'Results Analysis', paper:'Paper Pipeline', meeting:'Meetings', event:'Events', instruction:'Instructions', student:'Research Scholar'
+  analysis:'Results Analysis', paper:'Paper Pipeline', meeting:'Meetings', event:'Events', instruction:'Instructions', student:'Research Scholar',
+  patent:'Patents', plagiarism:'Similarity Reports', award:'Awards & Recognitions', collaborator:'Collaborators', leave:'Leave / OD'
 };
 // Scans every section the current person can already see (same scoping as
 // everywhere else in the app — a scholar only searches their own work, a
@@ -1743,15 +1778,18 @@ document.addEventListener('click', (e)=>{
 // can act on directly. Papers (stage/detail proposals) and meetings
 // (confirm with a date/time) each have their own more involved flow and
 // aren't included here — those still go through individual review.
-const BULK_APPROVABLE_TYPES = ['weekly','sample','fabrication','proposal','thesis','rac','conference','financial','course','analysis'];
-const REVIEW_STATUS_FIELD = { weekly:'status', proposal:'status', thesis:'status', rac:'status', sample:'approvalStatus', fabrication:'approvalStatus', financial:'approvalStatus', course:'approvalStatus', analysis:'approvalStatus', conference:'approvalStatus' };
-const REVIEW_NOTIFY_EVENT = { weekly:'weeklyReviewed', sample:'sampleReviewed', fabrication:'fabricationReviewed', proposal:'proposalReviewed', thesis:'thesisReviewed', rac:'racReviewed', conference:'conferenceReviewed', financial:'financialReviewed', course:'courseReviewed', analysis:'analysisReviewed' };
+const BULK_APPROVABLE_TYPES = ['weekly','sample','fabrication','proposal','thesis','rac','conference','financial','course','analysis','patent','plagiarism','award','collaborator','leave'];
+const REVIEW_STATUS_FIELD = { weekly:'status', proposal:'status', thesis:'status', rac:'status', sample:'approvalStatus', fabrication:'approvalStatus', financial:'approvalStatus', course:'approvalStatus', analysis:'approvalStatus', conference:'approvalStatus', patent:'approvalStatus', plagiarism:'approvalStatus', award:'approvalStatus', collaborator:'approvalStatus', leave:'approvalStatus' };
+const REVIEW_NOTIFY_EVENT = { weekly:'weeklyReviewed', sample:'sampleReviewed', fabrication:'fabricationReviewed', proposal:'proposalReviewed', thesis:'thesisReviewed', rac:'racReviewed', conference:'conferenceReviewed', financial:'financialReviewed', course:'courseReviewed', analysis:'analysisReviewed', patent:'patentReviewed', plagiarism:'plagiarismReviewed', award:'awardReviewed', collaborator:'collaboratorReviewed', leave:'leaveReviewed' };
 function reviewNotifyExtra_(type, entry){
   switch(type){
     case 'weekly': return { weekStart: entry.weekStart };
     case 'sample': return { sampleName: entry.sampleName };
     case 'fabrication': return { itemName: fabricationLabel(entry) };
     case 'conference': return { eventName: entry.eventName };
+    case 'plagiarism': return { title: entry.documentTitle };
+    case 'collaborator': return { title: entry.name };
+    case 'leave': return { title: titleForReviewable('leave', entry) };
     default: return { title: entry.title };
   }
 }
@@ -1767,6 +1805,273 @@ async function bulkApproveOne_(type, id){
   entry.reviewedAt = nowIST();
   await saveCollection(coll.key, coll.list());
   apiNotify(REVIEW_NOTIFY_EVENT[type], { studentId: entry.studentId, decision:'approved', note:'', reviewedByName: reviewer.name, reviewedByRole: reviewer.roleLabel, ...reviewNotifyExtra_(type, entry) });
+}
+/* ============================================================
+   GENERIC SECTIONS — Patents, Similarity Reports, Awards,
+   Collaborators, Leave/OD. All five follow the exact same
+   shape (submit → approve/reject/comment, edit, delete-with-
+   reason, full history) so rather than duplicating the ~200
+   lines each of the other 10 sections needed, one field schema
+   per type drives one shared set of list/form/card functions.
+   ============================================================ */
+const GENERIC_SECTION_CONFIG = {
+  patent: {
+    label: 'Patents', color: 'cat-indigo',
+    fields: [
+      { key:'title', label:'Invention title', type:'text', required:true },
+      { key:'applicationNumber', label:'Application number (optional)', type:'text' },
+      { key:'filingDate', label:'Filing date (optional)', type:'date' },
+      { key:'status', label:'Status', type:'select', options:['Filed','Published','Under Examination','Granted','Rejected','Abandoned'] },
+      { key:'inventors', label:'Inventors (optional)', type:'text' },
+      { key:'link', label:'Link (optional)', type:'text' },
+      { key:'notes', label:'Notes (optional)', type:'textarea' },
+    ]
+  },
+  plagiarism: {
+    label:'Similarity Report', color:'cat-cyan',
+    fields: [
+      { key:'documentTitle', label:'Document title', type:'text', required:true },
+      { key:'documentType', label:'Document type', type:'select', options:['Paper','Thesis','Synopsis','Other'] },
+      { key:'similarityPercent', label:'Similarity % (optional)', type:'text' },
+      { key:'reportDate', label:'Report date (optional)', type:'date' },
+      { key:'reportLink', label:'Report link (optional)', type:'text' },
+      { key:'notes', label:'Notes (optional)', type:'textarea' },
+    ]
+  },
+  award: {
+    label:'Award / Recognition', color:'cat-purple',
+    fields: [
+      { key:'title', label:'Award / recognition title', type:'text', required:true },
+      { key:'awardingBody', label:'Awarding body (optional)', type:'text' },
+      { key:'category', label:'Category', type:'select', options:['Best Paper','Best Poster','Travel Award','Fellowship','Other'] },
+      { key:'date', label:'Date (optional)', type:'date' },
+      { key:'certificateLink', label:'Certificate link (optional)', type:'text' },
+      { key:'notes', label:'Notes (optional)', type:'textarea' },
+    ]
+  },
+  collaborator: {
+    label:'Collaborator', color:'cat-teal',
+    fields: [
+      { key:'name', label:"Collaborator's name", type:'text', required:true },
+      { key:'institution', label:'Institution (optional)', type:'text' },
+      { key:'country', label:'Country (optional)', type:'text' },
+      { key:'areaOfCollaboration', label:'Area of collaboration (optional)', type:'text' },
+      { key:'contactEmail', label:'Contact email (optional)', type:'text' },
+      { key:'notes', label:'Notes (optional)', type:'textarea' },
+    ]
+  },
+  leave: {
+    label:'Leave / OD', color:'cat-rose',
+    fields: [
+      { key:'leaveType', label:'Type', type:'select', options:['Casual Leave','Medical Leave','On Duty (OD)','Conference Leave','Other'] },
+      { key:'fromDate', label:'From date', type:'date', required:true },
+      { key:'toDate', label:'To date', type:'date', required:true },
+      { key:'reason', label:'Reason', type:'textarea', required:true },
+    ]
+  },
+};
+function viewGenericSection(type){
+  const cfg = GENERIC_SECTION_CONFIG[type];
+  const list = scopedList(REVIEWABLE_COLLECTIONS[type].list()).sort((a,b)=>(b.lastUpdate||'').localeCompare(a.lastUpdate||''));
+  const approvalMap = { pending:{label:'Pending Approval',cls:'warn'}, approved:{label:'Approved',cls:'good'}, changes_requested:{label:'Changes Requested',cls:'bad'} };
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">${escapeHtml(cfg.label)}</div>
+        <div class="view-sub">${type==='collaborator' ? 'External collaborators and a record of visits to their lab.' : type==='leave' ? "Leave and On-Duty requests, with the supervisor's approval." : 'Logged and tracked with the same approval workflow as the rest of the group.'}</div>
+      </div>
+      <button class="action-btn" onclick="openGenericFormModal('${type}')">+ Add</button>
+    </div>
+    ${supervisorFilterBar()}
+    ${list.length===0 ? emptyState('Nothing logged yet', `Log a new entry to get started.`) :
+      list.map((entry,i)=>genericCard(type, entry, i, list.length, approvalMap)).join('')}
+  `;
+}
+function genericCard(type, entry, i, total, approvalMap){
+  const cfg = GENERIC_SECTION_CONFIG[type];
+  const isOwner = state.identity.role==='student' && entry.studentId===state.identity.id;
+  const canManage = isSupervisorLike();
+  const locked = entry.approvalStatus === 'approved' && isOwner;
+  const canEdit = canManage || (isOwner && !locked);
+  const st = approvalMap[entry.approvalStatus] || approvalMap.pending;
+  const title = titleForReviewable(type, entry);
+  return `
+    <div class="entry-card ${cfg.color}" id="item-${type}-${entry.id}">
+      <div class="entry-top">
+        <div>
+          <div class="entry-idx">${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(entry.studentId))}</div>
+          <div class="entry-title">${escapeHtml(title)}</div>
+        </div>
+        <span class="stamp ${st.cls}">${st.label}</span>
+      </div>
+      <div class="entry-grid">
+        ${cfg.fields.filter(f=>f.key!=='notes').map(f=>{
+          const val = entry[f.key];
+          if(!val) return '';
+          const displayVal = f.type==='date' ? fmtDate(val) : escapeHtml(String(val));
+          return `<div class="entry-block"><span class="lbl">${escapeHtml(f.label.replace(' (optional)',''))}</span>${f.key==='link'||f.key==='reportLink'||f.key==='certificateLink' ? `<a href="${escapeHtml(val)}" target="_blank" rel="noopener">Open ↗</a>` : displayVal}</div>`;
+        }).join('')}
+        ${entry.notes ? `<div class="entry-block" style="grid-column:1/-1;"><span class="lbl">Notes</span>${nl2br(entry.notes)}</div>` : ''}
+      </div>
+      ${type==='collaborator' ? collaboratorVisitsHtml(entry, canEdit) : ''}
+      ${entry.supervisorNote ? `<div class="comment-box"><span class="lbl">${entry.reviewedByName ? `Feedback from ${escapeHtml(entry.reviewedByName)} (${escapeHtml(entry.reviewedByRole)}) on ${escapeHtml(entry.reviewedAt||'')}` : 'Supervisor feedback'}</span><div class="comment-existing">${nl2br(entry.supervisorNote)}</div></div>` : ''}
+      ${reviewHistoryHtml(entry)}
+      ${editHistoryHtml(entry)}
+      ${createdByHtml(entry)}
+      ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
+      <div class="entry-actions">
+        ${type==='collaborator' && canEdit ? `<button class="small-btn" onclick="openAddVisitModal('${entry.id}')">+ Log visit</button>` : ''}
+        ${(isSupervisorLike() && entry.approvalStatus==='approved') ? `<button class="small-btn" onclick="addAdditionalComment('${type}','${entry.id}')">+ Add comment</button>` : ''}
+        ${canReview_(entry) ? `<button class="small-btn" onclick="openGenericReviewBox('${type}','${entry.id}')">Review</button>` : (isSupervisorLike() && entry.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(entry.assignedReviewerName)} for review</span>` : '')}
+        ${canEdit ? `<button class="small-btn" onclick="openGenericFormModal('${type}','${entry.id}')">Edit</button>` : ''}
+        ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteGenericEntry('${type}','${entry.id}')">Delete</button>` : ''}
+      </div>
+      <div id="genericReviewSlot-${type}-${entry.id}"></div>
+    </div>
+  `;
+}
+function genericFieldInputHtml(f, value){
+  const id = `f_gen_${f.key}`;
+  if(f.type==='select'){
+    return `<select class="text-input" id="${id}">${f.options.map(o=>`<option value="${o}" ${value===o?'selected':''}>${o}</option>`).join('')}</select>`;
+  }
+  if(f.type==='textarea'){
+    return `<textarea class="text-input" id="${id}" rows="3">${escapeHtml(value||'')}</textarea>`;
+  }
+  if(f.type==='date'){
+    return `<input type="date" class="text-input" id="${id}" value="${value||''}">`;
+  }
+  return `<input class="text-input" id="${id}" value="${escapeHtml(value||'')}">`;
+}
+function openGenericFormModal(type, id){
+  const cfg = GENERIC_SECTION_CONFIG[type];
+  const entry = id ? REVIEWABLE_COLLECTIONS[type].list().find(x=>x.id===id) : null;
+  showModal(cfg.label, `
+    ${!entry && isSupervisorLike() ? studentPickerFieldHtml() : ''}
+    ${cfg.fields.map(f=>`<label class="field-label">${escapeHtml(f.label)}</label>${genericFieldInputHtml(f, entry ? entry[f.key] : (f.options?f.options[0]:''))}`).join('')}
+    ${entry && !isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''}
+  `, ()=>submitGenericForm(type, id));
+}
+function studentPickerFieldHtml(){
+  return `
+    <label class="field-label">Research Scholar</label>
+    <select class="text-input" id="f_gen_studentId">
+      ${state.students.map(s=>`<option value="${s.id}" ${state.filterStudentId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}
+    </select>
+  `;
+}
+async function submitGenericForm(type, id){
+  const cfg = GENERIC_SECTION_CONFIG[type];
+  const values = {};
+  for(const f of cfg.fields){
+    const el = document.getElementById('f_gen_'+f.key);
+    values[f.key] = el.value.trim ? el.value.trim() : el.value;
+    if(f.required && !values[f.key]){ alert(`Please fill in "${f.label.replace(' (optional)','')}".`); return; }
+  }
+  const coll = REVIEWABLE_COLLECTIONS[type];
+  if(id){
+    const entry = coll.list().find(x=>x.id===id);
+    Object.assign(entry, values);
+    entry.lastUpdate = todayStr();
+    if(!isSupervisorLike()){
+      entry.approvalStatus = 'pending';
+      await saveCollection(coll.key, coll.list());
+      apiNotify(REVIEW_NOTIFY_EVENT[type].replace('Reviewed','Submitted'), { studentId: entry.studentId, title: titleForReviewable(type, entry) });
+    } else {
+      logStaffEdit_(entry, titleForReviewable(type, entry), type);
+      await saveCollection(coll.key, coll.list());
+    }
+  } else {
+    const studentId = isSupervisorLike() ? (document.getElementById('f_gen_studentId')?.value || state.filterStudentId) : state.identity.id;
+    if(!studentId || studentId==='all'){ alert('Please choose a research scholar.'); return; }
+    const newEntry = { id: uid('gen'), studentId, ...values, approvalStatus: isSupervisorLike()?'approved':'pending', supervisorNote:'', lastUpdate: todayStr() };
+    if(type==='collaborator') newEntry.visits = [];
+    coll.list().push(newEntry);
+    await saveCollection(coll.key, coll.list());
+    if(!isSupervisorLike()){
+      apiNotify(REVIEW_NOTIFY_EVENT[type].replace('Reviewed','Submitted'), { studentId, title: titleForReviewable(type, newEntry) });
+    } else {
+      logStaffCreate_(newEntry, titleForReviewable(type, newEntry), type);
+    }
+  }
+  closeModal(); renderView();
+}
+function openGenericReviewBox(type, id){
+  const entry = REVIEWABLE_COLLECTIONS[type].list().find(x=>x.id===id);
+  document.getElementById(`genericReviewSlot-${type}-${id}`).innerHTML = `
+    <div class="comment-box">
+      <span class="lbl">Note (required to request changes)</span>
+      <textarea id="genericReviewInput-${type}-${id}">${escapeHtml(entry.supervisorNote||'')}</textarea>
+      <div class="entry-actions">
+        <button class="small-btn" onclick="reviewGeneric('${type}','${id}','approved')">Approve</button>
+        <button class="small-btn danger" onclick="reviewGeneric('${type}','${id}','changes_requested')">Request changes</button>
+      </div>
+    </div>`;
+}
+async function reviewGeneric(type, id, decision){
+  const coll = REVIEWABLE_COLLECTIONS[type];
+  const entry = coll.list().find(x=>x.id===id);
+  const val = document.getElementById(`genericReviewInput-${type}-${id}`).value.trim();
+  if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
+  const reviewer = reviewerIdentity(entry.studentId);
+  pushReviewHistory_(entry, decision, val);
+  entry.supervisorNote = val;
+  entry.approvalStatus = decision;
+  entry.reviewedByName = reviewer.name;
+  entry.reviewedByRole = reviewer.roleLabel;
+  entry.reviewedAt = nowIST();
+  await saveCollection(coll.key, coll.list());
+  apiNotify(REVIEW_NOTIFY_EVENT[type], { studentId: entry.studentId, decision, note: val, reviewedByName: reviewer.name, reviewedByRole: reviewer.roleLabel, ...reviewNotifyExtra_(type, entry) });
+  renderView();
+}
+async function deleteGenericEntry(type, id){
+  const coll = REVIEWABLE_COLLECTIONS[type];
+  const entry = coll.list().find(x=>x.id===id);
+  if(!entry) return;
+  const ok = await deleteEntryWithReason(type, coll.list(), coll.key, id, titleForReviewable(type, entry), entry.studentId);
+  if(ok) renderView();
+}
+function collaboratorVisitsHtml(entry, canEdit){
+  const visits = entry.visits || [];
+  return `
+    <div class="entry-block" style="margin-top:8px;">
+      <span class="lbl">Visit history${visits.length>0 ? ` (${visits.length})` : ''}</span>
+      ${visits.length===0 ? `<div class="entry-meta" style="margin-top:2px;">No visits logged yet.</div>` : `
+        <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+          ${visits.slice().reverse().map(v=>`
+            <div style="border-left:2px solid var(--border-strong); padding-left:10px;">
+              <div class="entry-meta"><b>${fmtDate(v.date)}</b>${v.duration ? ' · '+escapeHtml(v.duration) : ''}</div>
+              <div style="font-size:13px;">${escapeHtml(v.purpose)}</div>
+              ${v.outcome ? `<div class="entry-meta" style="margin-top:2px;">Outcome: ${escapeHtml(v.outcome)}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      `}
+    </div>
+  `;
+}
+function openAddVisitModal(collabId){
+  showModal('Log a visit', `
+    <label class="field-label">Visit date</label>
+    <input type="date" class="text-input" id="f_visitDate" value="${todayStr()}">
+    <label class="field-label">Duration (optional)</label>
+    <input class="text-input" id="f_visitDuration" placeholder="e.g. 2 weeks">
+    <label class="field-label">Purpose</label>
+    <textarea class="text-input" id="f_visitPurpose" rows="2" placeholder="What was this visit for?"></textarea>
+    <label class="field-label">Outcome (optional)</label>
+    <textarea class="text-input" id="f_visitOutcome" rows="2"></textarea>
+  `, ()=>submitAddVisit(collabId));
+}
+async function submitAddVisit(collabId){
+  const date = document.getElementById('f_visitDate').value;
+  const purpose = document.getElementById('f_visitPurpose').value.trim();
+  if(!date || !purpose){ alert('Please add a date and purpose.'); return; }
+  const entry = state.collaborators.find(x=>x.id===collabId);
+  if(!entry.visits) entry.visits = [];
+  entry.visits.push({ id: uid('visit'), date, duration: document.getElementById('f_visitDuration').value.trim(), purpose, outcome: document.getElementById('f_visitOutcome').value.trim() });
+  entry.lastUpdate = todayStr();
+  await saveCollection('collaborators', state.collaborators);
+  closeModal(); renderView();
 }
 async function bulkApproveSelected(){
   const checked = Array.from(document.querySelectorAll('.bulkApproveCheck:checked'));
@@ -1842,6 +2147,11 @@ function pendingQueue(){
     items.push({ type:'meeting', id:m.id, studentId:m.studentId, title:m.title, date:m.plannedDate, category:'Meetings', color:'var(--stat-indigo)' }));
   scopedList(state.fabricationItems).filter(it=>it.approvalStatus==='pending').forEach(it=>
     items.push({ type:'fabrication', id:it.id, studentId:it.studentId, title:fabricationLabel(it), date:it.startDate, category:'Lab Work', color:'var(--stat-teal)' }));
+  Object.keys(GENERIC_SECTION_CONFIG).forEach(type => {
+    const cfg = GENERIC_SECTION_CONFIG[type];
+    scopedList(REVIEWABLE_COLLECTIONS[type].list()).filter(e=>e.approvalStatus==='pending').forEach(e=>
+      items.push({ type, id:e.id, studentId:e.studentId, title:titleForReviewable(type, e), date:e.lastUpdate, category:cfg.label, color:`var(--stat-${cfg.color.replace('cat-','')})` }));
+  });
   return items.sort((a,b)=> (a.date||'').localeCompare(b.date||''));
 }
 function changesRequestedQueue(){
@@ -1866,6 +2176,11 @@ function changesRequestedQueue(){
     items.push({ type:'financial', id:f.id, studentId:f.studentId, title:f.title, date:f.applicationDate, category:'Visiting & Financial', color:'var(--stat-teal)', note:f.supervisorNote }));
   scopedList(state.courses).filter(c=>c.approvalStatus==='changes_requested').forEach(c=>
     items.push({ type:'course', id:c.id, studentId:c.studentId, title:c.title, date:c.startDate, category:'Learning & Courses', color:'var(--stat-blue)', note:c.supervisorNote }));
+  Object.keys(GENERIC_SECTION_CONFIG).forEach(type => {
+    const cfg = GENERIC_SECTION_CONFIG[type];
+    scopedList(REVIEWABLE_COLLECTIONS[type].list()).filter(e=>e.approvalStatus==='changes_requested').forEach(e=>
+      items.push({ type, id:e.id, studentId:e.studentId, title:titleForReviewable(type, e), date:e.lastUpdate, category:cfg.label, color:`var(--stat-${cfg.color.replace('cat-','')})`, note:e.supervisorNote }));
+  });
   return items.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
 }
 function viewChangesRequested(){
@@ -2060,7 +2375,7 @@ function viewOverview(){
       </div>
       <div id="liveClock" class="mono" style="font-size:13px; color:var(--ink-soft); white-space:nowrap;"></div>
     </div>
-    <div class="stat-grid compact">
+    <div class="stat-grid dash">
       ${isSupervisorLike()
         ? `<div class="stat-card compact accent-blue ${totalPendingApproval>0?'warn':'ok'}" style="cursor:pointer;" onclick="goView('approvals')"><div class="stat-num">${totalPendingApproval}</div><div class="stat-label"><span class="dot"></span>Awaiting approval</div></div>`
         : `<div class="stat-card compact ${changesRequestedCount>0?'warn':'ok'}" style="cursor:pointer;" onclick="goView('changesRequested')"><div class="stat-num">${changesRequestedCount}</div><div class="stat-label"><span class="dot" style="background:var(--danger);"></span>Changes requested</div></div>`}
@@ -2094,7 +2409,7 @@ function viewOverview(){
       `;
     })()}
 
-    <div class="two-col-panels">
+    <div class="two-col-panels" style="margin-bottom:20px;">
       <div>
         <h3 class="panel-title"><span class="dot" style="background:var(--stat-purple);"></span>Progress status</h3>
         <div class="entry-card compact-card">
@@ -2109,7 +2424,7 @@ function viewOverview(){
       </div>
     </div>
 
-    <div class="two-col-panels">
+    <div class="two-col-panels" style="margin-bottom:20px;">
       <div>
         <h3 class="panel-title"><span class="dot" style="background:var(--navy);"></span>Recent activity</h3>
         <div class="entry-card compact-card">
@@ -2139,6 +2454,24 @@ function viewOverview(){
           <div id="rightColClock" class="mono">⌚ ${nowISTWithSeconds()}</div>
         </div>
         ${newsTickerHtml()}
+        ${(()=>{
+          const deadlines = upcomingDeadlines_(6);
+          return `
+            <div style="margin-top:14px;">
+              <h3 class="panel-title" style="margin:0 0 8px;"><span class="dot" style="background:var(--warning);"></span>Upcoming deadlines</h3>
+              <div class="entry-card compact-card">
+                ${deadlines.length===0 ? `<div class="entry-meta">Nothing due soon.</div>` :
+                  deadlines.map((d,idx)=>`
+                    <div style="padding:8px 0; ${idx>0?'border-top:1px solid var(--border);':''}">
+                      <span class="task-link" style="font-weight:600; font-size:13px; display:block;" onclick="goToItem('${d.type}','${d.id}','${d.studentId||''}')">${escapeHtml(d.title)}</span>
+                      <div class="entry-meta">${fmtDate(d.date)}${isSupervisorLike() && d.studentId ? ' · '+escapeHtml(studentName(d.studentId)) : ''}</div>
+                    </div>
+                  `).join('')}
+                <div class="entry-actions" style="margin-top:8px;"><span class="task-link" style="font-size:12px;" onclick="goView('calendar')">See all →</span></div>
+              </div>
+            </div>
+          `;
+        })()}
       </div>
     </div>
   `;
@@ -2422,7 +2755,6 @@ function accessSection(){
     ${notificationPrefsSection()}
     ${coSupervisorAdminSection()}
     ${deletionLogSection()}
-    ${activityLogSection()}
     ${backupSection()}
   `;
 }
@@ -2444,22 +2776,25 @@ function deletionLogSection(){
     </div>
   `;
 }
-function activityLogSection(){
-  const rows = buildFullActivityLog_().slice(0, 30);
+function viewActivityLog(){
+  const rows = buildFullActivityLog_().slice(0, 150);
   return `
-    <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Activity Log</h3>
-    <div class="entry-card">
-      <div class="entry-block" style="margin-bottom:10px;">Every review decision, staff edit, and deletion across the whole group, most recent first — the full audit trail, not just deletions.</div>
-      ${rows.length===0 ? `<div class="entry-meta">Nothing recorded yet.</div>` :
+    <div class="view-header">
+      <div>
+        <div class="view-title">Activity Log</div>
+        <div class="view-sub">Every review decision, staff edit, and deletion across the whole group, most recent first — the full audit trail, not just deletions. Showing the most recent ${rows.length} entries; download the CSV for the complete history.</div>
+      </div>
+      <button class="action-btn" onclick="downloadFullActivityLogCsv()">Download as CSV</button>
+    </div>
+    <div class="entry-card" style="padding:0;">
+      ${rows.length===0 ? `<div class="entry-meta" style="padding:20px;">Nothing recorded yet.</div>` :
         rows.map((r,idx)=>`
-          <div style="padding:8px 0; ${idx>0?'border-top:1px solid var(--border);':''}">
-            <div style="font-size:13px;"><b>${escapeHtml(r.action)}</b> — ${escapeHtml(r.title)} <span class="entry-meta">(${escapeHtml(r.category)})</span></div>
+          <div style="padding:12px 20px; ${idx>0?'border-top:1px solid var(--border);':''}">
+            <div style="font-size:13.5px;"><b>${escapeHtml(r.action)}</b> — ${escapeHtml(r.title)} <span class="entry-meta">(${escapeHtml(r.category)})</span></div>
             <div class="entry-meta">${r.studentId ? escapeHtml(studentName(r.studentId))+' · ' : ''}${escapeHtml(r.byName)} (${escapeHtml(r.byRole)}) — ${escapeHtml(r.date)}</div>
+            ${r.detail ? `<div class="entry-meta" style="margin-top:2px;">${escapeHtml(r.detail)}</div>` : ''}
           </div>
         `).join('')}
-      <div class="entry-actions" style="margin-top:10px;">
-        <button class="small-btn" onclick="downloadFullActivityLogCsv()">Download full log as CSV</button>
-      </div>
     </div>
   `;
 }
@@ -2751,6 +3086,11 @@ function downloadBackup(){
     resultsAnalysis: scopedList(state.resultsAnalysis),
     deletionLog: scopedList(state.deletionLog),
     newsUpdates: state.newsUpdates,
+    patents: scopedList(state.patents),
+    plagiarismReports: scopedList(state.plagiarismReports),
+    awards: scopedList(state.awards),
+    collaborators: scopedList(state.collaborators),
+    leaveRecords: scopedList(state.leaveRecords),
     instructions: scopedList(state.instructions),
     meetings: scopedList(state.meetings),
     coSupervisors: isSupervisor ? state.coSupervisors.map(c=>({id:c.id, name:c.name, email:c.email||'', assignments:mentorAssignments_(c), frozen:!!c.frozen, notifyPrefs:c.notifyPrefs||{}})) : undefined
@@ -2799,6 +3139,11 @@ function handleRestoreFile(event){
     state.resultsAnalysis = Array.isArray(parsed.resultsAnalysis) ? parsed.resultsAnalysis : state.resultsAnalysis;
     state.deletionLog = Array.isArray(parsed.deletionLog) ? parsed.deletionLog : state.deletionLog;
     state.newsUpdates = Array.isArray(parsed.newsUpdates) ? parsed.newsUpdates : state.newsUpdates;
+    state.patents = Array.isArray(parsed.patents) ? parsed.patents : state.patents;
+    state.plagiarismReports = Array.isArray(parsed.plagiarismReports) ? parsed.plagiarismReports : state.plagiarismReports;
+    state.awards = Array.isArray(parsed.awards) ? parsed.awards : state.awards;
+    state.collaborators = Array.isArray(parsed.collaborators) ? parsed.collaborators : state.collaborators;
+    state.leaveRecords = Array.isArray(parsed.leaveRecords) ? parsed.leaveRecords : state.leaveRecords;
     if(Array.isArray(parsed.coSupervisors)){
       state.coSupervisors = parsed.coSupervisors.map(c => {
         const existing = state.coSupervisors.find(x=>x.id===c.id);
@@ -2824,6 +3169,11 @@ function handleRestoreFile(event){
       saveCollection('results-analysis', state.resultsAnalysis),
       saveCollection('deletion-log', state.deletionLog),
       saveCollection('news-updates', state.newsUpdates),
+      saveCollection('patents', state.patents),
+      saveCollection('plagiarism-reports', state.plagiarismReports),
+      saveCollection('awards', state.awards),
+      saveCollection('collaborators', state.collaborators),
+      saveCollection('leave-records', state.leaveRecords),
       saveCollection('co-supervisors', state.coSupervisors)
     ]);
     event.target.value = '';
@@ -5928,10 +6278,12 @@ async function requestStageChange(id, newStage){
   if(newStage === p.stage) return;
   if(isSupervisorLike()){
     // Supervisor/mentor changes are final immediately — no approval needed on their own call.
+    pushStatusHistory_(p, p.stage, newStage);
     p.stage = newStage;
     p.pendingStage = null;
     p.lastUpdate = todayStr();
     await saveCollection('papers', state.papers);
+    logStaffEdit_(p, p.title, 'paper');
   } else {
     // Student proposals wait for supervisor approval before they become official.
     p.pendingStage = newStage;
@@ -6364,6 +6716,7 @@ function meetingCard(m, i, total){
         </div>
       ` : ''}
       ${isOwner && m.status!=='proposed' ? `<div class="entry-meta" style="margin-top:6px;">Confirmed items can only be changed or cancelled by your supervisor.</div>` : ''}
+      ${statusHistoryHtml(m)}
       <div class="entry-actions">
         ${canManage && m.status==='proposed' ? `<button class="small-btn" onclick="openConfirmMeetingModal('${m.id}')">Confirm</button>` : ''}
         ${canManage && (m.status==='proposed'||m.status==='confirmed') ? `<button class="small-btn" onclick="openCompleteMeetingModal('${m.id}')">Mark completed</button>` : ''}
@@ -6465,6 +6818,7 @@ async function submitConfirmMeeting(id){
   if(newStartTime && newEndTime && newEndTime <= newStartTime){ alert('The "To" time must be after the "From" time.'); return; }
   const reviewer = reviewerIdentity(m.studentId);
   const rescheduled = newDate !== m.plannedDate || newStartTime !== (m.startTime||'') || newEndTime !== (m.endTime||'');
+  pushStatusHistory_(m, m.status, 'confirmed');
   m.plannedDate = newDate;
   m.startTime = newStartTime;
   m.endTime = newEndTime;
@@ -6487,6 +6841,7 @@ function openCompleteMeetingModal(id){
 }
 async function submitCompleteMeeting(id){
   const m = state.meetings.find(x=>x.id===id);
+  pushStatusHistory_(m, m.status, 'completed');
   m.status = 'completed';
   m.outcomeNotes = document.getElementById('f_meetOutcome').value.trim();
   m.lastUpdate = todayStr();
@@ -6501,6 +6856,7 @@ function openCancelMeetingModal(id){
 }
 async function submitCancelMeeting(id){
   const m = state.meetings.find(x=>x.id===id);
+  pushStatusHistory_(m, m.status, 'cancelled');
   m.status = 'cancelled';
   m.outcomeNotes = document.getElementById('f_meetCancelReason').value.trim();
   m.lastUpdate = todayStr();
@@ -6566,6 +6922,7 @@ function eventCard(ev, i, total){
         ${ev.link ? `<div class="entry-block"><span class="lbl">Link</span><a href="${escapeHtml(ev.link)}" target="_blank" rel="noopener">Open ↗</a></div>` : ''}
         ${ev.description ? `<div class="entry-block" style="grid-column:1/-1;"><span class="lbl">Description</span>${nl2br(ev.description)}</div>` : ''}
       </div>
+      ${statusHistoryHtml(ev)}
       <div class="entry-actions">
         ${(canManage || isAssignedToMe) ? `
           <select class="small-btn" style="padding-right:6px;" onchange="setEventStatus('${ev.id}', this.value)">
@@ -6645,6 +7002,7 @@ async function submitEditEvent(id){
 }
 async function setEventStatus(id, status){
   const ev = state.events.find(x=>x.id===id);
+  pushStatusHistory_(ev, ev.status, status, ev.assignedStudentId);
   ev.status = status;
   await saveCollection('events', state.events);
   renderView();
@@ -6750,6 +7108,11 @@ const REPORT_SECTIONS = {
   conferences:   { label:'Conferences',              list: () => state.conferences },
   financial:     { label:'Proposals',                list: () => state.financialApps },
   learning:      { label:'Learning & Courses',       list: () => state.courses },
+  patent:        { label:'Patents',                  list: () => state.patents },
+  plagiarism:    { label:'Similarity Reports',        list: () => state.plagiarismReports },
+  award:         { label:'Awards & Recognitions',    list: () => state.awards },
+  collaborator:  { label:'Collaborators',             list: () => state.collaborators },
+  leave:         { label:'Leave / OD',                list: () => state.leaveRecords },
 };
 // Every section's records look different, so this normalizes any one of
 // them down to a common shape (title / status / date / detail) that a
@@ -6767,6 +7130,11 @@ function normalizeReportRow(sectionKey, item){
     case 'conferences': return { title:item.eventName, status:item.approvalStatus, date:item.startDate, detail:item.role||'' };
     case 'financial': return { title:item.title, status:item.approvalStatus, date:item.applicationDate, detail:item.type||'' };
     case 'learning': return { title:item.title, status:item.approvalStatus, date:item.startDate, detail:item.provider||'' };
+    case 'patent': return { title:item.title, status:item.approvalStatus, date:item.filingDate||item.lastUpdate||'', detail:item.status||'' };
+    case 'plagiarism': return { title:item.documentTitle, status:item.approvalStatus, date:item.reportDate||item.lastUpdate||'', detail:item.similarityPercent ? item.similarityPercent+'%' : '' };
+    case 'award': return { title:item.title, status:item.approvalStatus, date:item.date||item.lastUpdate||'', detail:item.category||'' };
+    case 'collaborator': return { title:item.name, status:item.approvalStatus, date:item.lastUpdate||'', detail:item.institution||'' };
+    case 'leave': return { title:titleForReviewable('leave', item), status:item.approvalStatus, date:item.fromDate, detail:item.reason||'' };
     default: return { title:'', status:'', date:'', detail:'' };
   }
 }
