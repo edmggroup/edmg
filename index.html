@@ -68,7 +68,12 @@
      (10 rows × ~34px) before the box itself takes over scrolling for the
      rest — a plain scrollable list rather than an auto-animating marquee,
      since links need to be readable and clickable, not flying past. */
-  .news-ticker{ width:100%; max-height:340px; overflow-y:auto; overflow-x:hidden; background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:0; }
+  .news-ticker{ width:100%; height:340px; overflow:hidden; background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:0; }
+  .news-ticker.compact{ height:auto; max-height:340px; }
+  .news-ticker-track{ display:flex; flex-direction:column; }
+  .news-ticker-track.animated{ animation: newsTickerScrollUp linear infinite; }
+  .news-ticker:hover .news-ticker-track.animated{ animation-play-state:paused; }
+  @keyframes newsTickerScrollUp{ from{ transform:translateY(0); } to{ transform:translateY(-50%); } }
   .news-ticker-item{ display:block; padding:9px 18px; color:var(--ink); font-size:13.5px; border-bottom:1px solid var(--border); }
   .news-ticker-item:last-child{ border-bottom:none; }
   button{ font-family:'Roboto', sans-serif; cursor:pointer; }
@@ -1234,8 +1239,11 @@ function startLiveClock(){
   if(liveClockTimer) clearInterval(liveClockTimer);
   const tick = () => {
     const el = document.getElementById('liveClock');
-    if(!el){ clearInterval(liveClockTimer); liveClockTimer = null; return; }
-    el.textContent = nowISTWithSeconds();
+    const el2 = document.getElementById('rightColClock');
+    if(!el && !el2){ clearInterval(liveClockTimer); liveClockTimer = null; return; }
+    const stamp = nowISTWithSeconds();
+    if(el) el.textContent = stamp;
+    if(el2) el2.textContent = '⌚ ' + stamp;
   };
   tick();
   liveClockTimer = setInterval(tick, 1000);
@@ -1261,7 +1269,7 @@ function viewLinks(){
         <div class="entry-card cat-teal">
           <div class="entry-top">
             <div>
-              <a href="${escapeHtml(n.link)}" target="_blank" rel="noopener" class="entry-title" style="text-decoration:underline; display:inline-block;">${escapeHtml(n.text)}</a>
+              <a href="${escapeHtml(n.link)}" target="_blank" rel="noopener" class="entry-title" style="text-decoration:none; display:inline-block;">${escapeHtml(n.text)}</a>
               <div class="entry-meta">${escapeHtml(n.postedByName)} (${escapeHtml(n.postedByRole)}) — ${escapeHtml(n.postedAt)}</div>
             </div>
           </div>
@@ -1275,16 +1283,24 @@ function viewLinks(){
 }
 function newsTickerHtml(){
   const items = state.newsUpdates.slice().sort((a,b)=> (b.postedAt||'').localeCompare(a.postedAt||''));
+  // Roughly how many rows fit in the 340px box before it's worth animating —
+  // below that, items are just listed normally with no motion; at or above
+  // it, the list scrolls itself continuously from bottom to top.
+  const needsScroll = items.length > 9;
+  const rowHtml = n => `
+    <div class="news-ticker-item">
+      <a href="${escapeHtml(n.link)}" target="_blank" rel="noopener" style="color:var(--ink); text-decoration:none;">${escapeHtml(n.text)}</a>
+    </div>
+  `;
   return `
     <div class="entry-card compact-card" style="margin-bottom:14px; padding:12px 16px;">
       <h3 class="panel-title" style="margin:0;">Latest News Update.</h3>
       ${items.length===0 ? `<div class="entry-meta" style="margin-top:6px;">Nothing posted yet.</div>` : `
-        <div class="news-ticker" style="margin-top:10px; margin-bottom:0;">
-          ${items.map(n=>`
-            <div class="news-ticker-item">
-              <a href="${escapeHtml(n.link)}" target="_blank" rel="noopener" style="color:var(--ink); text-decoration:underline;">${escapeHtml(n.text)}</a>
-            </div>
-          `).join('')}
+        <div class="news-ticker ${needsScroll?'':'compact'}" style="margin-top:10px; margin-bottom:0;">
+          <div class="news-ticker-track ${needsScroll?'animated':''}" ${needsScroll?`style="animation-duration:${items.length*2.5}s;"`:''}>
+            ${items.map(rowHtml).join('')}
+            ${needsScroll ? items.map(rowHtml).join('') : ''}
+          </div>
         </div>
       `}
     </div>
@@ -1861,6 +1877,7 @@ function viewOverview(){
       </div>
       </div>
       <div>
+        <div id="rightColClock" class="mono" style="font-size:13px; color:var(--ink-soft); text-align:right; margin-bottom:10px;">⌚ ${nowISTWithSeconds()}</div>
         ${newsTickerHtml()}
       </div>
     </div>
