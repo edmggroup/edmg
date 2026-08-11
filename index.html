@@ -465,6 +465,7 @@ const state = {
   awards: [],
   collaborators: [],
   leaveRecords: [],
+  activityLogExclusions: [],
   calendarMonth: null,
   plannerWeekStart: null,
   view: 'overview',
@@ -651,7 +652,7 @@ async function saveSupervisorProfile(profile){
 
 /* ============================ INIT ============================ */
 // Every collection key the app needs at startup, fetched in one batched request.
-const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','deletion-log','news-updates','patents','plagiarism-reports','awards','collaborators','leave-records','supervisor-pin'];
+const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','deletion-log','news-updates','patents','plagiarism-reports','awards','collaborators','leave-records','activity-log-exclusions','supervisor-pin'];
 
 async function init(){
   if(!backendConfigured()){
@@ -710,6 +711,7 @@ function applyDataValues(values){
   state.awards = arr('awards');
   state.collaborators = arr('collaborators');
   state.leaveRecords = arr('leave-records');
+  state.activityLogExclusions = arr('activity-log-exclusions');
   let supervisorProfile = {};
   try{ supervisorProfile = values['supervisor-pin'] ? JSON.parse(values['supervisor-pin']) : {}; }catch(e){ supervisorProfile = {}; }
   state.supervisorPinHash = supervisorProfile.hash || null;
@@ -2792,23 +2794,47 @@ function deletionLogSection(){
     </div>
   `;
 }
+function monthKeyOf_(dateStr){
+  const t = parseISTTimestamp_(dateStr);
+  if(!t) return null;
+  const d = new Date(t);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+function monthKeyLabel_(key){
+  const [y,m] = key.split('-');
+  return new Date(parseInt(y,10), parseInt(m,10)-1, 1).toLocaleDateString('en-GB',{month:'long', year:'numeric'});
+}
+function setActivityLogMonthFilter(month){ state.activityLogMonthFilter = month; renderView(); }
 function viewActivityLog(){
-  const rows = buildFullActivityLog_().slice(0, 150);
+  const allRows = buildFullActivityLog_();
+  const availableMonths = [...new Set(allRows.map(r=>monthKeyOf_(r.date)).filter(Boolean))].sort().reverse();
+  const filter = state.activityLogMonthFilter || 'all';
+  const filteredRows = filter==='all' ? allRows : allRows.filter(r=>monthKeyOf_(r.date)===filter);
+  const rows = filteredRows.slice(0, 150);
   return `
     <div class="view-header">
       <div>
         <div class="view-title">Activity Log</div>
-        <div class="view-sub">Every review decision, staff edit, and deletion ${isSupervisorLike() ? 'across the whole group' : 'on your own work'}, most recent first — the full audit trail, not just deletions. Showing the most recent ${rows.length} entries; download the CSV for the complete history.</div>
+        <div class="view-sub">Every review decision, staff edit, and deletion ${isSupervisorLike() ? 'across the whole group' : 'on your own work'}, most recent first — the full audit trail, not just deletions. ${filteredRows.length>150 ? `Showing the most recent ${rows.length} of ${filteredRows.length} for this period` : `Showing all ${rows.length} for this period`}; download the CSV for the complete history with no limit.</div>
       </div>
       <button class="action-btn" onclick="downloadFullActivityLogCsv()">Download as CSV</button>
     </div>
+    <div class="filter-row">
+      <select onchange="setActivityLogMonthFilter(this.value)">
+        <option value="all" ${filter==='all'?'selected':''}>All months (${allRows.length})</option>
+        ${availableMonths.map(m=>`<option value="${m}" ${filter===m?'selected':''}>${monthKeyLabel_(m)} (${allRows.filter(r=>monthKeyOf_(r.date)===m).length})</option>`).join('')}
+      </select>
+    </div>
     <div class="entry-card" style="padding:0;">
-      ${rows.length===0 ? `<div class="entry-meta" style="padding:20px;">Nothing recorded yet.</div>` :
+      ${rows.length===0 ? `<div class="entry-meta" style="padding:20px;">${filter==='all' ? 'Nothing recorded yet.' : 'Nothing recorded for this month.'}</div>` :
         rows.map((r,idx)=>`
-          <div style="padding:12px 20px; ${idx>0?'border-top:1px solid var(--border);':''}">
-            <div style="font-size:13.5px;"><b>${escapeHtml(r.action)}</b> — ${escapeHtml(r.title)} <span class="entry-meta">(${escapeHtml(r.category)})</span></div>
-            <div class="entry-meta">${r.studentId ? escapeHtml(studentName(r.studentId))+' · ' : ''}${escapeHtml(r.byName)} (${escapeHtml(r.byRole)}) — ${escapeHtml(r.date)}</div>
-            ${r.detail ? `<div class="entry-meta" style="margin-top:2px;">${escapeHtml(r.detail)}</div>` : ''}
+          <div style="padding:12px 20px; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; ${idx>0?'border-top:1px solid var(--border);':''}">
+            <div style="min-width:0;">
+              <div style="font-size:13.5px;"><b>${escapeHtml(r.action)}</b> — ${escapeHtml(r.title)} <span class="entry-meta">(${escapeHtml(r.category)})</span></div>
+              <div class="entry-meta">${r.studentId ? escapeHtml(studentName(r.studentId))+' · ' : ''}${escapeHtml(r.byName)} (${escapeHtml(r.byRole)}) — ${escapeHtml(r.date)}</div>
+              ${r.detail ? `<div class="entry-meta" style="margin-top:2px;">${escapeHtml(r.detail)}</div>` : ''}
+            </div>
+            ${isTrueSupervisor() ? `<button class="small-btn danger" style="flex-shrink:0;" onclick="removeFromActivityLog('${r.rowId.replace(/'/g,"\\'")}')">Remove</button>` : ''}
           </div>
         `).join('')}
     </div>
@@ -2835,6 +2861,15 @@ function parseISTTimestamp_(s){
 // Combines every review decision, staff edit, and deletion across every
 // section into one timeline — the fuller audit trail complementing the
 // Deletion Log above, which only covers removals.
+// A deterministic ID for each row — same underlying event always produces
+// the same ID, so the supervisor's "remove from log" list stays correctly
+// matched even though nothing is stored with an ID of its own. Removing a
+// row here only hides it from this aggregated log view; it does NOT touch
+// the reviewHistory/editHistory entry on the actual record, which stays
+// exactly as it was — that append-only guarantee is never broken.
+function activityRowId_(r){
+  return [r.date, r.category, r.title, r.action, r.byName].join('|');
+}
 function buildFullActivityLog_(){
   const rows = [];
   Object.keys(REVIEWABLE_COLLECTIONS).forEach(type => {
@@ -2851,7 +2886,15 @@ function buildFullActivityLog_(){
   state.deletionLog.forEach(d => {
     rows.push({ date: d.deletedAt, category: d.type, title: d.title, studentId: d.studentId, action: 'deleted', byName: d.deletedByName, byRole: d.deletedByRole, detail: d.reason });
   });
-  return rows.sort((a,b)=> parseISTTimestamp_(b.date) - parseISTTimestamp_(a.date));
+  rows.forEach(r => { r.rowId = activityRowId_(r); });
+  const excluded = new Set(state.activityLogExclusions);
+  return rows.filter(r => !excluded.has(r.rowId)).sort((a,b)=> parseISTTimestamp_(b.date) - parseISTTimestamp_(a.date));
+}
+async function removeFromActivityLog(rowId){
+  if(!confirm('Remove this entry from the Activity Log view? The underlying record itself is not affected — this only controls what shows in this log.')) return;
+  if(!state.activityLogExclusions.includes(rowId)) state.activityLogExclusions.push(rowId);
+  await saveCollection('activity-log-exclusions', state.activityLogExclusions);
+  renderView();
 }
 function downloadFullActivityLogCsv(){
   const rows = buildFullActivityLog_();
@@ -3101,6 +3144,7 @@ function downloadBackup(){
     events: visibleEvents(),
     resultsAnalysis: scopedList(state.resultsAnalysis),
     deletionLog: scopedList(state.deletionLog),
+    activityLogExclusions: state.activityLogExclusions,
     newsUpdates: state.newsUpdates,
     patents: scopedList(state.patents),
     plagiarismReports: scopedList(state.plagiarismReports),
@@ -3154,6 +3198,7 @@ function handleRestoreFile(event){
     state.events = Array.isArray(parsed.events) ? parsed.events : state.events;
     state.resultsAnalysis = Array.isArray(parsed.resultsAnalysis) ? parsed.resultsAnalysis : state.resultsAnalysis;
     state.deletionLog = Array.isArray(parsed.deletionLog) ? parsed.deletionLog : state.deletionLog;
+    state.activityLogExclusions = Array.isArray(parsed.activityLogExclusions) ? parsed.activityLogExclusions : state.activityLogExclusions;
     state.newsUpdates = Array.isArray(parsed.newsUpdates) ? parsed.newsUpdates : state.newsUpdates;
     state.patents = Array.isArray(parsed.patents) ? parsed.patents : state.patents;
     state.plagiarismReports = Array.isArray(parsed.plagiarismReports) ? parsed.plagiarismReports : state.plagiarismReports;
@@ -3184,6 +3229,7 @@ function handleRestoreFile(event){
       saveCollection('events', state.events),
       saveCollection('results-analysis', state.resultsAnalysis),
       saveCollection('deletion-log', state.deletionLog),
+      saveCollection('activity-log-exclusions', state.activityLogExclusions),
       saveCollection('news-updates', state.newsUpdates),
       saveCollection('patents', state.patents),
       saveCollection('plagiarism-reports', state.plagiarismReports),
