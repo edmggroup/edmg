@@ -1149,7 +1149,7 @@ const NAV_ITEM_COLORS = {
   weekly:'var(--stat-blue)', fabrication:'var(--stat-teal)', samples:'var(--stat-cyan)', resultsAnalysis:'var(--stat-rose)', papers:'var(--stat-purple)',
   rac:'var(--stat-rose)', learning:'var(--stat-blue)', financial:'var(--stat-teal)', conferences:'var(--stat-rose)',
   patents:'var(--stat-indigo)', plagiarism:'var(--stat-cyan)', awards:'var(--stat-purple)', collaborators:'var(--stat-teal)',
-  meetings:'var(--stat-indigo)', events:'var(--stat-purple)', leave:'var(--warning)', instructions:'var(--navy)', links:'var(--stat-teal)', analytics:'var(--stat-blue)', activityLog:'var(--ink-faint)', reports:'var(--navy)', account:'var(--ink-faint)'
+  meetings:'var(--stat-indigo)', events:'var(--stat-purple)', leave:'var(--warning)', instructions:'var(--navy)', links:'var(--stat-teal)', analytics:'var(--stat-blue)', activityLog:'var(--ink-faint)', deletionLog:'var(--danger)', reports:'var(--navy)', account:'var(--ink-faint)'
 };
 const NAV_GROUPS = [
   { items: [
@@ -1187,6 +1187,7 @@ const NAV_GROUPS = [
     { key:'links', label:'News Update' },
     { key:'analytics', label:'Analytics' },
     { key:'activityLog', label:'Activity Log' },
+    { key:'deletionLog', label:'Deletion Log', trueSupervisorOnly:true },
     { key:'reports', label:'Reports' },
     { key:'account', label:'Account' },
   ]},
@@ -1194,7 +1195,7 @@ const NAV_GROUPS = [
 function renderSidebar(){
   document.getElementById('sidebar').innerHTML = NAV_GROUPS.map(group => `
     ${group.label ? `<div class="nav-group-label">${group.label}</div>` : ''}
-    ${group.items.filter(item => (!item.supervisorOnly || isSupervisorLike()) && (!item.studentOnly || state.identity.role==='student')).map(item => `
+    ${group.items.filter(item => (!item.supervisorOnly || isSupervisorLike()) && (!item.trueSupervisorOnly || isTrueSupervisor()) && (!item.studentOnly || state.identity.role==='student')).map(item => `
       <button class="nav-item ${state.view===item.key?'active':''}" onclick="goView('${item.key}')">
         <span class="dot" style="background:${NAV_ITEM_COLORS[item.key] || 'var(--border-strong)'};"></span>${item.label}
       </button>
@@ -1209,6 +1210,7 @@ function renderView(){
   else if(state.view==='links') main.innerHTML = viewLinks();
   else if(state.view==='analytics') main.innerHTML = viewAnalytics();
   else if(state.view==='activityLog') main.innerHTML = viewActivityLog();
+  else if(state.view==='deletionLog') main.innerHTML = viewDeletionLog();
   else if(state.view==='patents') main.innerHTML = viewGenericSection('patent');
   else if(state.view==='plagiarism') main.innerHTML = viewGenericSection('plagiarism');
   else if(state.view==='awards') main.innerHTML = viewGenericSection('award');
@@ -2772,28 +2774,43 @@ function accessSection(){
     </div>
     ${notificationPrefsSection()}
     ${coSupervisorAdminSection()}
-    ${deletionLogSection()}
     ${backupSection()}
+    ${resetDataSection()}
   `;
 }
-function deletionLogSection(){
-  const log = state.deletionLog.slice().reverse().slice(0, 50);
+function viewDeletionLog(){
+  const allLog = state.deletionLog.slice().reverse();
+  const availableMonths = [...new Set(allLog.map(d=>monthKeyOf_(d.deletedAt)).filter(Boolean))].sort().reverse();
+  const filter = state.deletionLogMonthFilter || 'all';
+  const filteredLog = filter==='all' ? allLog : allLog.filter(d=>monthKeyOf_(d.deletedAt)===filter);
+  const log = filteredLog.slice(0, 150);
   return `
-    <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Deletion Log</h3>
-    <div class="entry-card">
-      <div class="entry-block" style="margin-bottom:10px;">Every entry deleted from the group logbook, with the reason given at the time — most recent first.</div>
-      ${log.length===0 ? `<div class="entry-meta">Nothing has been deleted yet.</div>` :
+    <div class="view-header">
+      <div>
+        <div class="view-title">Deletion Log</div>
+        <div class="view-sub">Every entry deleted from the group logbook, with the reason given at the time — most recent first. ${filteredLog.length>150 ? `Showing the most recent ${log.length} of ${filteredLog.length} for this period` : `Showing all ${log.length} for this period`}; download the CSV for the complete history.</div>
+      </div>
+      <button class="action-btn" onclick="downloadDeletionLogCsv()">Download as CSV</button>
+    </div>
+    <div class="filter-row">
+      <select onchange="setDeletionLogMonthFilter(this.value)">
+        <option value="all" ${filter==='all'?'selected':''}>All months (${allLog.length})</option>
+        ${availableMonths.map(m=>`<option value="${m}" ${filter===m?'selected':''}>${monthKeyLabel_(m)} (${allLog.filter(d=>monthKeyOf_(d.deletedAt)===m).length})</option>`).join('')}
+      </select>
+    </div>
+    <div class="entry-card" style="padding:0;">
+      ${log.length===0 ? `<div class="entry-meta" style="padding:20px;">${filter==='all' ? 'Nothing has been deleted yet.' : 'Nothing deleted in this month.'}</div>` :
         log.map((d,idx)=>`
-          <div style="padding:10px 0; ${idx>0?'border-top:1px solid var(--border);':''}">
+          <div style="padding:12px 20px; ${idx>0?'border-top:1px solid var(--border);':''}">
             <div style="font-size:13.5px; font-weight:600;">${escapeHtml(d.title)} <span class="entry-meta" style="font-weight:400;">(${escapeHtml(d.type)})</span></div>
             <div class="entry-meta">${d.studentId ? escapeHtml(studentName(d.studentId))+' · ' : ''}Deleted by ${escapeHtml(d.deletedByName)} (${escapeHtml(d.deletedByRole)}) on ${escapeHtml(d.deletedAt)}</div>
             <div class="entry-meta" style="margin-top:2px;">Reason: ${escapeHtml(d.reason)}</div>
           </div>
         `).join('')}
-      ${log.length>0 ? `<div class="entry-actions" style="margin-top:10px;"><button class="small-btn" onclick="downloadDeletionLogCsv()">Download as CSV</button></div>` : ''}
     </div>
   `;
 }
+function setDeletionLogMonthFilter(month){ state.deletionLogMonthFilter = month; renderView(); }
 function monthKeyOf_(dateStr){
   const t = parseISTTimestamp_(dateStr);
   if(!t) return null;
@@ -3095,6 +3112,76 @@ async function submitChangeCoSupEmail(){
   me.email = email;
   await saveCollection('co-supervisors', state.coSupervisors);
   closeModal(); renderView();
+}
+
+// A full wipe of every scholar, mentor, and record in the system — meant
+// for clearing out trial/test data before real use begins. Deliberately
+// the most heavily guarded action in the whole app: a typed confirmation
+// phrase (not just a click), the supervisor's own PIN re-entered, a direct
+// link to back up first, and one final browser confirm as a last chance to
+// back out. The supervisor's own login is the one thing left untouched, so
+// there's no risk of getting locked out of the freshly emptied system.
+function resetDataSection(){
+  return `
+    <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--danger); margin:22px 0 6px;">Reset All Data</h3>
+    <div class="entry-card" style="border-color:var(--danger);">
+      <div class="entry-block" style="margin-bottom:10px;">Permanently erases every research scholar, mentor, and record of every kind — weekly reports, samples, papers, everything. Only your own supervisor login is left intact. This cannot be undone. Use this to clear out trial or test data before real use begins — never on a system with real data you want to keep.</div>
+      <div class="entry-actions"><button class="small-btn danger" onclick="openResetAllDataModal()">Reset all data…</button></div>
+    </div>
+  `;
+}
+function openResetAllDataModal(){
+  showModal('Reset all data', `
+    <div class="comment-box" style="border-color:var(--danger); margin-bottom:14px;">
+      <b>This is permanent.</b> Every research scholar, mentor, and record — weekly reports, samples, papers, patents, everything — will be erased. Your own supervisor login stays intact; nothing else does.
+    </div>
+    <div class="entry-actions" style="margin-bottom:16px;">
+      <button class="small-btn" onclick="downloadBackup()">Download a backup first</button>
+    </div>
+    <label class="field-label">Type <code>RESET ALL DATA</code> exactly to confirm</label>
+    <input class="text-input" id="f_resetConfirmText" placeholder="RESET ALL DATA" autocomplete="off">
+    <label class="field-label" style="margin-top:12px;">Re-enter your supervisor passcode</label>
+    <input class="text-input" id="f_resetConfirmPin" type="password" autocomplete="off">
+  `, submitResetAllData);
+}
+async function submitResetAllData(){
+  const text = document.getElementById('f_resetConfirmText').value.trim();
+  if(text !== 'RESET ALL DATA'){ alert('Please type "RESET ALL DATA" exactly (all capitals) to confirm.'); return; }
+  const pin = document.getElementById('f_resetConfirmPin').value;
+  if(state.supervisorPinHash){
+    const hash = await hashPin(pin);
+    if(hash !== state.supervisorPinHash){ alert('That passcode is incorrect.'); return; }
+  } else if(!pin){
+    alert('Please enter your supervisor passcode.'); return;
+  }
+  if(!confirm('Absolutely final check: this permanently erases every scholar, mentor, and record in the system, right now. There is no undo. Proceed?')) return;
+
+  state.students = []; state.weekly = []; state.samples = []; state.papers = []; state.instructions = [];
+  state.meetings = []; state.coSupervisors = []; state.proposals = []; state.conferences = []; state.plannerTasks = [];
+  state.thesisPlans = []; state.racReviews = []; state.financialApps = []; state.courses = []; state.fabricationItems = [];
+  state.events = []; state.resultsAnalysis = []; state.deletionLog = []; state.newsUpdates = [];
+  state.patents = []; state.plagiarismReports = []; state.awards = []; state.collaborators = []; state.leaveRecords = [];
+  state.activityLogExclusions = []; state.filterStudentId = 'all';
+
+  await Promise.all([
+    saveCollection('students', state.students), saveCollection('weekly-reports', state.weekly),
+    saveCollection('samples', state.samples), saveCollection('papers', state.papers),
+    saveCollection('instructions', state.instructions), saveCollection('meetings', state.meetings),
+    saveCollection('co-supervisors', state.coSupervisors), saveCollection('proposals', state.proposals),
+    saveCollection('conferences', state.conferences), saveCollection('planner-tasks', state.plannerTasks),
+    saveCollection('thesis-plans', state.thesisPlans), saveCollection('rac-reviews', state.racReviews),
+    saveCollection('financial-applications', state.financialApps), saveCollection('courses', state.courses),
+    saveCollection('fabrication-items', state.fabricationItems), saveCollection('events', state.events),
+    saveCollection('results-analysis', state.resultsAnalysis), saveCollection('deletion-log', state.deletionLog),
+    saveCollection('news-updates', state.newsUpdates), saveCollection('patents', state.patents),
+    saveCollection('plagiarism-reports', state.plagiarismReports), saveCollection('awards', state.awards),
+    saveCollection('collaborators', state.collaborators), saveCollection('leave-records', state.leaveRecords),
+    saveCollection('activity-log-exclusions', state.activityLogExclusions)
+  ]);
+
+  closeModal();
+  alert('All data has been reset. Your own login is unaffected.');
+  goView('overview');
 }
 
 function backupSection(){
