@@ -205,6 +205,8 @@
     display:inline-flex; align-items:center; gap:6px; transition:background .12s;
   }
   .action-btn:hover{ background:var(--navy-dark); }
+  .action-btn:disabled{ opacity:0.6; cursor:default; }
+  .action-btn:disabled:hover{ background:var(--navy); }
   .action-btn.ghost{ background:var(--surface); color:var(--ink); border:1px solid var(--border-strong); }
   .action-btn.ghost:hover{ background:var(--neutral-wash); }
 
@@ -424,7 +426,7 @@
     <div class="identity-pill">
       <button class="switch-link" onclick="openHelpModal()">? Help</button>
       <span class="identity-badge" id="identityBadge"></span>
-      <button class="switch-link" onclick="switchUser()">switch user</button>
+      <button class="switch-link" onclick="switchUser()">Sign out</button>
     </div>
   </div>
   <div class="layout">
@@ -1045,35 +1047,43 @@ function openHelpModal(){
   if(role==='student'){
     body = `
       <div style="display:flex; flex-direction:column; gap:14px;">
-        <div><b>How approval works</b><br>Almost everything you log — weekly plans, samples, papers, and more — starts as "Pending Approval." Your supervisor or an assigned mentor reviews it and either approves it or requests changes. You can freely edit anything before it's approved.</div>
-        <div><b>Once something is approved</b><br>It locks — you can't edit it further yourself. If it needs correcting after that, ask your supervisor or mentor to "Request changes," which reopens it for you.</div>
+        <div><b>How approval works</b><br>Almost everything you log starts as "Pending Approval." Your supervisor or an assigned mentor reviews it and either approves it or requests changes. You can freely edit anything before it's approved.</div>
+        <div><b>Once something is approved</b><br>It locks — you can't edit it further yourself. If it needs correcting after that, ask your supervisor or mentor to "Request changes," which reopens it for you. Nothing is ever silently overwritten — every review and edit is kept as a permanent entry in that item's history, visible right on the card.</div>
         <div><b>Weekly Plan</b><br>Once a week's entry is logged and its week has ended, it locks the same way — even if it's still pending. This keeps the log honest as a record of what actually happened.</div>
+        <div><b>The sections</b><br>Weekly Plan and Lab Work are your day-to-day log. Characterization and Results Analysis track samples through testing to conclusions. Paper Pipeline, Thesis Plan, Proposals, and RAC Reviews cover the bigger academic milestones. Patents, Similarity Reports, Awards, and Collaborators cover outputs and recognition. Leave/OD is for time away. Meetings and Events are scheduling; Instructions are quick to-dos from your supervisor.</div>
         <div><b>Linking your work</b><br>Many sections let you link related items — a weekly update to a paper, a sample to a Lab Work "sample code," and so on. This isn't required, but it makes your progress much easier to trace later.</div>
+        <div><b>Calendar &amp; deadlines</b><br>Every target date across every section shows up on the Calendar, plus a running "Upcoming deadlines" list there and on your dashboard. You'll also get an email 3 days before something of yours is due, if that's on your supervisor's email settings for you.</div>
+        <div><b>News Update</b><br>Anyone in the group can post a title + link to the scrolling box on the dashboard — a quick way to share something relevant with everyone. You can only remove links you posted yourself.</div>
+        <div><b>Search</b><br>The search box at the top works across everything you have access to — your own entries in every section, by title.</div>
         <div><b>Notifications</b><br>You'll get an email whenever your work is reviewed, edited by staff, or deleted. Your supervisor controls which of these you receive — this isn't something you can turn off yourself, so nothing important gets missed by accident.</div>
       </div>
     `;
   } else if(role==='cosupervisor'){
     body = `
       <div style="display:flex; flex-direction:column; gap:14px;">
-        <div><b>Your role</b><br>You can see and review entries only for the research scholars specifically assigned to you — nothing else in the group. The supervisor sets your category (Advisor or Co-Supervisor) per scholar, so you can hold a different one for each.</div>
+        <div><b>Your role</b><br>You can see and review entries only for the research scholars specifically assigned to you — nothing else in the group. The supervisor sets your category (Advisor or Co-Supervisor) per scholar, so you can hold a different one for each, and can also control whether you get submission alerts, per scholar.</div>
         <div><b>Reviewing work</b><br>Approve, request changes, or add an additional comment on anything a scholar submits. If the supervisor has assigned a specific item to you directly, only you (or the supervisor) can act on it — otherwise, any mentor connected to that scholar can.</div>
+        <div><b>Additional comments</b><br>Once something is already approved, you can still leave a comment on it without changing its status — useful for follow-up feedback that doesn't need a re-review. The scholar, supervisor, and any other mentor connected to that scholar are all notified.</div>
+        <div><b>Editing or logging on a scholar's behalf</b><br>If you create or edit something directly for a scholar, they and the supervisor are both notified, and it's recorded with your name and the time — visible on the item's history.</div>
+        <div><b>Analytics &amp; Activity Log</b><br>Both are scoped to just your assigned scholars — a quick way to see who has things pending, and a full audit trail of reviews and edits on their work.</div>
         <div><b>Notifications</b><br>The supervisor controls which emails you receive — including submission alerts and review-assignment notices — from the mentor list in their Account page. This isn't something you can turn off yourself.</div>
-        <div><b>Editing on a scholar's behalf</b><br>If you log or edit something directly for a scholar, they and the supervisor are both notified, and it's recorded with your name and the time.</div>
       </div>
     `;
   } else {
     body = `
       <div style="display:flex; flex-direction:column; gap:14px;">
-        <div><b>The Pending Approval queue</b><br>Every item across the whole group waiting on a decision, in one place — oldest first. You can approve several at once with "Select all" for the simpler sections, or assign a specific item to a specific mentor so it's clear who's responsible.</div>
-        <div><b>Mentors &amp; Advisors</b><br>Add them in Account, and assign each one to specific scholars with a category (Advisor or Co-Supervisor) that can differ per scholar. You can freeze a mentor's or scholar's login once their time with the group ends — their data stays, they just can't log in anymore.</div>
-        <div><b>Notification control</b><br>You decide which emails each scholar and mentor receives — click "Notifications" next to their name. This is deliberately not self-serve: a scholar or mentor muting their own review feedback would defeat the purpose of the workflow, so you're the one who controls it.</div>
-        <div><b>Nothing is ever overwritten</b><br>Every review, edit, and status change is recorded as a new entry in that item's history — nothing replaces what came before. The full trail is visible on each item, and exportable from Account → Activity Log.</div>
+        <div><b>The Pending Approval queue</b><br>Every item across the whole group waiting on a decision, in one place — oldest first. You can approve several at once with "Select all" for the simpler sections, or assign a specific item to a specific mentor so it's clear who's responsible. Papers and meetings need individual review since their flows are a bit different.</div>
+        <div><b>Mentors &amp; Advisors</b><br>Add them in Account, and assign each one to specific scholars with a category (Advisor or Co-Supervisor) that can differ per scholar. Freezing a mentor's or scholar's login (once their time with the group ends) blocks them from logging in while keeping every record they were ever part of — unlike deleting, which is permanent and irreversible.</div>
+        <div><b>Notification control</b><br>You decide which emails each scholar and mentor receives — click "Notifications" next to their name in Account. This is deliberately not self-serve: a scholar or mentor muting their own review feedback would defeat the purpose of the workflow, so you're the one who controls it.</div>
+        <div><b>Nothing is ever overwritten</b><br>Every review, edit, and status change is recorded as a new entry in that item's history — nothing replaces what came before. The full trail is visible on each card, and exportable from the Activity Log page.</div>
         <div><b>Deletion</b><br>Only you can permanently delete an entry, and it always requires a reason — logged, and the scholar is notified.</div>
-        <div><b>Backups</b><br>A full backup downloads on demand from Account, and — once you run the one-time setup in the Apps Script editor — the backend also backs itself up automatically once a day.</div>
+        <div><b>Analytics &amp; Activity Log</b><br>Analytics gives a monthly activity trend, papers-by-stage breakdown, and per-scholar approval workload. Activity Log is the fuller audit trail — every review, edit, and deletion, exportable as CSV.</div>
+        <div><b>Automatic backend emails</b><br>Three things run automatically once a day if you do the one-time setup in the Apps Script editor: a full data backup to Drive, deadline reminder emails (3-day lookahead, to scholars and you), and a complete activity log CSV export to Drive. See SETUP.md for the exact steps.</div>
+        <div><b>Manual backup</b><br>A full backup also downloads on demand any time from Account, independent of the automatic one.</div>
       </div>
     `;
   }
-  showModal('How this works', body, closeModal);
+  showModal('How this works', body, null, true);
 }
 function switchUser(){
   state.identity = null;
@@ -1173,8 +1183,8 @@ const NAV_GROUPS = [
     { key:'leave', label:'Leave / OD' },
     { key:'instructions', label:'Instructions' },
     { key:'links', label:'News Update' },
-    { key:'analytics', label:'Analytics', supervisorOnly:true },
-    { key:'activityLog', label:'Activity Log', supervisorOnly:true },
+    { key:'analytics', label:'Analytics' },
+    { key:'activityLog', label:'Activity Log' },
     { key:'reports', label:'Reports' },
     { key:'account', label:'Account' },
   ]},
@@ -1333,12 +1343,9 @@ let liveClockTimer = null;
 function startLiveClock(){
   if(liveClockTimer) clearInterval(liveClockTimer);
   const tick = () => {
-    const el = document.getElementById('liveClock');
-    const el2 = document.getElementById('rightColClock');
-    if(!el && !el2){ clearInterval(liveClockTimer); liveClockTimer = null; return; }
-    const stamp = nowISTWithSeconds();
-    if(el) el.textContent = stamp;
-    if(el2) el2.textContent = '⌚ ' + stamp;
+    const el = document.getElementById('rightColClock');
+    if(!el){ clearInterval(liveClockTimer); liveClockTimer = null; return; }
+    el.textContent = '⌚ ' + nowISTWithSeconds();
   };
   tick();
   liveClockTimer = setInterval(tick, 1000);
@@ -1384,7 +1391,7 @@ function viewAnalytics(){
     <div class="view-header">
       <div>
         <div class="view-title">Analytics</div>
-        <div class="view-sub">Activity trends and workload across the group — a snapshot, not a substitute for the detailed sections themselves.</div>
+        <div class="view-sub">Activity trends and workload ${isSupervisorLike() ? 'across the group' : 'for your own work'} — a snapshot, not a substitute for the detailed sections themselves.</div>
       </div>
     </div>
 
@@ -1968,6 +1975,7 @@ async function submitGenericForm(type, id){
     values[f.key] = el.value.trim ? el.value.trim() : el.value;
     if(f.required && !values[f.key]){ alert(`Please fill in "${f.label.replace(' (optional)','')}".`); return; }
   }
+  if(type==='leave' && values.toDate < values.fromDate){ alert('The "To date" must be on or after the "From date".'); return; }
   const coll = REVIEWABLE_COLLECTIONS[type];
   if(id){
     const entry = coll.list().find(x=>x.id===id);
@@ -2003,8 +2011,8 @@ function openGenericReviewBox(type, id){
       <span class="lbl">Note (required to request changes)</span>
       <textarea id="genericReviewInput-${type}-${id}">${escapeHtml(entry.supervisorNote||'')}</textarea>
       <div class="entry-actions">
-        <button class="small-btn" onclick="reviewGeneric('${type}','${id}','approved')">Approve</button>
-        <button class="small-btn danger" onclick="reviewGeneric('${type}','${id}','changes_requested')">Request changes</button>
+        <button class="small-btn" onclick="guardedClick(this, ()=>reviewGeneric('${type}','${id}','approved'))">Approve</button>
+        <button class="small-btn danger" onclick="guardedClick(this, ()=>reviewGeneric('${type}','${id}','changes_requested'))">Request changes</button>
       </div>
     </div>`;
 }
@@ -2043,6 +2051,7 @@ function collaboratorVisitsHtml(entry, canEdit){
               <div class="entry-meta"><b>${fmtDate(v.date)}</b>${v.duration ? ' · '+escapeHtml(v.duration) : ''}</div>
               <div style="font-size:13px;">${escapeHtml(v.purpose)}</div>
               ${v.outcome ? `<div class="entry-meta" style="margin-top:2px;">Outcome: ${escapeHtml(v.outcome)}</div>` : ''}
+              ${v.loggedByName ? `<div class="entry-meta" style="margin-top:2px;">Logged by ${escapeHtml(v.loggedByName)} (${escapeHtml(v.loggedByRole)}) on ${escapeHtml(v.loggedAt)}</div>` : ''}
             </div>
           `).join('')}
         </div>
@@ -2068,9 +2077,17 @@ async function submitAddVisit(collabId){
   if(!date || !purpose){ alert('Please add a date and purpose.'); return; }
   const entry = state.collaborators.find(x=>x.id===collabId);
   if(!entry.visits) entry.visits = [];
-  entry.visits.push({ id: uid('visit'), date, duration: document.getElementById('f_visitDuration').value.trim(), purpose, outcome: document.getElementById('f_visitOutcome').value.trim() });
+  const logger = reviewerIdentity(entry.studentId);
+  entry.visits.push({
+    id: uid('visit'), date, duration: document.getElementById('f_visitDuration').value.trim(), purpose,
+    outcome: document.getElementById('f_visitOutcome').value.trim(),
+    loggedByName: logger.name, loggedByRole: logger.roleLabel, loggedAt: nowIST()
+  });
   entry.lastUpdate = todayStr();
   await saveCollection('collaborators', state.collaborators);
+  if(isSupervisorLike()){
+    logStaffEdit_(entry, entry.name, 'collaborator');
+  }
   closeModal(); renderView();
 }
 async function bulkApproveSelected(){
@@ -2227,7 +2244,7 @@ function viewApprovals(){
           <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--ink-soft);">
             <input type="checkbox" onchange="toggleSelectAllPending(this)"> Select all
           </label>
-          <button class="small-btn" onclick="bulkApproveSelected()">Approve selected</button>
+          <button class="small-btn" onclick="guardedClick(this, ()=>bulkApproveSelected())">Approve selected</button>
           <span class="view-sub" style="margin:0;">Papers and meetings need individual review — everything else can be approved in bulk.</span>
         </div>
       ` : ''}
@@ -2373,7 +2390,6 @@ function viewOverview(){
         <div class="view-title">${roleTitle}</div>
         <div class="view-sub">${roleSub}</div>
       </div>
-      <div id="liveClock" class="mono" style="font-size:13px; color:var(--ink-soft); white-space:nowrap;"></div>
     </div>
     <div class="stat-grid dash">
       ${isSupervisorLike()
@@ -2782,7 +2798,7 @@ function viewActivityLog(){
     <div class="view-header">
       <div>
         <div class="view-title">Activity Log</div>
-        <div class="view-sub">Every review decision, staff edit, and deletion across the whole group, most recent first — the full audit trail, not just deletions. Showing the most recent ${rows.length} entries; download the CSV for the complete history.</div>
+        <div class="view-sub">Every review decision, staff edit, and deletion ${isSupervisorLike() ? 'across the whole group' : 'on your own work'}, most recent first — the full audit trail, not just deletions. Showing the most recent ${rows.length} entries; download the CSV for the complete history.</div>
       </div>
       <button class="action-btn" onclick="downloadFullActivityLogCsv()">Download as CSV</button>
     </div>
@@ -3818,8 +3834,8 @@ function openProposalReviewBox(id){
       <span class="lbl">Feedback (required to request changes)</span>
       <textarea id="proposalReviewInput-${id}">${escapeHtml(pr.supervisorNote || '')}</textarea>
       <div class="entry-actions">
-        <button class="small-btn" onclick="reviewProposal('${id}','approved')">Approve</button>
-        <button class="small-btn danger" onclick="reviewProposal('${id}','changes_requested')">Request changes</button>
+        <button class="small-btn" onclick="guardedClick(this, ()=>reviewProposal('${id}','approved'))">Approve</button>
+        <button class="small-btn danger" onclick="guardedClick(this, ()=>reviewProposal('${id}','changes_requested'))">Request changes</button>
       </div>
     </div>`;
 }
@@ -4137,8 +4153,8 @@ function openThesisReviewBox(id){
       <span class="lbl">Feedback (required to request changes)</span>
       <textarea id="thesisReviewInput-${id}">${escapeHtml(tp.supervisorNote || '')}</textarea>
       <div class="entry-actions">
-        <button class="small-btn" onclick="reviewThesis('${id}','approved')">Approve</button>
-        <button class="small-btn danger" onclick="reviewThesis('${id}','changes_requested')">Request changes</button>
+        <button class="small-btn" onclick="guardedClick(this, ()=>reviewThesis('${id}','approved'))">Approve</button>
+        <button class="small-btn danger" onclick="guardedClick(this, ()=>reviewThesis('${id}','changes_requested'))">Request changes</button>
       </div>
     </div>`;
 }
@@ -4357,8 +4373,8 @@ function openRacReviewBox(id){
       <span class="lbl">Feedback (required to request changes)</span>
       <textarea id="racReviewInput-${id}">${escapeHtml(r.supervisorNote || '')}</textarea>
       <div class="entry-actions">
-        <button class="small-btn" onclick="reviewRac('${id}','approved')">Approve</button>
-        <button class="small-btn danger" onclick="reviewRac('${id}','changes_requested')">Request changes</button>
+        <button class="small-btn" onclick="guardedClick(this, ()=>reviewRac('${id}','approved'))">Approve</button>
+        <button class="small-btn danger" onclick="guardedClick(this, ()=>reviewRac('${id}','changes_requested'))">Request changes</button>
       </div>
     </div>`;
 }
@@ -4577,8 +4593,8 @@ function openFinancialReviewBox(id){
       <span class="lbl">Note (required to request changes)</span>
       <textarea id="financialReviewInput-${id}">${escapeHtml(f.supervisorNote || '')}</textarea>
       <div class="entry-actions">
-        <button class="small-btn" onclick="reviewFinancial('${id}','approved')">Approve</button>
-        <button class="small-btn danger" onclick="reviewFinancial('${id}','changes_requested')">Request changes</button>
+        <button class="small-btn" onclick="guardedClick(this, ()=>reviewFinancial('${id}','approved'))">Approve</button>
+        <button class="small-btn danger" onclick="guardedClick(this, ()=>reviewFinancial('${id}','changes_requested'))">Request changes</button>
       </div>
     </div>`;
 }
@@ -4769,8 +4785,8 @@ function openCourseReviewBox(id){
       <span class="lbl">Note (required to request changes)</span>
       <textarea id="courseReviewInput-${id}">${escapeHtml(c.supervisorNote || '')}</textarea>
       <div class="entry-actions">
-        <button class="small-btn" onclick="reviewCourse('${id}','approved')">Approve</button>
-        <button class="small-btn danger" onclick="reviewCourse('${id}','changes_requested')">Request changes</button>
+        <button class="small-btn" onclick="guardedClick(this, ()=>reviewCourse('${id}','approved'))">Approve</button>
+        <button class="small-btn danger" onclick="guardedClick(this, ()=>reviewCourse('${id}','changes_requested'))">Request changes</button>
       </div>
     </div>`;
 }
@@ -5055,8 +5071,8 @@ function openFabricationReviewBox(id){
       <span class="lbl">Note (required to request changes)</span>
       <textarea id="fabricationReviewInput-${id}">${escapeHtml(it.supervisorNote || '')}</textarea>
       <div class="entry-actions">
-        <button class="small-btn" onclick="reviewFabrication('${id}','approved')">Approve</button>
-        <button class="small-btn danger" onclick="reviewFabrication('${id}','changes_requested')">Request changes</button>
+        <button class="small-btn" onclick="guardedClick(this, ()=>reviewFabrication('${id}','approved'))">Approve</button>
+        <button class="small-btn danger" onclick="guardedClick(this, ()=>reviewFabrication('${id}','changes_requested'))">Request changes</button>
       </div>
     </div>`;
 }
@@ -5393,8 +5409,8 @@ function openReviewBox(id){
       <span class="lbl">Feedback (required to request changes)</span>
       <textarea id="reviewInput-${id}">${escapeHtml(w.supervisorComment || '')}</textarea>
       <div class="entry-actions">
-        <button class="small-btn" onclick="reviewWeekly('${id}','approved')">Approve</button>
-        <button class="small-btn danger" onclick="reviewWeekly('${id}','changes_requested')">Request changes</button>
+        <button class="small-btn" onclick="guardedClick(this, ()=>reviewWeekly('${id}','approved'))">Approve</button>
+        <button class="small-btn danger" onclick="guardedClick(this, ()=>reviewWeekly('${id}','changes_requested'))">Request changes</button>
       </div>
     </div>`;
 }
@@ -5685,8 +5701,8 @@ function openSampleReviewBox(id){
       <span class="lbl">Note (required to request changes)</span>
       <textarea id="sampleReviewInput-${id}">${escapeHtml(s.supervisorNote || '')}</textarea>
       <div class="entry-actions">
-        <button class="small-btn" onclick="reviewSample('${id}','approved')">Approve</button>
-        <button class="small-btn danger" onclick="reviewSample('${id}','changes_requested')">Request changes</button>
+        <button class="small-btn" onclick="guardedClick(this, ()=>reviewSample('${id}','approved'))">Approve</button>
+        <button class="small-btn danger" onclick="guardedClick(this, ()=>reviewSample('${id}','changes_requested'))">Request changes</button>
       </div>
     </div>`;
 }
@@ -6020,8 +6036,8 @@ function openAnalysisReviewBox(id){
       <span class="lbl">Note (required to request changes)</span>
       <textarea id="analysisReviewInput-${id}">${escapeHtml(a.supervisorNote || '')}</textarea>
       <div class="entry-actions">
-        <button class="small-btn" onclick="reviewAnalysis('${id}','approved')">Approve</button>
-        <button class="small-btn danger" onclick="reviewAnalysis('${id}','changes_requested')">Request changes</button>
+        <button class="small-btn" onclick="guardedClick(this, ()=>reviewAnalysis('${id}','approved'))">Approve</button>
+        <button class="small-btn danger" onclick="guardedClick(this, ()=>reviewAnalysis('${id}','changes_requested'))">Request changes</button>
       </div>
     </div>`;
 }
@@ -6121,8 +6137,8 @@ function paperCard(p, i, total){
           </div>
           ${canReview_(p) ? `
             <div class="entry-actions" style="margin-top:8px;">
-              <button class="small-btn" onclick="approvePendingDetails('${p.id}')">Approve changes</button>
-              <button class="small-btn danger" onclick="rejectPendingDetails('${p.id}')">Reject changes</button>
+              <button class="small-btn" onclick="guardedClick(this, ()=>approvePendingDetails('${p.id}'))">Approve changes</button>
+              <button class="small-btn danger" onclick="guardedClick(this, ()=>rejectPendingDetails('${p.id}'))">Reject changes</button>
             </div>
           ` : isOwner ? `<div class="entry-meta" style="margin-top:6px;">Waiting on your supervisor to approve these changes.</div>` : `<div class="entry-meta" style="margin-top:6px;">Assigned to ${escapeHtml(p.assignedReviewerName)} for review.</div>`}
         </div>
@@ -6173,8 +6189,8 @@ function paperCard(p, i, total){
       ${hasPending ? `
         <div class="entry-actions">
           ${canReview_(p) ? `
-            <button class="small-btn" onclick="approvePendingStage('${p.id}')">Approve → ${escapeHtml(p.pendingStage)}</button>
-            <button class="small-btn danger" onclick="rejectPendingStage('${p.id}')">Reject</button>
+            <button class="small-btn" onclick="guardedClick(this, ()=>approvePendingStage('${p.id}'))">Approve → ${escapeHtml(p.pendingStage)}</button>
+            <button class="small-btn danger" onclick="guardedClick(this, ()=>rejectPendingStage('${p.id}'))">Reject</button>
           ` : isOwner ? `<div class="entry-meta">Waiting on supervisor approval to move to <b>${escapeHtml(p.pendingStage)}</b>.</div>` : `<div class="entry-meta">Assigned to ${escapeHtml(p.assignedReviewerName)} for review.</div>`}
         </div>
       ` : ''}
@@ -6614,8 +6630,8 @@ function openConferenceReviewBox(id){
       <span class="lbl">Note (required to request changes)</span>
       <textarea id="conferenceReviewInput-${id}">${escapeHtml(c.supervisorNote || '')}</textarea>
       <div class="entry-actions">
-        <button class="small-btn" onclick="reviewConference('${id}','approved')">Approve</button>
-        <button class="small-btn danger" onclick="reviewConference('${id}','changes_requested')">Request changes</button>
+        <button class="small-btn" onclick="guardedClick(this, ()=>reviewConference('${id}','approved'))">Approve</button>
+        <button class="small-btn danger" onclick="guardedClick(this, ()=>reviewConference('${id}','changes_requested'))">Request changes</button>
       </div>
     </div>`;
 }
@@ -7513,7 +7529,7 @@ function downloadReportCsv(){
 }
 
 /* ============================ MODAL ============================ */
-function showModal(title, bodyHtml, onSubmit){
+function showModal(title, bodyHtml, onSubmit, viewOnly){
   document.getElementById('modalRoot').innerHTML = `
     <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
       <div class="modal-box">
@@ -7521,16 +7537,55 @@ function showModal(title, bodyHtml, onSubmit){
         <div class="modal-body">
           ${bodyHtml}
           <div class="modal-foot">
-            <button class="small-btn" onclick="closeModal()">Cancel</button>
-            <button class="action-btn" id="modalSubmitBtn">Save</button>
+            <button class="small-btn" onclick="closeModal()">${viewOnly ? 'Close' : 'Cancel'}</button>
+            ${viewOnly ? '' : '<button class="action-btn" id="modalSubmitBtn">Save</button>'}
           </div>
         </div>
       </div>
     </div>
   `;
-  document.getElementById('modalSubmitBtn').onclick = onSubmit;
+  if(viewOnly) return;
+  const btn = document.getElementById('modalSubmitBtn');
+  const originalLabel = btn.textContent;
+  // Disabling immediately on click — and only re-enabling if the modal is
+  // still open afterward — stops a double-click (or an impatient second
+  // click on a slow connection) from firing the same save/approve/email
+  // twice. If onSubmit returns early for validation (e.g. a required field
+  // is empty), the modal stays open and the button comes back so the
+  // person can fix it and try again; on success, onSubmit calls
+  // closeModal(), which wipes this button along with everything else, so
+  // there's nothing left to re-enable.
+  btn.onclick = async function(){
+    if(btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try{
+      await onSubmit();
+    } finally {
+      const stillThere = document.getElementById('modalSubmitBtn');
+      if(stillThere){ stillThere.disabled = false; stillThere.textContent = originalLabel; }
+    }
+  };
 }
 function closeModal(){ document.getElementById('modalRoot').innerHTML = ''; }
+// Used on Approve/Reject-style buttons that aren't inside a modal (showModal
+// already has its own guard). Disables the exact button clicked so a
+// double-click can't fire the same save/approve/email twice. If the
+// function being called validates something and returns early (e.g. "add a
+// note before requesting changes") without ever reaching renderView(), this
+// button is still the same DOM element afterward — so it's re-enabled,
+// letting the person fix the field and try again. On success, renderView()
+// replaces the whole card (this button included), so there's nothing left
+// to re-enable.
+async function guardedClick(el, fn){
+  if(el.disabled) return;
+  el.disabled = true;
+  try{
+    await fn();
+  } finally {
+    if(document.body.contains(el)) el.disabled = false;
+  }
+}
 
 /* ============================ START ============================ */
 if('serviceWorker' in navigator){
