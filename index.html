@@ -160,6 +160,8 @@ button{font-family:inherit;}
 
 .field{margin-bottom:13px;}
 .field label{display:block;font-size:12.5px;font-weight:600;color:var(--text-dim);margin-bottom:5px;}
+.form-section-heading{font-size:13px;font-weight:700;color:var(--navy);margin:18px 0 10px;padding-bottom:6px;border-bottom:1.5px solid var(--border);}
+.form-section-heading:first-child{margin-top:0;}
 .input,select.input,textarea.input{width:100%;padding:10px 11px;border:1.5px solid var(--border);border-radius:8px;
   font-size:14px;background:#fbfcfe;font-family:inherit;transition:.12s;}
 .input:focus{outline:none;border-color:var(--info);box-shadow:0 0 0 3px rgba(42,99,201,.12);}
@@ -667,6 +669,15 @@ const MAIN_MENUS = [
   { key:'admin', label:'Admin & settings' }
 ];
 
+/** UN member states — used by the Researcher Network's Country field. A
+ *  plain flat list (not a select-generic thing elsewhere), so it lives here
+ *  right next to the one module that uses it. */
+const UN_COUNTRIES = ['Afghanistan','Albania','Algeria','Andorra','Angola','Antigua and Barbuda','Argentina','Armenia','Australia','Austria','Azerbaijan','Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium','Belize','Benin','Bhutan','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Brunei','Bulgaria','Burkina Faso','Burundi','Cabo Verde','Cambodia','Cameroon','Canada','Central African Republic','Chad','Chile','China','Colombia','Comoros','Congo (Republic of the)','Costa Rica','Croatia','Cuba','Cyprus','Czechia','Democratic Republic of the Congo','Denmark','Djibouti','Dominica','Dominican Republic','Ecuador','Egypt','El Salvador','Equatorial Guinea','Eritrea','Estonia','Eswatini','Ethiopia','Fiji','Finland','France','Gabon','Gambia','Georgia','Germany','Ghana','Greece','Grenada','Guatemala','Guinea','Guinea-Bissau','Guyana','Haiti','Honduras','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kiribati','Kuwait','Kyrgyzstan','Laos','Latvia','Lebanon','Lesotho','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg','Madagascar','Malawi','Malaysia','Maldives','Mali','Malta','Marshall Islands','Mauritania','Mauritius','Mexico','Micronesia','Moldova','Monaco','Mongolia','Montenegro','Morocco','Mozambique','Myanmar','Namibia','Nauru','Nepal','Netherlands','New Zealand','Nicaragua','Niger','Nigeria','North Korea','North Macedonia','Norway','Oman','Pakistan','Palau','Panama','Papua New Guinea','Paraguay','Peru','Philippines','Poland','Portugal','Qatar','Romania','Russia','Rwanda','Saint Kitts and Nevis','Saint Lucia','Saint Vincent and the Grenadines','Samoa','San Marino','Sao Tome and Principe','Saudi Arabia','Senegal','Serbia','Seychelles','Sierra Leone','Singapore','Slovakia','Slovenia','Solomon Islands','Somalia','South Africa','South Korea','South Sudan','Spain','Sri Lanka','Sudan','Suriname','Sweden','Switzerland','Syria','Tajikistan','Tanzania','Thailand','Timor-Leste','Togo','Tonga','Trinidad and Tobago','Tunisia','Turkey','Turkmenistan','Tuvalu','Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Vanuatu','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe'];
+/** Common reasons a faculty member keeps a researcher in their network —
+ *  used as the checkbox options for Researcher Network's "Usage / Purpose"
+ *  field (a multiselect: any number can apply to the same contact). */
+const RESEARCHER_PURPOSE_OPTIONS = ['Collaboration / Joint Research','Invite for Talk / Seminar','MoU / Institutional Partnership','PhD / Postdoc Recruitment','Grant / Project Partner','Student Exchange / Internship','Consultation / Advisory','Conference / Networking Contact','Reviewer / Editorial Contact','Other'];
+
 const MODULES = {
   'work-diary': { label:'Work diary', menu:'work-diary', icon:'📔', titleField:'summary', dateField:'date', groupByMonth:true, fields:[
     {key:'date', label:'Date', type:'date', required:true, default:'__today__'},
@@ -847,15 +858,58 @@ const MODULES = {
     {key:'paperTitle', label:'Paper Title', type:'text'},
     {key:'status', label:'Status', type:'select', options:['Assigned','In Progress','Completed'], default:'Assigned'}
   ]},
-  'research-contacts': { label:'Researcher Network', menu:'research', icon:'🌐', titleField:'name', dateField:'lastContactDate', fields:[
-    {key:'name', label:'Name', type:'text', required:true},
-    {key:'institution', label:'Institution', type:'text'},
+  'research-contacts': { label:'Researcher Network', menu:'research', icon:'🌐', titleField:'name', dateField:null, recordNoun:'researcher', profileExport:true, fields:[
+    // 👤 Basic Information — name is the only required field; everything
+    // else is "fill in what you know now, add more later". The first 7
+    // fields here double as the list view's columns (see
+    // moduleDisplayColumns' cap), so the most identifying ones come first.
+    {key:'name', label:'Name', type:'text', required:true, section:'👤 Basic Information'},
     {key:'designation', label:'Designation', type:'text'},
-    {key:'expertise', label:'Area of Expertise', type:'text'},
+    {key:'institution', label:'Institution', type:'text'},
+    {key:'priority', label:'Priority', type:'select', options:['High','Medium','Low'], blankLabel:'— Not set —'},
     {key:'email', label:'Email', type:'email'},
     {key:'phone', label:'Phone', type:'phone'},
-    {key:'contactType', label:'Contact Type', type:'select', options:['Talk/Seminar','Collaboration','Project','General'], default:'General'},
-    {key:'lastContactDate', label:'Last Contact Date', type:'date'}
+    {key:'expertise', label:'Focus Area', type:'text'},
+    {key:'organizationType', label:'Organization Type', type:'select', options:['University','Industry','Government','National Lab','Research Institute','Non-Profit','Other']},
+    {key:'city', label:'City', type:'text'},
+    {key:'country', label:'Country', type:'select', options:UN_COUNTRIES, blankLabel:'— Select country —'},
+    // 🔗 Links & Profiles — every field here is optional; none of these are
+    // validated beyond the browser's own url-input format hint, since a
+    // pasted profile link doesn't always start with https://.
+    {key:'profileLink', label:'Profile / Paper Link', type:'url', section:'🔗 Links & Profiles'},
+    {key:'googleScholar', label:'Google Scholar', type:'url'},
+    {key:'orcid', label:'ORCID', type:'text'},
+    {key:'linkedin', label:'LinkedIn', type:'url'},
+    {key:'twitter', label:'Twitter / X', type:'url'},
+    {key:'researchgate', label:'ResearchGate', type:'url'},
+    {key:'labWebsite', label:'Lab / Group Website', type:'url'},
+    {key:'otherLink', label:'Other Website / Social Link', type:'url'},
+    // Usage / Purpose — why this contact is being tracked at all; more than
+    // one can apply (e.g. both "Collaboration" and "Grant / Project Partner").
+    {key:'purposes', label:'Select purpose(s)', type:'multiselect', options:RESEARCHER_PURPOSE_OPTIONS, section:'Usage / Purpose'},
+    // 📝 Classification & Notes
+    {key:'source', label:'Source (how you found them)', type:'text', section:'📝 Classification & Notes'},
+    {key:'tags', label:'Tags (comma separated)', type:'text'},
+    {key:'achievements', label:'Notable Inventions / Patents / Achievements', type:'textarea'},
+    {key:'additionalNotes', label:'Notes', type:'textarea'}
+  ], logTabs:[
+    { key:'papers', label:'Papers', icon:'📄', arrayKey:'papers', addLabel:'Add Paper', hintPhrase:'add papers', fields:[
+      {key:'title', label:'Paper / Publication Title', type:'text', required:true},
+      {key:'venue', label:'Journal / Conference', type:'text'},
+      {key:'year', label:'Year', type:'number'},
+      {key:'link', label:'Link (DOI / URL)', type:'url'}
+    ], summary:(e)=>(e.title||'(untitled)') + (e.year ? ' (' + e.year + ')' : '') + (e.venue ? ' — ' + e.venue : ''), linkKey:'link' },
+    { key:'contact-history', label:'Contact History', icon:'📞', arrayKey:'contactHistory', addLabel:'Log Contact', hintPhrase:'log contact history', fields:[
+      {key:'date', label:'Date', type:'date', default:'__today__'},
+      {key:'mode', label:'Mode', type:'select', options:['Email','Phone Call','Video Call','In-Person Meeting','Conference','Other'], default:'Email'},
+      {key:'notes', label:'Notes', type:'textarea'}
+    ], summary:(e)=>(e.mode||'Contact') + (e.date ? ' — ' + fmtDate(e.date) : ''), bodyKey:'notes' },
+    { key:'india-visits', label:'Visits to India', icon:'🇮🇳', arrayKey:'indiaVisits', addLabel:'Log Visit', hintPhrase:'track visits to India', fields:[
+      {key:'fromDate', label:'From', type:'date'},
+      {key:'toDate', label:'To', type:'date'},
+      {key:'purpose', label:'Purpose / Institution Visited', type:'text'},
+      {key:'notes', label:'Notes', type:'textarea'}
+    ], summary:(e)=>[e.fromDate?fmtDate(e.fromDate):'', e.toDate?('– '+fmtDate(e.toDate)):''].filter(Boolean).join(' ') + (e.purpose ? (' — ' + e.purpose) : ''), bodyKey:'notes' }
   ]},
   'project-grants': { label:'Projects & grants', menu:'projects', icon:'💰', titleField:'title', dateField:'endDate', fields:[
     {key:'title', label:'Title', type:'text', required:true},
@@ -2104,7 +2158,7 @@ function moduleDisplayColumns(mod){
   mod.fields.forEach(f=>{
     if(cols.length >= cap) return;
     if(cols.indexOf(f) !== -1) return;
-    if(f.type === 'textarea' || f.type === 'subtable') return;
+    if(f.type === 'textarea' || f.type === 'subtable' || f.type === 'multiselect') return;
     // When the list is grouped by this field, its value is shown once at
     // the top of each group instead of repeated on every row — so it's
     // left out of the per-row columns (unless it doubles as the title/date
@@ -2140,6 +2194,15 @@ function fieldDisplayValue(mod, field, rec){
   if(field.type === 'date') return v ? escapeHtml(fmtDate(v)) : '<span style="color:var(--text-faint)">—</span>';
   if(field.type === 'datetime') return v ? escapeHtml(fmtDateTime(v)) : '<span style="color:var(--text-faint)">—</span>';
   if(field.type === 'time') return v ? escapeHtml(fmtTime12(v)) : '<span style="color:var(--text-faint)">—</span>';
+  if(field.type === 'multiselect'){
+    const list = Array.isArray(v) ? v : [];
+    return list.length ? list.map(o=>'<span class="badge badge-neutral" style="margin:0 4px 4px 0;">' + escapeHtml(o) + '</span>').join('') : '<span style="color:var(--text-faint)">—</span>';
+  }
+  if(field.type === 'url'){
+    if(!v) return '<span style="color:var(--text-faint)">—</span>';
+    const href = /^https?:\/\//i.test(v) ? v : 'https://' + v;
+    return '<a href="' + escapeHtml(href) + '" target="_blank" rel="noopener">' + escapeHtml(v) + '</a>';
+  }
   if(field.type === 'subtable'){
     const rows = Array.isArray(v) ? v : [];
     if(field.fixedRows){
@@ -2502,13 +2565,23 @@ function wireModuleList(moduleKey){
   });
 }
 
-function fieldInputHtml(mod, field, value, rec){
-  const id = 'f_' + field.key;
+function fieldInputHtml(mod, field, value, rec, idPrefix){
+  const id = (idPrefix || 'f_') + field.key;
   let v = value;
   if(v === undefined || v === null) v = (field.default === '__today__' ? todayStr() : (field.default != null ? field.default : ''));
   if(field.type === 'select'){
     const opts = (field.options || []).map(o=>'<option value="' + escapeHtml(o) + '"' + (o === v ? ' selected' : '') + '>' + escapeHtml(o) + '</option>').join('');
-    return '<select class="input" id="' + id + '"><option value="">— Select —</option>' + opts + '</select>';
+    return '<select class="input" id="' + id + '"><option value="">' + escapeHtml(field.blankLabel || '— Select —') + '</option>' + opts + '</select>';
+  }
+  if(field.type === 'multiselect'){
+    // Stored as a plain array of the checked option strings. Rendered as a
+    // bordered, scrollable checkbox list rather than a native <select
+    // multiple> — much easier to see (and tap, on a phone) which ones are
+    // already checked than a multi-select listbox is.
+    const selected = Array.isArray(v) ? v : [];
+    const opts = (field.options || []).map((o, oi)=>'<label style="display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:400;padding:4px 2px;cursor:pointer;">'
+      + '<input type="checkbox" class="multiselect-opt" value="' + escapeHtml(o) + '"' + (selected.indexOf(o) !== -1 ? ' checked' : '') + '> ' + escapeHtml(o) + '</label>').join('');
+    return '<div class="multiselect-field" id="' + id + '" style="border:1px solid var(--border);border-radius:8px;padding:6px 10px;max-height:180px;overflow-y:auto;">' + opts + '</div>';
   }
   if(field.type === 'textarea') return '<textarea class="input" id="' + id + '">' + escapeHtml(v) + '</textarea>';
   if(field.type === 'reference'){
@@ -2711,6 +2784,14 @@ function collectSubtableValue(field){
   });
   return result;
 }
+/** Reads a 'multiselect' field's checked options back out of the DOM (see
+ *  fieldInputHtml's multiselect branch) — parallel to collectSubtableValue
+ *  above, called from the record-form submit handler in place of `el.value`. */
+function collectMultiselectValue(field){
+  const container = document.getElementById('f_' + field.key);
+  if(!container) return [];
+  return Array.from(container.querySelectorAll('.multiselect-opt:checked')).map(cb=>cb.value);
+}
 
 function notesTabHtml(rec){
   const notes = rec.notes || [];
@@ -2723,20 +2804,111 @@ function notesTabHtml(rec){
   return html;
 }
 
+/* ============================================================
+   LOG TABS — a module can declare `logTabs` (see 'research-contacts' for
+   the shape) to get one or more extra append-only, timestamped lists on the
+   edit-record drawer, alongside the built-in Notes tab: e.g. Researcher
+   Network's Papers / Contact History / Visits to India. Each entry is a
+   small structured form (not just free text like Notes), stored as an
+   array on the parent record under tabDef.arrayKey — same "no separate
+   CRUD screen, saves as part of the parent record" idea as a subtable
+   field, but reached from its own tab instead of being inline on the main
+   form, and only available once the record has been saved at least once
+   (there's no id to attach entries to before that).
+   ============================================================ */
+function logTabHtml(rec, tabDef){
+  const entries = rec[tabDef.arrayKey] || [];
+  let html = '<div class="notes-list">';
+  if(entries.length === 0) html += '<div class="empty" style="padding:20px;">No ' + escapeHtml(tabDef.label.toLowerCase()) + ' yet.</div>';
+  entries.slice().reverse().forEach(en=>{
+    const link = tabDef.linkKey && en[tabDef.linkKey] ? en[tabDef.linkKey] : '';
+    const href = link ? (/^https?:\/\//i.test(link) ? link : 'https://' + link) : '';
+    html += '<div class="note-item"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">'
+      + '<div style="flex:1;"><div class="ts">' + escapeHtml(tabDef.summary(en)) + '</div>'
+      + (tabDef.bodyKey && en[tabDef.bodyKey] ? escapeHtml(en[tabDef.bodyKey]) : '')
+      + (href ? ('<div><a href="' + escapeHtml(href) + '" target="_blank" rel="noopener">' + escapeHtml(link) + '</a></div>') : '')
+      + '</div>'
+      + '<button type="button" class="btn btn-ghost btn-sm log-entry-remove" data-log-tab="' + tabDef.key + '" data-entry-id="' + en.id + '" title="Remove">✕</button>'
+      + '</div></div>';
+  });
+  html += '</div>';
+  html += '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">';
+  tabDef.fields.forEach(f=>{ html += '<div class="field"><label>' + escapeHtml(f.label) + (f.required ? ' *' : '') + '</label>' + fieldInputHtml({fields:tabDef.fields}, f, undefined, null, 'log_' + tabDef.key + '_') + '</div>'; });
+  html += '<div class="error-box" id="log-' + tabDef.key + '-error"></div>';
+  html += '<button class="btn btn-primary btn-sm" type="button" data-log-add="' + tabDef.key + '">' + escapeHtml(tabDef.addLabel || 'Add') + '</button>';
+  html += '</div>';
+  return html;
+}
+async function addLogEntry(moduleKey, id, arrayKey, data){
+  const arr = getCollection(moduleKey).slice();
+  const idx = arr.findIndex(r=>r.id===id);
+  if(idx===-1) return;
+  const list = (arr[idx][arrayKey] || []).slice();
+  list.push(Object.assign({ id: uid(), at: nowIso() }, data));
+  const patch = {}; patch[arrayKey] = list;
+  arr[idx] = Object.assign({}, arr[idx], patch, { updatedAt: nowIso() });
+  await saveCollection(moduleKey, arr);
+}
+async function removeLogEntry(moduleKey, id, arrayKey, entryId){
+  const arr = getCollection(moduleKey).slice();
+  const idx = arr.findIndex(r=>r.id===id);
+  if(idx===-1) return;
+  const list = (arr[idx][arrayKey] || []).filter(e=>e.id !== entryId);
+  const patch = {}; patch[arrayKey] = list;
+  arr[idx] = Object.assign({}, arr[idx], patch, { updatedAt: nowIso() });
+  await saveCollection(moduleKey, arr);
+}
+/** The "save this record first, then you can…" hint shown at the bottom of
+ *  an ADD form (never an edit form, since the log tabs are already right
+ *  there) for any module that declares logTabs and/or profileExport —
+ *  spelled out generically from each logTab's hintPhrase rather than
+ *  hardcoded to Researcher Network, so any future module gets the same
+ *  hint for free just by declaring the same shape. */
+function saveFirstHintHtml(mod){
+  const phrases = (mod.logTabs || []).map(t=>t.hintPhrase).filter(Boolean);
+  if(mod.profileExport) phrases.push('export a profile PDF');
+  if(!phrases.length) return '';
+  const noun = mod.recordNoun || mod.label.toLowerCase();
+  const joined = phrases.length > 1 ? (phrases.slice(0, -1).join(', ') + ', and ' + phrases[phrases.length - 1]) : phrases[0];
+  return '<div style="font-size:12px;color:var(--text-dim);margin-top:10px;">Save this ' + escapeHtml(noun) + ' first, then you can ' + escapeHtml(joined) + '.</div>';
+}
+
 function openModuleForm(moduleKey, id, presets){
   const mod = MODULES[moduleKey];
   const rec = id ? getRecord(moduleKey, id) : null;
-  let html = '<h3 style="margin:0 0 4px;padding-right:26px;">' + (rec ? 'Edit ' : 'Add ') + escapeHtml(mod.label) + '</h3>';
-  if(rec) html += '<div class="drawer-tabs"><div class="drawer-tab active" data-tab="details">Details</div><div class="drawer-tab" data-tab="notes">Notes (' + ((rec.notes || []).length) + ')</div></div>';
-  html += '<div id="tab-details"><form id="record-form">';
+  const exportBtn = (rec && mod.profileExport) ? '<button type="button" class="btn btn-ghost btn-sm" id="export-profile-btn" style="margin-bottom:10px;">📄 Export Profile (PDF)</button>' : '';
+  let html = '<h3 style="margin:0 0 4px;padding-right:26px;">' + (rec ? 'Edit ' : 'Add ') + escapeHtml(mod.label) + '</h3>' + exportBtn;
+  const logTabs = rec ? (mod.logTabs || []) : [];
+  if(rec){
+    html += '<div class="drawer-tabs"><div class="drawer-tab active" data-tab="details">Details</div>'
+      + '<div class="drawer-tab" data-tab="notes">Notes (' + ((rec.notes || []).length) + ')</div>'
+      + logTabs.map(t=>'<div class="drawer-tab" data-tab="' + t.key + '">' + t.icon + ' ' + escapeHtml(t.label) + ' (' + ((rec[t.arrayKey] || []).length) + ')</div>').join('')
+      + '</div>';
+  }
+  html += '<div id="tab-details" class="tab-panel"><form id="record-form">';
   // presets: only used when adding a brand-new record (e.g. clicking
   // "+ Add to this group" from a grouped list view) to pre-fill one field —
   // like the group's own value — so the new record lands in that same group.
-  mod.fields.forEach(f=>{ html += '<div class="field"><label>' + escapeHtml(f.label) + (f.required ? ' *' : '') + '</label>' + fieldInputHtml(mod, f, rec ? rec[f.key] : (presets ? presets[f.key] : undefined), rec) + '</div>'; });
+  // A `section` on a field (e.g. Researcher Network's "👤 Basic
+  // Information" / "🔗 Links & Profiles") gets a heading rendered right
+  // before its first field; fields with no section (every other module
+  // today) render exactly as before, with no heading at all.
+  let currentSection = null;
+  mod.fields.forEach(f=>{
+    if(f.section && f.section !== currentSection){
+      currentSection = f.section;
+      html += '<h4 class="form-section-heading">' + escapeHtml(currentSection) + '</h4>';
+    }
+    html += '<div class="field"><label>' + escapeHtml(f.label) + (f.required ? ' *' : '') + '</label>' + fieldInputHtml(mod, f, rec ? rec[f.key] : (presets ? presets[f.key] : undefined), rec) + '</div>';
+  });
   html += '<div class="error-box" id="form-error"></div>';
   html += '<div style="display:flex;gap:8px;margin-top:6px;"><button type="submit" class="btn btn-primary">Save</button><button type="button" class="btn btn-ghost" id="form-cancel">Cancel</button></div>';
+  if(!rec) html += saveFirstHintHtml(mod);
   html += '</form></div>';
-  if(rec) html += '<div id="tab-notes" class="hidden">' + notesTabHtml(rec) + '</div>';
+  if(rec){
+    html += '<div id="tab-notes" class="tab-panel hidden">' + notesTabHtml(rec) + '</div>';
+    logTabs.forEach(t=>{ html += '<div id="tab-' + t.key + '" class="tab-panel hidden">' + logTabHtml(rec, t) + '</div>'; });
+  }
   openDrawer(html);
   wireModuleForm(moduleKey, id);
 }
@@ -2753,8 +2925,7 @@ function wireModuleForm(moduleKey, id){
     t.addEventListener('click', ()=>{
       tabs.forEach(x=>x.classList.remove('active'));
       t.classList.add('active');
-      const dTab = drawer.querySelector('#tab-details'); if(dTab) dTab.classList.toggle('hidden', t.dataset.tab !== 'details');
-      const nTab = drawer.querySelector('#tab-notes'); if(nTab) nTab.classList.toggle('hidden', t.dataset.tab !== 'notes');
+      drawer.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('hidden', p.id !== 'tab-' + t.dataset.tab));
     });
   });
   // "Related To" polymorphic-reference fields: a moduleRef select feeds one
@@ -2800,6 +2971,7 @@ function wireModuleForm(moduleKey, id){
       for(let i=0;i<mod.fields.length;i++){
         const f = mod.fields[i];
         if(f.type === 'subtable'){ data[f.key] = collectSubtableValue(f); continue; }
+        if(f.type === 'multiselect'){ data[f.key] = collectMultiselectValue(f); continue; }
         const el = document.getElementById('f_' + f.key);
         let v = el.value;
         if(f.type === 'number') v = v === '' ? '' : Number(v);
@@ -2808,7 +2980,7 @@ function wireModuleForm(moduleKey, id){
       applySubjectAutoFill(mod, data);
       for(let i=0;i<mod.fields.length;i++){
         const f = mod.fields[i];
-        if(f.type === 'subtable') continue;
+        if(f.type === 'subtable' || f.type === 'multiselect') continue;
         const v = data[f.key];
         if(f.required && (v === '' || v == null)){
           errEl.textContent = f.label + ' is required.';
@@ -2855,6 +3027,52 @@ function wireModuleForm(moduleKey, id){
       }catch(err){ toast('Failed to add note', 'danger'); addNoteBtn.disabled = false; }
     });
   }
+  // Log tabs (Papers / Contact History / Visits to India on Researcher
+  // Network, and any future module that declares mod.logTabs the same way):
+  // one "add" button per tab, wired to that tab's own small field set, plus
+  // a "✕" remove button on every already-saved entry.
+  (mod.logTabs || []).forEach(tabDef=>{
+    const addBtn = drawer.querySelector('[data-log-add="' + tabDef.key + '"]');
+    if(!addBtn) return;
+    addBtn.addEventListener('click', async ()=>{
+      if(addBtn.disabled) return;
+      const errEl = document.getElementById('log-' + tabDef.key + '-error');
+      if(errEl) errEl.textContent = '';
+      const idPrefix = 'log_' + tabDef.key + '_';
+      const data = {};
+      tabDef.fields.forEach(f=>{
+        const el = document.getElementById(idPrefix + f.key);
+        if(!el) return;
+        let v = el.value;
+        if(f.type === 'number') v = v === '' ? '' : Number(v);
+        data[f.key] = v;
+      });
+      const missing = tabDef.fields.find(f=>f.required && (data[f.key] === '' || data[f.key] == null));
+      if(missing){ if(errEl) errEl.textContent = missing.label + ' is required.'; return; }
+      addBtn.disabled = true;
+      try{
+        await addLogEntry(moduleKey, id, tabDef.arrayKey, data);
+        openModuleForm(moduleKey, id);
+        const tab = document.querySelector('.drawer-tab[data-tab="' + tabDef.key + '"]');
+        if(tab) tab.click();
+      }catch(err){ if(errEl) errEl.textContent = 'Failed to save.'; addBtn.disabled = false; }
+    });
+  });
+  drawer.querySelectorAll('.log-entry-remove').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const tabKey = btn.dataset.logTab;
+      const entryId = btn.dataset.entryId;
+      const tabDef = (mod.logTabs || []).find(t=>t.key === tabKey);
+      if(!tabDef) return;
+      if(!confirm('Remove this entry? This cannot be undone.')) return;
+      await removeLogEntry(moduleKey, id, tabDef.arrayKey, entryId);
+      openModuleForm(moduleKey, id);
+      const tab = document.querySelector('.drawer-tab[data-tab="' + tabKey + '"]');
+      if(tab) tab.click();
+    });
+  });
+  const exportBtn = document.getElementById('export-profile-btn');
+  if(exportBtn) exportBtn.addEventListener('click', ()=>{ exportRecordProfilePdf(moduleKey, id); });
 }
 
 /* ============================================================
@@ -2935,7 +3153,7 @@ function downloadModuleTemplate(moduleKey){
   // single cell — it isn't representable as one flat spreadsheet column, so
   // bulk import simply doesn't cover it (add members after import, from the
   // record's own edit form).
-  const importableFields = mod.fields.filter(f=>f.type !== 'subtable');
+  const importableFields = mod.fields.filter(f=>f.type !== 'subtable' && f.type !== 'multiselect');
   const headers = importableFields.map(f=>f.label);
   const sampleRow = {};
   importableFields.forEach(f=>{
@@ -2951,8 +3169,9 @@ function downloadModuleTemplate(moduleKey){
  *  exact label, then by field key, both case/space-insensitive. */
 function matchFieldForHeader(mod, header){
   const norm = String(header || '').trim().toLowerCase();
-  return mod.fields.filter(f => f.type !== 'subtable').find(f => f.label.trim().toLowerCase() === norm)
-    || mod.fields.filter(f => f.type !== 'subtable').find(f => f.key.trim().toLowerCase() === norm)
+  const candidates = mod.fields.filter(f => f.type !== 'subtable' && f.type !== 'multiselect');
+  return candidates.find(f => f.label.trim().toLowerCase() === norm)
+    || candidates.find(f => f.key.trim().toLowerCase() === norm)
     || null;
 }
 /** Loosely coerces a spreadsheet cell into the shape a field expects —
@@ -2995,7 +3214,7 @@ function parseWorkbookForModule(moduleKey, arrayBuffer){
       skipped.push({ row: idx + 2, reason: 'missing ' + missingRequired.map(f=>f.label).join(', ') });
       return;
     }
-    mod.fields.forEach(f=>{ if(data[f.key] === undefined) data[f.key] = f.type === 'subtable' ? [] : (f.default === '__today__' ? todayStr() : (f.default != null ? f.default : '')); });
+    mod.fields.forEach(f=>{ if(data[f.key] === undefined) data[f.key] = (f.type === 'subtable' || f.type === 'multiselect') ? [] : (f.default === '__today__' ? todayStr() : (f.default != null ? f.default : '')); });
     records.push(data);
   });
   return { records, skipped, totalRows: rows.length };
@@ -4095,6 +4314,7 @@ function fieldPlainValue(mod, field, rec){
   if(field.type === 'recordRef'){ const depModKey = rec[field.dependsOn]; return (depModKey && v) ? refLabel(depModKey, v) : ''; }
   if(field.type === 'date') return v ? fmtDate(v) : '';
   if(field.type === 'time') return v ? fmtTime12(v) : '';
+  if(field.type === 'multiselect') return Array.isArray(v) ? v.join('; ') : '';
   if(field.type === 'subtable'){
     const rows = Array.isArray(v) ? v : [];
     if(field.fixedRows){
@@ -4172,6 +4392,44 @@ function printHtmlDocument(title, bodyHtml){
   win.document.close();
   win.focus();
   setTimeout(()=>{ win.print(); }, 350);
+}
+
+/** "📄 Export Profile (PDF)" — a full one-page-per-record profile document
+ *  (Basic Information / Links / Purpose / Classification, grouped by the
+ *  same `section` headings as the edit form, plus every logTabs entry) for
+ *  any module that declares mod.profileExport, driven through the same
+ *  print-to-PDF path as every other PDF export in the app (printHtmlDocument). */
+function recordProfileBodyHtml(mod, rec){
+  let html = '<h1>' + escapeHtml(rec[mod.titleField] || '(untitled)') + '</h1>'
+    + '<div class="meta">' + escapeHtml(mod.label) + ' profile &middot; Generated ' + escapeHtml(fmtDateTime(nowIso())) + '</div>';
+  let currentSection = null, rows = '';
+  const flushSection = ()=>{ if(rows){ html += '<table><tbody>' + rows + '</tbody></table>'; rows = ''; } };
+  mod.fields.forEach(f=>{
+    if(f.section !== currentSection){
+      flushSection();
+      currentSection = f.section;
+      html += '<h2 style="font-size:13pt;color:#0f1f3d;margin:14px 0 4px;">' + escapeHtml(currentSection || mod.label) + '</h2>';
+    }
+    const val = fieldPlainValue(mod, f, rec);
+    if(!val) return;
+    rows += '<tr><td style="font-weight:700;width:220px;">' + escapeHtml(f.label) + '</td><td>' + escapeHtml(val) + '</td></tr>';
+  });
+  flushSection();
+  (mod.logTabs || []).forEach(t=>{
+    const entries = rec[t.arrayKey] || [];
+    html += '<h2 style="font-size:13pt;color:#0f1f3d;margin:18px 0 4px;">' + t.icon + ' ' + escapeHtml(t.label) + '</h2>';
+    if(!entries.length){ html += '<p style="color:#888;">None recorded.</p>'; return; }
+    html += '<table><thead><tr>' + t.fields.map(f=>'<th>' + escapeHtml(f.label) + '</th>').join('') + '</tr></thead><tbody>'
+      + entries.slice().sort((a,b)=>String(a.at||'').localeCompare(String(b.at||''))).map(en=>'<tr>' + t.fields.map(f=>'<td>' + escapeHtml(en[f.key] != null ? String(en[f.key]) : '') + '</td>').join('') + '</tr>').join('')
+      + '</tbody></table>';
+  });
+  return html;
+}
+function exportRecordProfilePdf(moduleKey, id){
+  const mod = MODULES[moduleKey];
+  const rec = getRecord(moduleKey, id);
+  if(!rec) return;
+  printHtmlDocument((rec[mod.titleField] || mod.label) + ' — Profile', recordProfileBodyHtml(mod, rec));
 }
 
 /* ---------- Excel (.xlsx) + plain-text (.txt) export ----------
