@@ -205,8 +205,12 @@ a.stat-card{color:inherit;text-decoration:none;cursor:pointer;}
 .news-ticker-viewport{height:360px;overflow:hidden;position:relative;
   -webkit-mask-image:linear-gradient(to bottom, transparent 0, #000 20px, #000 calc(100% - 20px), transparent 100%);
   mask-image:linear-gradient(to bottom, transparent 0, #000 20px, #000 calc(100% - 20px), transparent 100%);}
+/* Few enough updates that scrolling isn't needed — natural height, no fade
+   mask (nothing being scrolled offscreen), no duplicated/animated track. */
+.news-ticker-viewport-auto{height:auto;-webkit-mask-image:none;mask-image:none;}
 .news-ticker-track{display:flex;flex-direction:column;animation:ticker-scroll 30s linear infinite;}
 .news-ticker-track:hover{animation-play-state:paused;}
+.news-ticker-track-static{animation:none;}
 .ticker-item{display:block;padding:9px 4px;font-size:12.5px;line-height:1.35;color:var(--text);text-decoration:none;
   border-bottom:1px solid var(--border);white-space:normal;overflow:hidden;text-overflow:ellipsis;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
@@ -215,7 +219,7 @@ a.stat-card{color:inherit;text-decoration:none;cursor:pointer;}
 .dash-mini-chart-card{padding:14px;}
 .dash-mini-chart-card h3{margin:0 0 8px;font-size:13px;display:flex;align-items:center;gap:6px;}
 .dash-mini-chart-wrap{position:relative;height:130px;}
-@media (max-width:1180px){ .dash-layout{flex-direction:column;} .dash-side{width:100%;flex:1 1 auto;position:static;flex-direction:row;flex-wrap:wrap;} .dash-side>*{flex:1 1 260px;min-width:220px;} }
+@media (max-width:1180px){ .dash-layout{flex-direction:column;} .dash-side{width:100%;flex:1 1 auto;position:static;} }
 
 .area-chip-row{display:flex;flex-wrap:wrap;gap:8px;}
 a.area-chip{color:inherit;text-decoration:none;cursor:pointer;transition:transform .12s;}
@@ -643,7 +647,6 @@ const MAIN_MENUS = [
   { key:'leave-holidays', label:'Leave & holidays' },
   { key:'exams', label:'Exams' },
   { key:'mentoring', label:'Student mentoring' },
-  { key:'laboratory', label:'Laboratory' },
   { key:'extra-classes', label:'Extra / additional classes' },
   { key:'research', label:'Research' },
   { key:'projects', label:'Projects & grants' },
@@ -706,7 +709,7 @@ const MODULES = {
   // "Manage →" link.
   'new-updates': { label:'New Updates', menu:'new-updates', icon:'📰', titleField:'title', dateField:'date', fields:[
     {key:'title', label:'Title', type:'text', required:true},
-    {key:'link', label:'Link (URL)', type:'text', required:true},
+    {key:'link', label:'Link (URL) — optional', type:'text'},
     {key:'date', label:'Date', type:'date', default:'__today__'}
   ]},
   'class-log': { label:'Class log', menu:'teaching', icon:'📝', titleField:'topic', dateField:'date', fields:[
@@ -782,7 +785,7 @@ const MODULES = {
     {key:'advice', label:'Advice Given', type:'textarea'},
     {key:'nextFollowUp', label:'Next Follow-up Date', type:'date'}
   ]},
-  'lab-timetable': { label:'Lab timetable', menu:'laboratory', icon:'🧪', titleField:'labCourse', dateField:null, fields:[
+  'lab-timetable': { label:'Lab timetable', menu:'teaching', icon:'🧪', titleField:'labCourse', dateField:null, fields:[
     {key:'day', label:'Day', type:'select', options:['Mon','Tue','Wed','Thu','Fri','Sat'], required:true},
     {key:'fromTime', label:'From Time', type:'time'},
     {key:'toTime', label:'To Time', type:'time'},
@@ -790,7 +793,7 @@ const MODULES = {
     {key:'batch', label:'Batch', type:'text'},
     {key:'venue', label:'Venue', type:'text'}
   ]},
-  'lab-exams': { label:'Lab exams', menu:'laboratory', icon:'🔬', titleField:'labCourse', dateField:'date', fields:[
+  'lab-exams': { label:'Lab exams', menu:'exams', icon:'🔬', titleField:'labCourse', dateField:'date', fields:[
     {key:'labCourse', label:'Lab Course', type:'text', required:true},
     {key:'date', label:'Date', type:'date', required:true},
     {key:'batch', label:'Batch', type:'text'},
@@ -1633,7 +1636,7 @@ const SPECIAL_SCREENS = { dashboard:'📊', 'work-diary':'📔', analytics:'📈
    suffix like color+'22' for tinted backgrounds. */
 const AREA_COLORS = {
   dashboard:'#c99a3c', 'work-diary':'#7c5cbf', teaching:'#2a63c9', 'leave-holidays':'#0d9488', exams:'#7c3aed',
-  mentoring:'#0891b2', laboratory:'#0e9f6e', 'extra-classes':'#d97706', research:'#059669',
+  mentoring:'#0891b2', 'extra-classes':'#d97706', research:'#059669',
   projects:'#c99a3c', incharge:'#dc2626', committees:'#ea580c', meetings:'#4f46e5', 'action-items':'#6d5bd0',
   reminders:'#db2777', 'office-followups':'#a8386d', responsibilities:'#0f766e', analytics:'#6fa3f5', reports:'#8a92a6',
   calendar:'#4f46e5', admin:'#9aa4c2', 'audit-log':'#64748b', 'custom-modules':'#6d4aa8', 'mail-merge':'#c2410c'
@@ -1649,7 +1652,11 @@ const AREA_COLORS = {
    entirely — reached only via the Dashboard's quick-add buttons and deep
    links (see STANDALONE_NAV_SCREENS' comment / DASH_QUICKADD_MODULE_KEYS). */
 const NAV_CATEGORIES = [
-  { key:'academics', label:'Academics', icon:'📘', groups:['teaching','exams','laboratory','extra-classes'] },
+  // Laboratory is deliberately not its own group — Lab timetable joins
+  // Teaching (alongside the regular Timetable) and Lab exams joins Exams
+  // (alongside Invigilation duty), rather than having its own separate
+  // "Laboratory" section in the dropdown.
+  { key:'academics', label:'Academics', icon:'📘', groups:['teaching','exams','extra-classes'] },
   { key:'research', label:'Research', icon:'🔬', groups:['research','projects'] },
   // Students + Administrative Duties combined into one "Responsibilities" category.
   // Mentoring (Mentees, Mentoring Meetings) and Responsibilities (Class
@@ -3363,18 +3370,43 @@ function progressRingHtml(percent, color, label, sub, href){
     + '<div style="width:56px;height:56px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;"><span class="ring-num" data-count="' + p + '">0%</span></div></div>'
     + '<div><div class="ring-label">' + escapeHtml(label) + '</div><div class="ring-sub">' + escapeHtml(sub) + '</div></div></' + tag + '>';
 }
+/** A Dashboard box listing a module's currently-open records — same visual
+ *  style as "Today's Schedule" / "Upcoming (next 30 days)" (a title + due
+ *  date row, colored by how soon/overdue it is) rather than just the bare
+ *  count already shown in the stat cards above. Every row links to the
+ *  module itself (consistent with every other Dashboard list), not a
+ *  specific record — there's no per-record deep link anywhere on the
+ *  Dashboard today. */
+function dashboardOpenListCardHtml(moduleKey, icon, title, items, dateKey, titleKey, emptyText){
+  const rows = items.slice(0, 10).map(it=>{
+    const dateStr = it[dateKey];
+    const cls = dateStr ? urgencyClass(dateStr) : '';
+    const dateLabel = dateStr ? '<span class="mono" style="color:var(--text-dim);white-space:nowrap;">' + escapeHtml(fmtDate(dateStr)) + '</span>' : '';
+    return '<a href="#/module/' + moduleKey + '" class="' + cls + ' dash-link" style="padding:8px 0 8px 10px;border-bottom:1px solid var(--border);font-size:13px;display:flex;justify-content:space-between;gap:8px;"><span>' + escapeHtml(it[titleKey] || '(untitled)') + '</span>' + dateLabel + '</a>';
+  }).join('');
+  return '<div class="card"><h3>' + icon + ' ' + escapeHtml(title) + ' <span class="badge badge-neutral" style="margin-left:6px;font-weight:600;">' + items.length + '</span></h3>'
+    + (items.length ? rows : '<div class="empty">' + escapeHtml(emptyText) + '</div>') + '</div>';
+}
 function renderDashboard(){
   const q = quoteOfTheDay();
   const classes = todaysClasses();
   const dayStatus = todayDayStatus();
   const upcoming = upcomingItems(30);
   const overdue = overdueItems();
-  const openActions = getActive('action-items').filter(a=>a.status!=='Done').length;
+  // Full lists (not just counts) for the "Open Action Items / Reminders /
+  // Office Follow-ups" boxes below Today's Schedule/Upcoming — nearest due
+  // date first, undated ones last — so the stat-card counts above and the
+  // list boxes below always agree on exactly what's "open".
+  const sortByDate = (key) => (a,b) => String(a[key]||'9999-99-99').localeCompare(String(b[key]||'9999-99-99'));
+  const openActionsList = getActive('action-items').filter(a=>a.status!=='Done').sort(sortByDate('dueDate'));
+  const openRemindersList = getActive('reminders').filter(r=>r.status!=='Done').sort(sortByDate('dueDate'));
+  const openFollowupsList = getActive('office-followups').filter(o=>o.status!=='Resolved').sort(sortByDate('followUpDate'));
+  const openActions = openActionsList.length;
   const totalActions = getActive('action-items').length;
   const doneActions = totalActions - openActions;
-  const openReminders = getActive('reminders').filter(r=>r.status!=='Done').length;
+  const openReminders = openRemindersList.length;
   const pendingLeave = getActive('leave-records').filter(l=>l.status==='Applied').length;
-  const openFollowups = getActive('office-followups').filter(o=>o.status!=='Resolved').length;
+  const openFollowups = openFollowupsList.length;
 
   const weekStart = startOfWeekStr();
   const weekEnd = endOfWeekStr();
@@ -3464,6 +3496,15 @@ function renderDashboard(){
     : '<div class="empty">Nothing due in the next 30 days.</div>') + '</div>';
   html += '</div>';
 
+  // Open Action Items / Reminders / Office Follow-ups — the actual open
+  // list for each, not just the count already shown in the stat cards
+  // above, styled the same way as Today's Schedule / Upcoming.
+  html += '<div class="grid grid-3" style="margin-top:16px;">';
+  html += dashboardOpenListCardHtml('action-items', '☑️', 'Open Action Items', openActionsList, 'dueDate', 'action', 'Nothing open — all action items are done.');
+  html += dashboardOpenListCardHtml('reminders', '🔔', 'Open Reminders', openRemindersList, 'dueDate', 'title', 'Nothing open — no active reminders.');
+  html += dashboardOpenListCardHtml('office-followups', '📮', 'Open Office Follow-ups', openFollowupsList, 'followUpDate', 'subject', 'Nothing open — no pending follow-ups.');
+  html += '</div>';
+
   html += '<div class="grid grid-2" style="margin-top:16px;">';
   html += '<div class="card"><h3>📈 Progress</h3><div style="display:flex;flex-direction:column;gap:16px;">'
     + progressRingHtml(actionPct, AREA_COLORS.meetings, 'Action Items Closed', doneActions + ' of ' + totalActions + ' total', '#/module/action-items')
@@ -3519,8 +3560,18 @@ function dashboardTickerHtml(){
       ? '<a href="' + escapeHtml(url) + '" class="ticker-item" target="_blank" rel="noopener noreferrer" title="' + label + '">📰 ' + label + '</a>'
       : '<span class="ticker-item" style="cursor:default;" title="' + label + '">📰 ' + label + '</span>';
   }).join('');
+  // The scrolling marquee duplicates its content so the loop back to the
+  // top is seamless — but that duplication only makes sense once there's
+  // enough content to actually need scrolling. With just a handful of
+  // updates it just shows the same update(s) twice on screen at once
+  // (nothing being scrolled past), which reads as a bug ("one entry showing
+  // as two"), not a ticker — so few items get a plain, static, un-duplicated
+  // list instead.
+  const needsScroll = items.length > 5;
+  const trackHtml = needsScroll ? (itemHtml + itemHtml) : itemHtml;
   return '<div class="news-ticker"><h3>📰 New Updates' + manageLink + '</h3>'
-    + '<div class="news-ticker-viewport"><div class="news-ticker-track">' + itemHtml + itemHtml + '</div></div></div>';
+    + '<div class="news-ticker-viewport' + (needsScroll ? '' : ' news-ticker-viewport-auto') + '">'
+    + '<div class="news-ticker-track' + (needsScroll ? '' : ' news-ticker-track-static') + '">' + trackHtml + '</div></div></div>';
 }
 let DASHBOARD_CHARTS = [];
 function destroyDashboardCharts(){ DASHBOARD_CHARTS.forEach(c=>{ try{ c.destroy(); }catch(e){} }); DASHBOARD_CHARTS = []; }
@@ -3786,8 +3837,8 @@ function wireAnalytics(){
     options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
   }));
 
-  const areaLabels = ['Teaching','Exams','Mentoring','Laboratory','Extra Classes','Research','Projects','In-Charge','Committees','Meetings','Action Items','Reminders','Follow-ups','Responsibilities'];
-  const areaMenus = ['teaching','exams','mentoring','laboratory','extra-classes','research','projects','incharge','committees','meetings','action-items','reminders','office-followups','responsibilities'];
+  const areaLabels = ['Teaching','Exams','Mentoring','Extra Classes','Research','Projects','In-Charge','Committees','Meetings','Action Items','Reminders','Follow-ups','Responsibilities'];
+  const areaMenus = ['teaching','exams','mentoring','extra-classes','research','projects','incharge','committees','meetings','action-items','reminders','office-followups','responsibilities'];
   const areaCounts = areaMenus.map(m => MODULE_KEYS.filter(k=>MODULES[k].menu===m).reduce((sum,k)=>sum+getActive(k).length, 0));
   ANALYTICS_CHARTS.push(new Chart(document.getElementById('chart-mix'), {
     type:'pie',
