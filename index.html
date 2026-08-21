@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="RG Logbook">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#F4F5F7;
@@ -52,17 +52,22 @@
     --radius:8px;
   }
   *{box-sizing:border-box;}
+  *{ scrollbar-width:thin; scrollbar-color:var(--border-strong) transparent; }
+  *::-webkit-scrollbar{ width:9px; height:9px; }
+  *::-webkit-scrollbar-track{ background:transparent; }
+  *::-webkit-scrollbar-thumb{ background:var(--border-strong); border-radius:5px; border:2px solid transparent; background-clip:padding-box; }
+  *::-webkit-scrollbar-thumb:hover{ background:var(--ink-faint); background-clip:padding-box; }
   html,body{margin:0;padding:0;}
   body{
-    font-family:'Roboto', sans-serif;
+    font-family:'Inter', sans-serif;
     font-size:15.5px;
     color:var(--ink);
     background:var(--bg);
     min-height:100vh;
     -webkit-font-smoothing:antialiased;
   }
-  h1,h2,h3{ font-family:'Roboto', sans-serif; letter-spacing:-0.005em; }
-  .heading{ font-family:'Roboto', sans-serif; letter-spacing:-0.005em; }
+  h1,h2,h3{ font-family:'Inter', sans-serif; letter-spacing:-0.005em; }
+  .heading{ font-family:'Inter', sans-serif; letter-spacing:-0.005em; }
   .mono{ font-family:'IBM Plex Mono', monospace; }
   /* Vertical scrolling box, sized so roughly 10 items are visible at once
      (10 rows × ~34px) before the box itself takes over scrolling for the
@@ -81,8 +86,8 @@
     width:100%; box-sizing:border-box; overflow:hidden;
   }
   .watch-clock #rightColClock{ font-size:15px; font-weight:600; letter-spacing:.005em; white-space:nowrap; }
-  button{ font-family:'Roboto', sans-serif; cursor:pointer; }
-  input,select,textarea{ font-family:'Roboto', sans-serif; }
+  button{ font-family:'Inter', sans-serif; cursor:pointer; }
+  input,select,textarea{ font-family:'Inter', sans-serif; }
   ::selection{ background:var(--navy-wash); }
   a{ color:var(--navy); }
 
@@ -106,7 +111,7 @@
   .login-hero:after{ content:""; position:absolute; width:220px; height:220px; border-radius:50%; background:rgba(255,255,255,0.04); bottom:-90px; left:-70px; }
   .login-hero-illustration{ position:absolute; right:-6px; bottom:14px; display:flex; flex-direction:column; align-items:flex-end; gap:8px; opacity:0.55; pointer-events:none; }
   .login-hero-mark{ width:44px; height:44px; border-radius:10px; background:#fff; color:var(--navy-dark); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; margin-bottom:24px; position:relative; z-index:1; }
-  .login-hero-title{ font-family:'Roboto', sans-serif; font-size:31px; font-weight:600; line-height:1.25; letter-spacing:-0.01em; margin-bottom:0; position:relative; z-index:1; }
+  .login-hero-title{ font-family:'Inter', sans-serif; font-size:31px; font-weight:600; line-height:1.25; letter-spacing:-0.01em; margin-bottom:0; position:relative; z-index:1; }
   .login-hero-groupname{ font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,0.6); margin-bottom:22px; position:relative; z-index:1; }
   .login-hero-tag{ font-size:14px; line-height:1.65; color:rgba(255,255,255,0.72); max-width:360px; margin-bottom:28px; position:relative; z-index:1; }
   .login-hero-list{ list-style:none; padding:0; margin:0 0 32px; display:flex; flex-direction:column; gap:11px; position:relative; z-index:1; }
@@ -126,7 +131,7 @@
   }
   .login-mark{ width:38px; height:38px; border-radius:8px; background:var(--navy); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; letter-spacing:0.02em; margin-bottom:18px; }
   .login-eyebrow{ font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; }
-  .login-title{ font-family:'Roboto', sans-serif; font-size:27px; font-weight:600; margin:6px 0 6px; letter-spacing:-0.01em; }
+  .login-title{ font-family:'Inter', sans-serif; font-size:27px; font-weight:600; margin:6px 0 6px; letter-spacing:-0.01em; }
   .login-sub{ color:var(--ink-soft); font-size:15px; margin-bottom:28px; line-height:1.6; }
   .role-row{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
   .role-row .role-btn{ flex:1 1 140px; }
@@ -139,10 +144,11 @@
   .field-label{ font-size:12px; font-weight:600; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin:16px 0 6px; display:block; }
   .text-input, select.text-input, textarea.text-input{
     width:100%; padding:11px 13px; border:1px solid var(--border-strong); border-radius:7px; font-size:14.5px; color:var(--ink); background:var(--surface);
+    transition:border-color .12s, box-shadow .12s;
   }
-  .text-input:focus, select:focus, textarea:focus{ outline:2px solid var(--navy); outline-offset:1px; border-color:var(--navy); }
+  .text-input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--navy); box-shadow:0 0 0 3px var(--navy-wash); }
   .student-pick-list{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:8px; }
-  .pick-chip{ padding:7px 13px; border-radius:20px; border:1px solid var(--border-strong); background:var(--surface); font-size:13px; font-weight:500; color:var(--ink-soft); }
+  .pick-chip{ padding:7px 13px; border-radius:20px; border:1px solid var(--border-strong); background:var(--surface); font-size:13px; font-weight:500; color:var(--ink-soft); transition:all .12s ease; }
   .pick-chip.active{ border-color:var(--navy); background:var(--navy); color:#fff; }
   .primary-btn{
     width:100%; margin-top:24px; padding:13px; background:var(--navy); color:#fff; border:none; border-radius:7px;
@@ -155,11 +161,11 @@
   #appShell{ display:none; min-height:100vh; }
   .topbar{
     position:sticky; top:0; z-index:20; display:flex; align-items:center; justify-content:space-between;
-    padding:14px 28px; background:var(--navy-dark); border-bottom:1px solid var(--navy-dark);
+    padding:14px 28px; background:linear-gradient(135deg, var(--navy) 0%, var(--navy-dark) 100%); box-shadow:0 1px 0 rgba(255,255,255,0.06) inset, 0 2px 8px rgba(0,0,0,0.12);
   }
   .brand{ display:flex; align-items:center; gap:11px; }
   .brand-mark{ width:30px; height:30px; border-radius:7px; background:#fff; color:var(--navy-dark); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; }
-  .brand-name{ font-family:'Roboto', sans-serif; font-weight:600; font-size:17px; letter-spacing:-0.005em; color:#fff; line-height:1.2; }
+  .brand-name{ font-family:'Inter', sans-serif; font-weight:600; font-size:17px; letter-spacing:-0.005em; color:#fff; line-height:1.2; }
   .brand-subtitle{ font-size:11px; font-weight:500; letter-spacing:.03em; color:rgba(255,255,255,0.55); margin-top:1px; }
   .identity-pill{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:flex-end; }
   .topbar-search{ position:relative; flex:1; max-width:340px; margin:0 20px; }
@@ -191,6 +197,7 @@
   .nav-item{
     display:flex; align-items:center; gap:9px; width:100%; text-align:left; padding:6px 9px; border-radius:6px;
     border:none; background:none; font-size:13px; font-weight:500; color:var(--ink-soft); margin-bottom:1px;
+    transition:background .12s, color .12s;
   }
   .nav-item .dot{ width:6px; height:6px; border-radius:50%; background:var(--border-strong); flex-shrink:0; }
   .nav-item.active{ background:var(--navy-wash); color:var(--navy-dark); font-weight:600; }
@@ -198,15 +205,17 @@
 
   main#main{ flex:1; padding:28px 34px 64px; min-width:0; }
   .view-header{ display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:22px; padding-bottom:18px; border-bottom:1px solid var(--border); }
-  .view-title{ font-family:'Roboto', sans-serif; font-size:24px; font-weight:600; letter-spacing:-0.01em; }
+  .view-title{ font-family:'Inter', sans-serif; font-size:24px; font-weight:600; letter-spacing:-0.01em; }
   .view-sub{ color:var(--ink-soft); font-size:14.5px; margin-top:4px; }
   .action-btn{
     padding:10px 17px; background:var(--navy); color:#fff; border:none; border-radius:7px; font-weight:600; font-size:14px;
-    display:inline-flex; align-items:center; gap:6px; transition:background .12s;
+    display:inline-flex; align-items:center; gap:6px; transition:background .12s, box-shadow .12s, transform .12s;
+    box-shadow:0 1px 2px rgba(21,27,41,0.08), 0 1px 1px rgba(21,27,41,0.05);
   }
-  .action-btn:hover{ background:var(--navy-dark); }
+  .action-btn:hover{ background:var(--navy-dark); box-shadow:0 2px 6px rgba(21,27,41,0.16); transform:translateY(-1px); }
+  .action-btn:active{ transform:translateY(0); }
   .action-btn:disabled{ opacity:0.6; cursor:default; }
-  .action-btn:disabled:hover{ background:var(--navy); }
+  .action-btn:disabled:hover{ background:var(--navy); box-shadow:0 1px 2px rgba(21,27,41,0.08), 0 1px 1px rgba(21,27,41,0.05); transform:none; }
   .action-btn.ghost{ background:var(--surface); color:var(--ink); border:1px solid var(--border-strong); }
   .action-btn.ghost:hover{ background:var(--neutral-wash); }
 
@@ -325,7 +334,7 @@
   .entry-card.cat-neutral{ border-left-color:var(--ink-faint); }
   .entry-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--border); }
   .entry-idx{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-faint); letter-spacing:.03em; text-transform:uppercase; }
-  .entry-title{ font-family:'Roboto', sans-serif; font-size:17px; font-weight:600; margin-top:3px; color:var(--ink); }
+  .entry-title{ font-family:'Inter', sans-serif; font-size:17px; font-weight:600; margin-top:3px; color:var(--ink); }
   .entry-title.linkable, .task-link{ cursor:pointer; }
   .entry-title.linkable:hover, .task-link:hover{ color:var(--navy); text-decoration:underline; }
   @keyframes flashHighlight{ 0%{ box-shadow:0 0 0 3px var(--navy); } 70%{ box-shadow:0 0 0 3px var(--navy); } 100%{ box-shadow:var(--shadow-sm); } }
@@ -344,7 +353,7 @@
   .entry-block{ font-size:14.5px; line-height:1.65; color:var(--ink); }
   .entry-block .lbl{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-faint); display:block; margin-bottom:4px; }
   .entry-actions{ display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
-  .small-btn{ padding:7px 14px; font-size:13px; font-weight:600; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface); color:var(--ink); }
+  .small-btn{ padding:7px 14px; font-size:13px; font-weight:600; border-radius:6px; border:1px solid var(--border-strong); background:var(--surface); color:var(--ink); transition:border-color .12s, color .12s, background .12s; }
   .small-btn:hover{ border-color:var(--navy); color:var(--navy-dark); background:var(--navy-wash); }
   .small-btn.danger:hover{ border-color:var(--danger); color:var(--danger); background:var(--danger-wash); }
   .comment-box{ margin-top:14px; background:var(--navy-wash); border-radius:7px; padding:14px 16px; }
@@ -357,11 +366,14 @@
   .empty-state .em-sub{ font-size:13.5px; max-width:360px; margin:0 auto; }
 
   /* ---------- Modal ---------- */
-  .modal-overlay{ position:fixed; inset:0; background:rgba(15,20,32,0.5); display:flex; align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto; z-index:100; }
-  .modal-box{ background:var(--surface); border-radius:10px; width:100%; max-width:520px; box-shadow:0 24px 60px rgba(0,0,0,0.28); margin:auto; }
+  .modal-overlay{ position:fixed; inset:0; background:rgba(15,20,32,0.5); display:flex; align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto; z-index:100; animation:modalFadeIn .15s ease; }
+  .modal-box{ background:var(--surface); border-radius:10px; width:100%; max-width:520px; box-shadow:0 24px 60px rgba(0,0,0,0.28); margin:auto; animation:modalScaleIn .16s cubic-bezier(0.2,0.8,0.3,1); }
+  @keyframes modalFadeIn{ from{ opacity:0; } to{ opacity:1; } }
+  @keyframes modalScaleIn{ from{ opacity:0; transform:scale(0.97) translateY(4px); } to{ opacity:1; transform:scale(1) translateY(0); } }
   .modal-head{ padding:20px 24px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
   .modal-head h3{ font-size:16px; font-weight:600; }
-  .modal-close{ background:none; border:none; font-size:20px; color:var(--ink-faint); line-height:1; padding:4px; }
+  .modal-close{ background:none; border:none; font-size:20px; color:var(--ink-faint); line-height:1; padding:4px; border-radius:5px; transition:background .12s, color .12s; cursor:pointer; }
+  .modal-close:hover{ background:var(--neutral-wash); color:var(--ink); }
   .modal-body{ padding:20px 24px 24px; }
   .modal-foot{ display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
   .two-col{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
@@ -369,7 +381,7 @@
   /* ---------- Report document ---------- */
   .report-doc{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:32px 36px; }
   .report-head{ border-bottom:2px solid var(--ink); padding-bottom:14px; margin-bottom:24px; }
-  .report-eyebrow{ font-family:'Roboto', sans-serif; font-size:19px; font-weight:600; letter-spacing:-0.01em; }
+  .report-eyebrow{ font-family:'Inter', sans-serif; font-size:19px; font-weight:600; letter-spacing:-0.01em; }
   .report-meta{ font-size:12.5px; color:var(--ink-soft); margin-top:4px; }
   .report-divider{ border-top:1px dashed var(--border-strong); margin:30px 0; }
   .report-student-name{ font-size:19px; font-weight:700; margin:0 0 14px; }
@@ -412,7 +424,12 @@
 <div id="appShell">
   <div class="topbar">
     <div class="brand">
-      <div class="brand-mark">RG</div>
+      <div class="brand-mark" style="padding:3px;"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="display:block; width:100%; height:100%;">
+        <defs><linearGradient id="logoHexGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2A4A73"/><stop offset="100%" stop-color="#152A46"/></linearGradient></defs>
+        <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="url(#logoHexGrad)"/>
+        <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="none" stroke="#E8B84B" stroke-width="1.5" opacity="0.5"/>
+        <path d="M56 18 L30 54 L46 54 L40 82 L72 42 L54 42 Z" fill="#E8B84B"/>
+      </svg></div>
       <div>
         <div class="brand-name">Energy Devices and Materials Group</div>
         <div class="brand-subtitle">Christ University, Bengaluru</div>
@@ -466,6 +483,7 @@ const state = {
   collaborators: [],
   leaveRecords: [],
   activityLogExclusions: [],
+  consumables: [],
   calendarMonth: null,
   plannerWeekStart: null,
   view: 'overview',
@@ -652,7 +670,7 @@ async function saveSupervisorProfile(profile){
 
 /* ============================ INIT ============================ */
 // Every collection key the app needs at startup, fetched in one batched request.
-const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','deletion-log','news-updates','patents','plagiarism-reports','awards','collaborators','leave-records','activity-log-exclusions','supervisor-pin'];
+const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','deletion-log','news-updates','patents','plagiarism-reports','awards','collaborators','leave-records','activity-log-exclusions','consumables','supervisor-pin'];
 
 async function init(){
   if(!backendConfigured()){
@@ -712,6 +730,7 @@ function applyDataValues(values){
   state.collaborators = arr('collaborators');
   state.leaveRecords = arr('leave-records');
   state.activityLogExclusions = arr('activity-log-exclusions');
+  state.consumables = arr('consumables');
   let supervisorProfile = {};
   try{ supervisorProfile = values['supervisor-pin'] ? JSON.parse(values['supervisor-pin']) : {}; }catch(e){ supervisorProfile = {}; }
   state.supervisorPinHash = supervisorProfile.hash || null;
@@ -766,7 +785,12 @@ function renderSetupNeeded(){
   document.getElementById('appShell').style.display='none';
   document.getElementById('loginScreen').innerHTML = loginShell(`
     <div class="login-card">
-      <div class="login-mark">RG</div>
+      <div class="login-mark" style="background:none;"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="display:block; width:100%; height:100%;">
+        <defs><linearGradient id="logoHexGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2A4A73"/><stop offset="100%" stop-color="#152A46"/></linearGradient></defs>
+        <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="url(#logoHexGrad)"/>
+        <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="none" stroke="#E8B84B" stroke-width="1.5" opacity="0.5"/>
+        <path d="M56 18 L30 54 L46 54 L40 82 L72 42 L54 42 Z" fill="#E8B84B"/>
+      </svg></div>
       <div class="login-eyebrow">Setup needed</div>
       <div class="login-title">Connect your Drive backend</div>
       <div class="login-sub">
@@ -791,7 +815,12 @@ function renderBackendError(err){
   }
   document.getElementById('loginScreen').innerHTML = loginShell(`
     <div class="login-card">
-      <div class="login-mark">RG</div>
+      <div class="login-mark" style="background:none;"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="display:block; width:100%; height:100%;">
+        <defs><linearGradient id="logoHexGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2A4A73"/><stop offset="100%" stop-color="#152A46"/></linearGradient></defs>
+        <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="url(#logoHexGrad)"/>
+        <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="none" stroke="#E8B84B" stroke-width="1.5" opacity="0.5"/>
+        <path d="M56 18 L30 54 L46 54 L40 82 L72 42 L54 42 Z" fill="#E8B84B"/>
+      </svg></div>
       <div class="login-eyebrow">Connection problem</div>
       <div class="login-title">Couldn't reach the Drive backend</div>
       <div class="login-sub">${guidance}</div>
@@ -811,13 +840,15 @@ function renderLogin(){
   document.getElementById('appShell').style.display='none';
   const role = state.loginRole;
   let studentPickerHtml = '';
-  if(role === 'student'){
+  if(role === 'student' || role === 'projectStudent'){
+    const isProject = role === 'projectStudent';
+    const relevantStudents = state.students.filter(s=>!s.frozen && (isProject ? s.studentType==='project' : s.studentType!=='project'));
     const picked = state.loginPickId && state.loginPickId!=='__new__' ? state.students.find(x=>x.id===state.loginPickId) : null;
     studentPickerHtml = `
       <label class="field-label">Select &amp; Sign-In with your User Name</label>
       <div class="student-pick-list" id="studentPickList">
-        ${state.students.filter(s=>!s.frozen).map(s => `<button type="button" class="pick-chip ${state.loginPickId===s.id?'active':''}" onclick="pickStudent('${s.id}')">${escapeHtml(s.name)}</button>`).join('')}
-        <button type="button" class="pick-chip ${state.loginPickId==='__new__'?'active':''}" onclick="pickStudent('__new__')">+ New scholar</button>
+        ${relevantStudents.map(s => `<button type="button" class="pick-chip ${state.loginPickId===s.id?'active':''}" onclick="pickStudent('${s.id}')">${escapeHtml(s.name)}</button>`).join('')}
+        <button type="button" class="pick-chip ${state.loginPickId==='__new__'?'active':''}" onclick="pickStudent('__new__')">+ New ${isProject ? 'project student' : 'scholar'}</button>
       </div>
       ${state.loginPickId==='__new__' ? `
         <label class="field-label">Your name</label>
@@ -909,7 +940,12 @@ function renderLogin(){
   }
   document.getElementById('loginScreen').innerHTML = loginShell(`
     <div class="login-card">
-      <div class="login-mark">RG</div>
+      <div class="login-mark" style="background:none;"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="display:block; width:100%; height:100%;">
+        <defs><linearGradient id="logoHexGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2A4A73"/><stop offset="100%" stop-color="#152A46"/></linearGradient></defs>
+        <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="url(#logoHexGrad)"/>
+        <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="none" stroke="#E8B84B" stroke-width="1.5" opacity="0.5"/>
+        <path d="M56 18 L30 54 L46 54 L40 82 L72 42 L54 42 Z" fill="#E8B84B"/>
+      </svg></div>
       <div class="login-eyebrow">Internal Tool</div>
       <div class="login-title">Research Group Management System</div>
       <div class="login-sub">Weekly progress, characterization samples, and paper pipeline — tracked in one shared logbook. Each account is PIN-protected.</div>
@@ -918,6 +954,7 @@ function renderLogin(){
         <button class="role-btn ${role==='supervisor'?'active':''}" onclick="chooseRole('supervisor')" style="white-space:nowrap;">Supervisor</button>
         <button class="role-btn ${role==='cosupervisor'?'active':''}" onclick="chooseRole('cosupervisor')" style="white-space:nowrap;">Advisor / Co-Supervisor</button>
         <button class="role-btn ${role==='student'?'active':''}" onclick="chooseRole('student')" style="white-space:nowrap;">Research Scholar</button>
+        <button class="role-btn ${role==='projectStudent'?'active':''}" onclick="chooseRole('projectStudent')" style="white-space:nowrap;">Project Student</button>
       </div>
       ${role==='supervisor' ? `
         ${supervisorPinHtml}
@@ -964,7 +1001,8 @@ async function doLogin(){
     }
     state.identity = { role:'supervisor', id:'supervisor', name: state.supervisorName || 'Supervisor' };
     showApp();
-  } else if(state.loginRole === 'student'){
+  } else if(state.loginRole === 'student' || state.loginRole === 'projectStudent'){
+    const isProject = state.loginRole === 'projectStudent';
     if(state.loginPickId === '__new__'){
       const name = (document.getElementById('newStudentName')?.value || '').trim();
       const email = (document.getElementById('newStudentEmail')?.value || '').trim();
@@ -976,7 +1014,7 @@ async function doLogin(){
       if(pin.length < 4){ state.loginError = 'PIN must be at least 4 characters.'; renderLogin(); return; }
       if(pin !== pinConfirm){ state.loginError = 'PINs do not match.'; renderLogin(); return; }
       const pinHash = await hashPin(pin);
-      const newS = { id: uid('stu'), name, email, pinHash };
+      const newS = { id: uid('stu'), name, email, pinHash, studentType: isProject ? 'project' : 'research' };
       state.students.push(newS);
       await saveCollection('students', state.students);
       apiNotify('newStudent', { name, studentId: newS.id });
@@ -1006,7 +1044,7 @@ async function doLogin(){
       state.identity = { role:'student', id:s.id, name:s.name };
       showApp();
     } else {
-      state.loginError = 'Please select who you are, or add yourself as a new student.';
+      state.loginError = `Please select who you are, or add yourself as a new ${isProject ? 'project student' : 'student'}.`;
       renderLogin();
     }
   } else if(state.loginRole === 'cosupervisor'){
@@ -1099,7 +1137,11 @@ function switchUser(){
 function showApp(){
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appShell').style.display='block';
-  const roleLabel = state.identity.role === 'supervisor' ? 'Supervisor' : state.identity.role === 'cosupervisor' ? 'Advisor / Co-Supervisor' : 'Research Scholar';
+  let roleLabel = state.identity.role === 'supervisor' ? 'Supervisor' : state.identity.role === 'cosupervisor' ? 'Advisor / Co-Supervisor' : 'Research Scholar';
+  if(state.identity.role === 'student'){
+    const me = state.students.find(x=>x.id===state.identity.id);
+    if(me && me.studentType==='project') roleLabel = 'Project Student';
+  }
   document.getElementById('identityBadge').innerHTML = `<b>${escapeHtml(state.identity.name)}</b> · ${roleLabel}`;
   renderSidebar();
   renderView();
@@ -1149,7 +1191,7 @@ const NAV_ITEM_COLORS = {
   weekly:'var(--stat-blue)', fabrication:'var(--stat-teal)', samples:'var(--stat-cyan)', resultsAnalysis:'var(--stat-rose)', papers:'var(--stat-purple)',
   rac:'var(--stat-rose)', learning:'var(--stat-blue)', financial:'var(--stat-teal)', conferences:'var(--stat-rose)',
   patents:'var(--stat-indigo)', plagiarism:'var(--stat-cyan)', awards:'var(--stat-purple)', collaborators:'var(--stat-teal)',
-  meetings:'var(--stat-indigo)', events:'var(--stat-purple)', leave:'var(--warning)', instructions:'var(--navy)', links:'var(--stat-teal)', analytics:'var(--stat-blue)', activityLog:'var(--ink-faint)', deletionLog:'var(--danger)', reports:'var(--navy)', account:'var(--ink-faint)'
+  meetings:'var(--stat-indigo)', events:'var(--stat-purple)', consumables:'var(--stat-cyan)', leave:'var(--warning)', instructions:'var(--navy)', links:'var(--stat-teal)', analytics:'var(--stat-blue)', activityLog:'var(--ink-faint)', deletionLog:'var(--danger)', reports:'var(--navy)', account:'var(--ink-faint)'
 };
 const NAV_GROUPS = [
   { items: [
@@ -1182,6 +1224,7 @@ const NAV_GROUPS = [
   { label:'Admin', items: [
     { key:'meetings', label:'Meetings' },
     { key:'events', label:'Events' },
+    { key:'consumables', label:'Consumables & Inventory', hideFromMentor:true },
     { key:'leave', label:'Leave / OD' },
     { key:'instructions', label:'Instructions' },
     { key:'links', label:'News Update' },
@@ -1195,7 +1238,7 @@ const NAV_GROUPS = [
 function renderSidebar(){
   document.getElementById('sidebar').innerHTML = NAV_GROUPS.map(group => `
     ${group.label ? `<div class="nav-group-label">${group.label}</div>` : ''}
-    ${group.items.filter(item => (!item.supervisorOnly || isSupervisorLike()) && (!item.trueSupervisorOnly || isTrueSupervisor()) && (!item.studentOnly || state.identity.role==='student')).map(item => `
+    ${group.items.filter(item => (!item.supervisorOnly || isSupervisorLike()) && (!item.trueSupervisorOnly || isTrueSupervisor()) && (!item.studentOnly || state.identity.role==='student') && (!item.hideFromMentor || state.identity.role!=='cosupervisor')).map(item => `
       <button class="nav-item ${state.view===item.key?'active':''}" onclick="goView('${item.key}')">
         <span class="dot" style="background:${NAV_ITEM_COLORS[item.key] || 'var(--border-strong)'};"></span>${item.label}
       </button>
@@ -1211,6 +1254,7 @@ function renderView(){
   else if(state.view==='analytics') main.innerHTML = viewAnalytics();
   else if(state.view==='activityLog') main.innerHTML = viewActivityLog();
   else if(state.view==='deletionLog') main.innerHTML = viewDeletionLog();
+  else if(state.view==='consumables') main.innerHTML = viewConsumables();
   else if(state.view==='patents') main.innerHTML = viewGenericSection('patent');
   else if(state.view==='plagiarism') main.innerHTML = viewGenericSection('plagiarism');
   else if(state.view==='awards') main.innerHTML = viewGenericSection('award');
@@ -1241,7 +1285,7 @@ const ITEM_TYPE_VIEW = {
   instruction:'instructions', proposal:'proposal', thesis:'thesis', rac:'rac',
   financial:'financial', course:'learning', weekly:'weekly', sample:'samples',
   paper:'papers', conference:'conferences', meeting:'meetings', fabrication:'fabrication', event:'events', analysis:'resultsAnalysis',
-  patent:'patents', plagiarism:'plagiarism', award:'awards', collaborator:'collaborators', leave:'leave'
+  patent:'patents', plagiarism:'plagiarism', award:'awards', collaborator:'collaborators', leave:'leave', consumable:'consumables'
 };
 function goToItem(type, id, studentId){
   const view = ITEM_TYPE_VIEW[type];
@@ -1566,7 +1610,7 @@ function supervisorFilterBar(){
       <div class="filter-row">
         <select onchange="setFilterStudent(this.value)">
           <option value="all" ${state.filterStudentId==='all'?'selected':''}>All research scholars</option>
-          ${state.students.map(s=>`<option value="${s.id}" ${state.filterStudentId===s.id?'selected':''}>${escapeHtml(s.name)}${s.frozen?' (Frozen)':''}</option>`).join('')}
+          ${state.students.map(s=>`<option value="${s.id}" ${state.filterStudentId===s.id?'selected':''}>${escapeHtml(s.name)}${s.studentType==='project'?' (Project Student)':''}${s.frozen?' (Frozen)':''}</option>`).join('')}
         </select>
       </div>`;
   }
@@ -1746,6 +1790,9 @@ function globalSearchResults_(query){
   scopedList(state.meetings).forEach(m => { if(m.title && m.title.toLowerCase().includes(q)) results.push({ type:'meeting', id:m.id, studentId:m.studentId, title:m.title, category:SEARCH_CATEGORY_LABEL.meeting }); });
   visibleEvents().forEach(ev => { if(ev.title && ev.title.toLowerCase().includes(q)) results.push({ type:'event', id:ev.id, studentId:ev.assignedStudentId, title:ev.title, category:SEARCH_CATEGORY_LABEL.event }); });
   scopedList(state.instructions).forEach(ins => { if(ins.text && ins.text.toLowerCase().includes(q)) results.push({ type:'instruction', id:ins.id, studentId:ins.studentId, title:ins.text.slice(0,80), category:SEARCH_CATEGORY_LABEL.instruction }); });
+  if(canSeeInventory()){
+    state.consumables.forEach(item => { if(item.itemName.toLowerCase().includes(q)) results.push({ type:'consumable', id:item.id, studentId:null, title:item.itemName, category:'Consumables & Inventory' }); });
+  }
   if(isSupervisorLike()){
     visibleStudentsForIdentity().forEach(s => { if(s.name.toLowerCase().includes(q)) results.push({ type:'student', id:s.id, studentId:s.id, title:s.name, category:SEARCH_CATEGORY_LABEL.student }); });
   }
@@ -2872,8 +2919,9 @@ function accessSection(){
         state.students.map(s=>`
           <div style="padding:12px 2px; border-top:1px solid var(--border);">
             <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-              <span style="font-size:13.5px;">${escapeHtml(s.name)} <span class="entry-meta">${escapeHtml(s.email || 'no email on file')}</span>${s.frozen ? ` <span class="stamp neutral">Frozen — can't log in</span>` : ''}</span>
+              <span style="font-size:13.5px;">${escapeHtml(s.name)} <span class="entry-meta">${escapeHtml(s.email || 'no email on file')}</span> <span class="stamp neutral">${s.studentType==='project'?'Project Student':'Research Scholar'}</span>${s.frozen ? ` <span class="stamp neutral">Frozen — can't log in</span>` : ''}</span>
               <div style="display:flex; gap:6px;">
+                <button class="small-btn" onclick="toggleStudentType('${s.id}')">Mark as ${s.studentType==='project'?'Research Scholar':'Project Student'}</button>
                 <button class="small-btn" onclick="toggleFreezeStudent('${s.id}')">${s.frozen ? 'Unfreeze' : 'Freeze'}</button>
                 <button class="small-btn" onclick="openEditNotifyPrefsModal('student','${s.id}')">Notifications</button>
                 <button class="small-btn" onclick="openResetStudentPinModal('${s.id}')">Reset PIN</button>
@@ -2895,6 +2943,180 @@ function accessSection(){
     ${backupSection()}
     ${resetDataSection()}
   `;
+}
+/* ============================ CONSUMABLES & INVENTORY ============================ */
+// Shared lab inventory — chemicals, reagents, electrode materials, cell
+// components, and general consumables. Deliberately NOT tied to any one
+// scholar (studentId) and NOT routed through the per-scholar approval
+// workflow the rest of the app uses — this is shared team stock, so
+// anyone who can see it can log usage or restock directly, with every
+// change kept in that item's own history. Visible to the supervisor and
+// every research scholar; specifically hidden from mentors/advisors, per
+// how this group wants it scoped.
+const CONSUMABLE_CATEGORIES = ['Electrode Material','Electrolyte','Separator','Binder','Conductive Additive','Solvent','Cell Component','Chemical / Reagent','Consumable','Other'];
+function canSeeInventory(){ return state.identity.role !== 'cosupervisor'; }
+function viewConsumables(){
+  if(!canSeeInventory()){
+    return emptyState('Not available for this role', 'Consumables & Inventory is visible to the supervisor and research scholars only.');
+  }
+  const items = state.consumables.slice().sort((a,b)=>a.itemName.localeCompare(b.itemName));
+  const lowStock = items.filter(i => i.minStock!=='' && Number(i.quantity) <= Number(i.minStock));
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Consumables & Inventory</div>
+        <div class="view-sub">Shared lab stock — chemicals, reagents, electrode materials, cell components, and consumables. Anyone who can see this page can log usage or restock; every change is kept in that item's history.</div>
+      </div>
+      <button class="action-btn" onclick="openAddConsumableModal()">+ Add item</button>
+    </div>
+    ${lowStock.length>0 ? `
+      <div class="comment-box" style="border-color:var(--warning); margin-bottom:16px;">
+        <b>${lowStock.length} item(s) at or below minimum stock:</b> ${lowStock.map(i=>escapeHtml(i.itemName)).join(', ')}
+      </div>
+    ` : ''}
+    ${items.length===0 ? emptyState('Nothing logged yet', 'Add the chemicals, reagents, and consumables your group is tracking.') :
+      items.map(item=>{
+        const low = item.minStock!=='' && Number(item.quantity) <= Number(item.minStock);
+        return `
+        <div class="entry-card ${low?'cat-rose':'cat-teal'}" id="item-consumable-${item.id}">
+          <div class="entry-top">
+            <div>
+              <div class="entry-title">${escapeHtml(item.itemName)} ${low ? `<span class="stamp warn">Low stock</span>` : ''}</div>
+              <div class="entry-meta">${escapeHtml(item.category)}${item.location ? ' · '+escapeHtml(item.location) : ''}${item.supplier ? ' · '+escapeHtml(item.supplier) : ''}</div>
+            </div>
+            <div class="mono" style="font-size:15px; font-weight:700; white-space:nowrap;">${escapeHtml(String(item.quantity))} ${escapeHtml(item.unit)}</div>
+          </div>
+          <div class="entry-grid">
+            ${item.casNumber ? `<div class="entry-block"><span class="lbl">CAS number</span>${escapeHtml(item.casNumber)}</div>` : ''}
+            ${item.expiryDate ? `<div class="entry-block"><span class="lbl">Expiry</span>${fmtDate(item.expiryDate)}</div>` : ''}
+            ${item.minStock!=='' ? `<div class="entry-block"><span class="lbl">Minimum stock</span>${escapeHtml(String(item.minStock))} ${escapeHtml(item.unit)}</div>` : ''}
+          </div>
+          ${item.safetyNotes ? `<div class="entry-block" style="margin-top:8px;"><span class="lbl">Safety notes</span>${nl2br(item.safetyNotes)}</div>` : ''}
+          ${item.notes ? `<div class="entry-block" style="margin-top:8px;"><span class="lbl">Notes</span>${nl2br(item.notes)}</div>` : ''}
+          ${(item.history && item.history.length>0) ? `
+            <div class="entry-block" style="margin-top:8px;">
+              <span class="lbl">Usage &amp; restock history (${item.history.length})</span>
+              <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">
+                ${item.history.slice().reverse().map(h=>`<div class="entry-meta">${h.change>0?'+':''}${h.change} ${escapeHtml(item.unit)} (now ${h.newQuantity}) — ${escapeHtml(h.byName)} (${escapeHtml(h.byRole)}) on ${escapeHtml(h.at)}${h.note?' — '+escapeHtml(h.note):''}</div>`).join('')}
+              </div>
+            </div>
+          ` : ''}
+          <div class="entry-actions">
+            <button class="small-btn" onclick="openLogUsageModal('${item.id}')">Log usage / restock</button>
+            <button class="small-btn" onclick="openEditConsumableModal('${item.id}')">Edit</button>
+            ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="guardedClick(this, ()=>deleteConsumable('${item.id}'))">Delete</button>` : ''}
+          </div>
+        </div>
+      `;}).join('')}
+  `;
+}
+function consumableFormFields(item){
+  return `
+    <label class="field-label">Item name</label>
+    <input class="text-input" id="f_consName" value="${item?escapeHtml(item.itemName):''}" placeholder="e.g. Activated Carbon (YP-50F)">
+    <label class="field-label">Category</label>
+    <select class="text-input" id="f_consCategory">
+      ${CONSUMABLE_CATEGORIES.map(c=>`<option value="${c}" ${item&&item.category===c?'selected':''}>${c}</option>`).join('')}
+    </select>
+    <div class="two-col">
+      <div><label class="field-label">Quantity on hand</label>
+        <input type="number" step="any" class="text-input" id="f_consQty" value="${item?item.quantity:''}" placeholder="0">
+      </div>
+      <div><label class="field-label">Unit</label>
+        <input class="text-input" id="f_consUnit" value="${item?escapeHtml(item.unit):''}" placeholder="g, mL, pieces...">
+      </div>
+    </div>
+    <label class="field-label">Minimum stock (optional — flags low stock below this)</label>
+    <input type="number" step="any" class="text-input" id="f_consMinStock" value="${item&&item.minStock!==''?item.minStock:''}" placeholder="Leave blank if not tracked">
+    <label class="field-label">Storage location (optional)</label>
+    <input class="text-input" id="f_consLocation" value="${item?escapeHtml(item.location||''):''}" placeholder="e.g. Glovebox, Cabinet 2">
+    <label class="field-label">Supplier (optional)</label>
+    <input class="text-input" id="f_consSupplier" value="${item?escapeHtml(item.supplier||''):''}">
+    <div class="two-col">
+      <div><label class="field-label">CAS number (optional)</label>
+        <input class="text-input" id="f_consCas" value="${item?escapeHtml(item.casNumber||''):''}">
+      </div>
+      <div><label class="field-label">Expiry date (optional)</label>
+        <input type="date" class="text-input" id="f_consExpiry" value="${item?item.expiryDate||'':''}">
+      </div>
+    </div>
+    <label class="field-label">Safety notes (optional)</label>
+    <textarea class="text-input" id="f_consSafety" rows="2" placeholder="Hazard class, PPE required, storage precautions...">${item?escapeHtml(item.safetyNotes||''):''}</textarea>
+    <label class="field-label">Notes (optional)</label>
+    <textarea class="text-input" id="f_consNotes" rows="2">${item?escapeHtml(item.notes||''):''}</textarea>
+  `;
+}
+function openAddConsumableModal(){
+  showModal('Add item', consumableFormFields(null), submitAddConsumable);
+}
+async function submitAddConsumable(){
+  const itemName = document.getElementById('f_consName').value.trim();
+  const unit = document.getElementById('f_consUnit').value.trim();
+  const qty = document.getElementById('f_consQty').value;
+  if(!itemName || !unit || qty===''){ alert('Please fill in the item name, quantity, and unit.'); return; }
+  const newItem = {
+    id: uid('cons'), itemName, category: document.getElementById('f_consCategory').value,
+    quantity: Number(qty), unit, minStock: document.getElementById('f_consMinStock').value.trim(),
+    location: document.getElementById('f_consLocation').value.trim(), supplier: document.getElementById('f_consSupplier').value.trim(),
+    casNumber: document.getElementById('f_consCas').value.trim(), expiryDate: document.getElementById('f_consExpiry').value,
+    safetyNotes: document.getElementById('f_consSafety').value.trim(), notes: document.getElementById('f_consNotes').value.trim(),
+    history: [], createdByName: state.identity.name, createdByRole: reviewerIdentity(null).roleLabel, createdAt: nowIST()
+  };
+  state.consumables.push(newItem);
+  await saveCollection('consumables', state.consumables);
+  closeModal(); renderView();
+}
+function openEditConsumableModal(id){
+  const item = state.consumables.find(x=>x.id===id);
+  showModal('Edit item', consumableFormFields(item), ()=>submitEditConsumable(id));
+}
+async function submitEditConsumable(id){
+  const item = state.consumables.find(x=>x.id===id);
+  const itemName = document.getElementById('f_consName').value.trim();
+  const unit = document.getElementById('f_consUnit').value.trim();
+  const qty = document.getElementById('f_consQty').value;
+  if(!itemName || !unit || qty===''){ alert('Please fill in the item name, quantity, and unit.'); return; }
+  item.itemName = itemName; item.category = document.getElementById('f_consCategory').value;
+  item.quantity = Number(qty); item.unit = unit; item.minStock = document.getElementById('f_consMinStock').value.trim();
+  item.location = document.getElementById('f_consLocation').value.trim(); item.supplier = document.getElementById('f_consSupplier').value.trim();
+  item.casNumber = document.getElementById('f_consCas').value.trim(); item.expiryDate = document.getElementById('f_consExpiry').value;
+  item.safetyNotes = document.getElementById('f_consSafety').value.trim(); item.notes = document.getElementById('f_consNotes').value.trim();
+  await saveCollection('consumables', state.consumables);
+  closeModal(); renderView();
+}
+function openLogUsageModal(id){
+  const item = state.consumables.find(x=>x.id===id);
+  showModal(`Log usage / restock — ${item.itemName}`, `
+    <div class="view-sub" style="margin-bottom:10px;">Currently ${escapeHtml(String(item.quantity))} ${escapeHtml(item.unit)} on hand.</div>
+    <label class="field-label">Change</label>
+    <input type="number" step="any" class="text-input" id="f_usageChange" placeholder="e.g. -5 for used, +50 for restocked">
+    <div class="view-sub" style="margin-top:4px;">Negative to log usage, positive to log a restock.</div>
+    <label class="field-label" style="margin-top:10px;">Note (optional)</label>
+    <input class="text-input" id="f_usageNote" placeholder="e.g. Used for CR2032 cell assembly, batch 3">
+  `, ()=>submitLogUsage(id));
+}
+async function submitLogUsage(id){
+  const item = state.consumables.find(x=>x.id===id);
+  const change = Number(document.getElementById('f_usageChange').value);
+  if(!change){ alert('Please enter a non-zero amount.'); return; }
+  const newQuantity = Math.round((Number(item.quantity) + change) * 1000) / 1000;
+  if(!item.history) item.history = [];
+  item.history.push({ change, newQuantity, byName: state.identity.name, byRole: reviewerIdentity(null).roleLabel, at: nowIST(), note: document.getElementById('f_usageNote').value.trim() });
+  item.quantity = newQuantity;
+  await saveCollection('consumables', state.consumables);
+  closeModal(); renderView();
+}
+async function deleteConsumable(id){
+  const item = state.consumables.find(x=>x.id===id);
+  if(!item) return;
+  const reason = prompt(`Reason for removing "${item.itemName}" from inventory? (required — this will be logged)`, '');
+  if(reason === null) return;
+  if(!reason.trim()){ alert('A reason is required.'); return; }
+  state.consumables = state.consumables.filter(x=>x.id!==id);
+  await saveCollection('consumables', state.consumables);
+  state.deletionLog.push({ id: uid('del'), type:'consumable', title:item.itemName, studentId:null, deletedByName:state.identity.name, deletedByRole:reviewerIdentity(null).roleLabel, reason:reason.trim(), deletedAt: nowIST() });
+  await saveCollection('deletion-log', state.deletionLog);
+  renderView();
 }
 function viewDeletionLog(){
   const allLog = state.deletionLog.slice().reverse();
@@ -3279,7 +3501,7 @@ async function submitResetAllData(){
   state.thesisPlans = []; state.racReviews = []; state.financialApps = []; state.courses = []; state.fabricationItems = [];
   state.events = []; state.resultsAnalysis = []; state.deletionLog = []; state.newsUpdates = [];
   state.patents = []; state.plagiarismReports = []; state.awards = []; state.collaborators = []; state.leaveRecords = [];
-  state.activityLogExclusions = []; state.filterStudentId = 'all';
+  state.activityLogExclusions = []; state.consumables = []; state.filterStudentId = 'all';
 
   await Promise.all([
     saveCollection('students', state.students), saveCollection('weekly-reports', state.weekly),
@@ -3294,6 +3516,7 @@ async function submitResetAllData(){
     saveCollection('news-updates', state.newsUpdates), saveCollection('patents', state.patents),
     saveCollection('plagiarism-reports', state.plagiarismReports), saveCollection('awards', state.awards),
     saveCollection('collaborators', state.collaborators), saveCollection('leave-records', state.leaveRecords),
+    saveCollection('consumables', state.consumables),
     saveCollection('activity-log-exclusions', state.activityLogExclusions)
   ]);
 
@@ -3334,7 +3557,7 @@ function downloadBackup(){
     exportedAt: new Date().toISOString(),
     exportedBy: state.identity.name,
     scope,
-    students: visible.map(s=>({id:s.id, name:s.name, email:s.email||'', frozen:!!s.frozen, notifyPrefs:s.notifyPrefs||{}, joiningDate:s.joiningDate||'', courseDuration:s.courseDuration||''})),
+    students: visible.map(s=>({id:s.id, name:s.name, email:s.email||'', studentType:s.studentType||'research', frozen:!!s.frozen, notifyPrefs:s.notifyPrefs||{}, joiningDate:s.joiningDate||'', courseDuration:s.courseDuration||''})),
     weeklyReports: scopedList(state.weekly),
     samples: scopedList(state.samples),
     papers: scopedList(state.papers),
@@ -3349,6 +3572,7 @@ function downloadBackup(){
     events: visibleEvents(),
     resultsAnalysis: scopedList(state.resultsAnalysis),
     deletionLog: scopedList(state.deletionLog),
+    consumables: state.consumables,
     activityLogExclusions: state.activityLogExclusions,
     newsUpdates: state.newsUpdates,
     patents: scopedList(state.patents),
@@ -3403,6 +3627,7 @@ function handleRestoreFile(event){
     state.events = Array.isArray(parsed.events) ? parsed.events : state.events;
     state.resultsAnalysis = Array.isArray(parsed.resultsAnalysis) ? parsed.resultsAnalysis : state.resultsAnalysis;
     state.deletionLog = Array.isArray(parsed.deletionLog) ? parsed.deletionLog : state.deletionLog;
+    state.consumables = Array.isArray(parsed.consumables) ? parsed.consumables : state.consumables;
     state.activityLogExclusions = Array.isArray(parsed.activityLogExclusions) ? parsed.activityLogExclusions : state.activityLogExclusions;
     state.newsUpdates = Array.isArray(parsed.newsUpdates) ? parsed.newsUpdates : state.newsUpdates;
     state.patents = Array.isArray(parsed.patents) ? parsed.patents : state.patents;
@@ -3434,6 +3659,7 @@ function handleRestoreFile(event){
       saveCollection('events', state.events),
       saveCollection('results-analysis', state.resultsAnalysis),
       saveCollection('deletion-log', state.deletionLog),
+      saveCollection('consumables', state.consumables),
       saveCollection('activity-log-exclusions', state.activityLogExclusions),
       saveCollection('news-updates', state.newsUpdates),
       saveCollection('patents', state.patents),
@@ -3554,6 +3780,18 @@ async function toggleFreezeStudent(id){
   const s = state.students.find(x=>x.id===id);
   if(!s) return;
   s.frozen = !s.frozen;
+  await saveCollection('students', state.students);
+  renderView();
+}
+// Lets the supervisor correct a mis-classification (or reclassify someone
+// whose status changed) without touching anything else about the account —
+// their PIN, their records, their history are all completely unaffected,
+// since this only changes which login button they'll appear under and how
+// their badge is labeled.
+async function toggleStudentType(id){
+  const s = state.students.find(x=>x.id===id);
+  if(!s) return;
+  s.studentType = s.studentType==='project' ? 'research' : 'project';
   await saveCollection('students', state.students);
   renderView();
 }
