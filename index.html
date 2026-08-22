@@ -16,6 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --bg:#F4F5F7;
@@ -484,6 +485,7 @@ const state = {
   leaveRecords: [],
   activityLogExclusions: [],
   consumables: [],
+  workDiary: [],
   calendarMonth: null,
   plannerWeekStart: null,
   view: 'overview',
@@ -531,6 +533,16 @@ const PAPER_STAGES = ['Planning','Drafting','Internal Review','Submitted','Under
 /* ============================ HELPERS ============================ */
 function uid(prefix){ return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
+// Whole days between a date and today. Both sides are parsed as UTC
+// midnight specifically (not local time) — for a pure calendar-date
+// subtraction like this, mixing in local time zones risks an off-by-one
+// around daylight saving transitions, since some days are 23 or 25 hours
+// long in local time but always exactly 24 in UTC.
+function daysSince(dateStr){
+  const then = new Date(dateStr+'T00:00:00Z');
+  const now = new Date(todayStr()+'T00:00:00Z');
+  return Math.round((now - then) / (1000*60*60*24));
+}
 function fmtDate(d){
   if(!d) return '—';
   const dt = new Date(d + 'T00:00:00');
@@ -670,7 +682,7 @@ async function saveSupervisorProfile(profile){
 
 /* ============================ INIT ============================ */
 // Every collection key the app needs at startup, fetched in one batched request.
-const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','deletion-log','news-updates','patents','plagiarism-reports','awards','collaborators','leave-records','activity-log-exclusions','consumables','supervisor-pin'];
+const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','deletion-log','news-updates','patents','plagiarism-reports','awards','collaborators','leave-records','activity-log-exclusions','consumables','work-diary','supervisor-pin'];
 
 async function init(){
   if(!backendConfigured()){
@@ -731,6 +743,7 @@ function applyDataValues(values){
   state.leaveRecords = arr('leave-records');
   state.activityLogExclusions = arr('activity-log-exclusions');
   state.consumables = arr('consumables');
+  state.workDiary = arr('work-diary');
   let supervisorProfile = {};
   try{ supervisorProfile = values['supervisor-pin'] ? JSON.parse(values['supervisor-pin']) : {}; }catch(e){ supervisorProfile = {}; }
   state.supervisorPinHash = supervisorProfile.hash || null;
@@ -1095,6 +1108,7 @@ function openHelpModal(){
         <div><b>Calendar &amp; deadlines</b><br>Every target date across every section shows up on the Calendar, plus a running "Upcoming deadlines" list there and on your dashboard. You'll also get an email 3 days before something of yours is due, if that's on your supervisor's email settings for you.</div>
         <div><b>News Update</b><br>Anyone in the group can post a title + link to the scrolling box on the dashboard — a quick way to share something relevant with everyone. You can only remove links you posted yourself.</div>
         <div><b>Search</b><br>The search box at the top works across everything you have access to — your own entries in every section, by title.</div>
+        ${myAdvisedProjectStudentIds_().length>0 ? `<div><b>Advising a project student</b><br>Your supervisor has assigned you as the advisor for one or more project students. You can switch between "my work" and their records using the filter at the top of each section, and you'll see a Review button on their submissions — same as a mentor would. You can't edit their entries directly or see anyone else's records.</div>` : ''}
         <div><b>Notifications</b><br>You'll get an email whenever your work is reviewed, edited by staff, or deleted. Your supervisor controls which of these you receive — this isn't something you can turn off yourself, so nothing important gets missed by accident.</div>
       </div>
     `;
@@ -1188,10 +1202,10 @@ function showDigestPopup(){
 const NAV_ITEM_COLORS = {
   overview:'var(--navy)', approvals:'var(--warning)', changesRequested:'var(--danger)', calendar:'var(--stat-indigo)',
   proposal:'var(--stat-indigo)', thesis:'var(--stat-purple)',
-  weekly:'var(--stat-blue)', fabrication:'var(--stat-teal)', samples:'var(--stat-cyan)', resultsAnalysis:'var(--stat-rose)', papers:'var(--stat-purple)',
+  weekly:'var(--stat-blue)', workDiary:'var(--stat-blue)', myProjectStudents:'var(--stat-indigo)', fabrication:'var(--stat-teal)', samples:'var(--stat-cyan)', resultsAnalysis:'var(--stat-rose)', papers:'var(--stat-purple)',
   rac:'var(--stat-rose)', learning:'var(--stat-blue)', financial:'var(--stat-teal)', conferences:'var(--stat-rose)',
   patents:'var(--stat-indigo)', plagiarism:'var(--stat-cyan)', awards:'var(--stat-purple)', collaborators:'var(--stat-teal)',
-  meetings:'var(--stat-indigo)', events:'var(--stat-purple)', consumables:'var(--stat-cyan)', leave:'var(--warning)', instructions:'var(--navy)', links:'var(--stat-teal)', analytics:'var(--stat-blue)', activityLog:'var(--ink-faint)', deletionLog:'var(--danger)', reports:'var(--navy)', account:'var(--ink-faint)'
+  meetings:'var(--stat-indigo)', events:'var(--stat-purple)', consumables:'var(--stat-cyan)', leave:'var(--warning)', instructions:'var(--navy)', links:'var(--stat-teal)', analytics:'var(--stat-blue)', activityLog:'var(--ink-faint)', deletionLog:'var(--danger)', projectStudentsAdmin:'var(--stat-indigo)', reports:'var(--navy)', account:'var(--ink-faint)'
 };
 const NAV_GROUPS = [
   { items: [
@@ -1206,6 +1220,8 @@ const NAV_GROUPS = [
   ]},
   { label:'Progress', items: [
     { key:'weekly', label:'Weekly Plan' },
+    { key:'workDiary', label:'Work Diary' },
+    { key:'myProjectStudents', label:'My Project Student(s)', advisorOnly:true },
     { key:'fabrication', label:'Lab Work' },
     { key:'samples', label:'Characterization' },
     { key:'resultsAnalysis', label:'Results Analysis' },
@@ -1231,6 +1247,7 @@ const NAV_GROUPS = [
     { key:'analytics', label:'Analytics' },
     { key:'activityLog', label:'Activity Log' },
     { key:'deletionLog', label:'Deletion Log', trueSupervisorOnly:true },
+    { key:'projectStudentsAdmin', label:'Project Students', trueSupervisorOnly:true },
     { key:'reports', label:'Reports' },
     { key:'account', label:'Account' },
   ]},
@@ -1238,7 +1255,7 @@ const NAV_GROUPS = [
 function renderSidebar(){
   document.getElementById('sidebar').innerHTML = NAV_GROUPS.map(group => `
     ${group.label ? `<div class="nav-group-label">${group.label}</div>` : ''}
-    ${group.items.filter(item => (!item.supervisorOnly || isSupervisorLike()) && (!item.trueSupervisorOnly || isTrueSupervisor()) && (!item.studentOnly || state.identity.role==='student') && (!item.hideFromMentor || state.identity.role!=='cosupervisor')).map(item => `
+    ${group.items.filter(item => (!item.supervisorOnly || isSupervisorLike() || (item.key==='approvals' && myAdvisedProjectStudentIds_().length>0)) && (!item.trueSupervisorOnly || isTrueSupervisor()) && (!item.studentOnly || state.identity.role==='student') && (!item.hideFromMentor || state.identity.role!=='cosupervisor') && (!item.advisorOnly || myAdvisedProjectStudentIds_().length>0)).map(item => `
       <button class="nav-item ${state.view===item.key?'active':''}" onclick="goView('${item.key}')">
         <span class="dot" style="background:${NAV_ITEM_COLORS[item.key] || 'var(--border-strong)'};"></span>${item.label}
       </button>
@@ -1254,6 +1271,7 @@ function renderView(){
   else if(state.view==='analytics') main.innerHTML = viewAnalytics();
   else if(state.view==='activityLog') main.innerHTML = viewActivityLog();
   else if(state.view==='deletionLog') main.innerHTML = viewDeletionLog();
+  else if(state.view==='projectStudentsAdmin') main.innerHTML = viewProjectStudentsAdmin();
   else if(state.view==='consumables') main.innerHTML = viewConsumables();
   else if(state.view==='patents') main.innerHTML = viewGenericSection('patent');
   else if(state.view==='plagiarism') main.innerHTML = viewGenericSection('plagiarism');
@@ -1267,6 +1285,8 @@ function renderView(){
   else if(state.view==='thesis') main.innerHTML = viewThesis();
   else if(state.view==='rac') main.innerHTML = viewRac();
   else if(state.view==='weekly') main.innerHTML = viewWeekly();
+  else if(state.view==='workDiary') main.innerHTML = viewWorkDiary();
+  else if(state.view==='myProjectStudents') main.innerHTML = viewMyProjectStudents();
   else if(state.view==='samples') main.innerHTML = viewSamples();
   else if(state.view==='resultsAnalysis') main.innerHTML = viewResultsAnalysis();
   else if(state.view==='fabrication') main.innerHTML = viewFabrication();
@@ -1585,6 +1605,10 @@ function reviewerIdentity(studentId){
     return { name: state.identity.name, roleLabel: 'Research Supervisor' };
   }
   if(state.identity.role === 'student'){
+    // Acting on their own work is a Research Scholar; acting on their
+    // assigned advisee's work is labeled Advisor instead, so review
+    // history and notifications are clear about which capacity this was.
+    if(studentId && studentId !== state.identity.id) return { name: state.identity.name, roleLabel: 'Advisor' };
     return { name: state.identity.name, roleLabel: 'Research Scholar' };
   }
   const me = myCoSupervisorRecord();
@@ -1595,13 +1619,25 @@ function assignedStudentIds(){
   const cs = myCoSupervisorRecord();
   return cs ? mentorAssignments_(cs).map(a=>a.studentId) : [];
 }
+// A research scholar assigned as a project student's advisor (set by the
+// supervisor via "Assign advisor") gets scoped visibility and review
+// capability over that specific project student's work — nothing broader.
+// A scholar with no advisees returns an empty list here, so every function
+// using this falls through to exactly the behavior that existed before
+// this feature: completely unchanged for the vast majority of scholars.
+function myAdvisedProjectStudentIds_(){
+  if(state.identity.role !== 'student') return [];
+  return state.students.filter(s => s.mentorScholarId === state.identity.id).map(s => s.id);
+}
 function visibleStudentsForIdentity(){
   if(state.identity.role === 'supervisor') return state.students;
   if(state.identity.role === 'cosupervisor'){
     const ids = assignedStudentIds();
     return state.students.filter(s=>ids.includes(s.id));
   }
-  return state.students.filter(s=>s.id===state.identity.id);
+  const advisedIds = myAdvisedProjectStudentIds_();
+  if(advisedIds.length === 0) return state.students.filter(s=>s.id===state.identity.id);
+  return state.students.filter(s=>s.id===state.identity.id || advisedIds.includes(s.id));
 }
 
 function supervisorFilterBar(){
@@ -1625,12 +1661,30 @@ function supervisorFilterBar(){
         </select>
       </div>`;
   }
+  if(state.identity.role === 'student'){
+    const advisedIds = myAdvisedProjectStudentIds_();
+    if(advisedIds.length === 0) return '';
+    const visible = visibleStudentsForIdentity();
+    return `
+      <div class="filter-row">
+        <select onchange="setFilterStudent(this.value)">
+          <option value="all" ${state.filterStudentId==='all'?'selected':''}>My work + advised project student(s)</option>
+          ${visible.map(s=>`<option value="${s.id}" ${state.filterStudentId===s.id?'selected':''}>${escapeHtml(s.name)}${s.id===state.identity.id?' (me)':' (Project Student — advised by me)'}</option>`).join('')}
+        </select>
+      </div>`;
+  }
   return '';
 }
 function setFilterStudent(v){ state.filterStudentId = v; renderView(); }
 
 function scopedList(arr){
-  if(state.identity.role === 'student') return arr.filter(x => x.studentId === state.identity.id);
+  if(state.identity.role === 'student'){
+    const advisedIds = myAdvisedProjectStudentIds_();
+    if(advisedIds.length === 0) return arr.filter(x => x.studentId === state.identity.id);
+    const base = arr.filter(x => x.studentId === state.identity.id || advisedIds.includes(x.studentId));
+    if(state.filterStudentId === 'all') return base;
+    return base.filter(x => x.studentId === state.filterStudentId);
+  }
   if(state.identity.role === 'cosupervisor'){
     const ids = assignedStudentIds();
     const base = arr.filter(x => ids.includes(x.studentId));
@@ -2277,8 +2331,17 @@ function toggleSelectAllPending(masterCheckbox){
 // entry isn't assigned to someone specific, or is assigned to them.
 function canReview_(entry){
   if(isTrueSupervisor()) return true;
-  if(!isSupervisorLike()) return false;
-  return !entry.assignedReviewerId || entry.assignedReviewerId === state.identity.id;
+  if(isSupervisorLike()){
+    return !entry.assignedReviewerId || entry.assignedReviewerId === state.identity.id;
+  }
+  // A research scholar can review only the specific project student they've
+  // been assigned to advise — never their own entries, never anyone else's.
+  if(state.identity.role === 'student'){
+    const owner = state.students.find(s=>s.id===entry.studentId);
+    if(!owner || owner.mentorScholarId !== state.identity.id) return false;
+    return !entry.assignedReviewerId || entry.assignedReviewerId === state.identity.id;
+  }
+  return false;
 }
 function mentorsForStudent_(studentId){
   return state.coSupervisors.filter(c => mentorAssignments_(c).some(a=>a.studentId===studentId));
@@ -2367,7 +2430,13 @@ function changesRequestedQueue(){
     scopedList(REVIEWABLE_COLLECTIONS[type].list()).filter(e=>e.approvalStatus==='changes_requested').forEach(e=>
       items.push({ type, id:e.id, studentId:e.studentId, title:titleForReviewable(type, e), date:e.lastUpdate, category:cfg.label, color:`var(--stat-${cfg.color.replace('cat-','')})`, note:e.supervisorNote }));
   });
-  return items.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  // Unlike Pending Approval (which is correctly about reviewing others),
+  // this page means "my own submissions that need my attention" — so even
+  // though scopedList() now includes an advisor-scholar's advisee records
+  // too, this stays strictly personal. An advisee's changes-requested item
+  // needs the advisee's attention, not the advisor's.
+  const mine = state.identity.role==='student' ? items.filter(it=>it.studentId===state.identity.id) : items;
+  return mine.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
 }
 function viewChangesRequested(){
   const items = changesRequestedQueue();
@@ -2560,6 +2629,23 @@ function viewOverview(){
         <div class="view-sub">${roleSub}</div>
       </div>
     </div>
+    ${(() => {
+      if(state.identity.role!=='student') return '';
+      const advisedIds = myAdvisedProjectStudentIds_();
+      if(advisedIds.length===0) return '';
+      const label = advisedIds.length===1 ? state.students.find(s=>s.id===advisedIds[0]).name : advisedIds.length+' project students';
+      return `
+        <div class="entry-card cat-indigo" style="cursor:pointer;" onclick="goView('myProjectStudents')">
+          <div class="entry-top">
+            <div>
+              <div class="entry-title">You're advising ${escapeHtml(String(label))}</div>
+              <div class="entry-meta">Kept separate from your own work below — open "My Project Student(s)" for their pending reviews and records.</div>
+            </div>
+            <span class="task-link" style="font-weight:600;">Open →</span>
+          </div>
+        </div>
+      `;
+    })()}
     <div class="stat-grid dash">
       ${isSupervisorLike()
         ? `<div class="stat-card compact accent-blue ${totalPendingApproval>0?'warn':'ok'}" style="cursor:pointer;" onclick="goView('approvals')"><div class="stat-num">${totalPendingApproval}</div><div class="stat-label"><span class="dot"></span>Awaiting approval</div></div>`
@@ -2910,18 +2996,20 @@ function accessSection(){
   }
 
   // True supervisor — the only role with full admin controls.
+  const researchScholars = state.students.filter(s=>s.studentType!=='project');
   return `
     <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin-bottom:6px;">Access &amp; privacy</h3>
     <div class="entry-card">
-      <div class="entry-block" style="margin-bottom:14px;">Each research scholar's account is PIN-protected, so they can only view and enter data under their own name. As supervisor, you can see everyone's records, reset a scholar's PIN if they forget it, or remove an account entirely.</div>
+      <div class="entry-block" style="margin-bottom:14px;">Each research scholar's account is PIN-protected, so they can only view and enter data under their own name. As supervisor, you can see everyone's records, reset a scholar's PIN if they forget it, or remove an account entirely. Project students are managed separately — see the "Project Students" section in the sidebar.</div>
       <div class="entry-block" style="margin-bottom:10px;">Update emails go to: <b>${escapeHtml(state.supervisorEmail || 'not set')}</b></div>
-      ${state.students.length===0 ? `<div class="entry-meta">No research scholars have signed up yet.</div>` :
-        state.students.map(s=>`
+      ${researchScholars.length===0 ? `<div class="entry-meta">No research scholars have signed up yet.</div>` :
+        researchScholars.map(s=>{
+          return `
           <div style="padding:12px 2px; border-top:1px solid var(--border);">
             <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-              <span style="font-size:13.5px;">${escapeHtml(s.name)} <span class="entry-meta">${escapeHtml(s.email || 'no email on file')}</span> <span class="stamp neutral">${s.studentType==='project'?'Project Student':'Research Scholar'}</span>${s.frozen ? ` <span class="stamp neutral">Frozen — can't log in</span>` : ''}</span>
-              <div style="display:flex; gap:6px;">
-                <button class="small-btn" onclick="toggleStudentType('${s.id}')">Mark as ${s.studentType==='project'?'Research Scholar':'Project Student'}</button>
+              <span style="font-size:13.5px;">${escapeHtml(s.name)} <span class="entry-meta">${escapeHtml(s.email || 'no email on file')}</span>${s.frozen ? ` <span class="stamp neutral">Frozen — can't log in</span>` : ''}</span>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button class="small-btn" onclick="toggleStudentType('${s.id}')">Mark as Project Student</button>
                 <button class="small-btn" onclick="toggleFreezeStudent('${s.id}')">${s.frozen ? 'Unfreeze' : 'Freeze'}</button>
                 <button class="small-btn" onclick="openEditNotifyPrefsModal('student','${s.id}')">Notifications</button>
                 <button class="small-btn" onclick="openResetStudentPinModal('${s.id}')">Reset PIN</button>
@@ -2930,7 +3018,7 @@ function accessSection(){
             </div>
             <div class="entry-meta" style="margin-top:4px;">Joined: ${s.joiningDate ? fmtDate(s.joiningDate) : 'not set'} · Duration: ${escapeHtml(s.courseDuration || 'not set')}</div>
           </div>
-        `).join('')}
+        `;}).join('')}
       <div class="entry-actions">
         <button class="small-btn" onclick="openChangeSupervisorPinModal()">Change supervisor passcode</button>
         <button class="small-btn" onclick="openChangeSupervisorNameModal()">Update my name</button>
@@ -2953,56 +3041,67 @@ function accessSection(){
 // change kept in that item's own history. Visible to the supervisor and
 // every research scholar; specifically hidden from mentors/advisors, per
 // how this group wants it scoped.
-const CONSUMABLE_CATEGORIES = ['Electrode Material','Electrolyte','Separator','Binder','Conductive Additive','Solvent','Cell Component','Chemical / Reagent','Consumable','Other'];
+const CONSUMABLE_CATEGORIES = ['Reagents','Solvents','Consumables','Equipments','Electrode Materials','Electrolytes','Other'];
 function canSeeInventory(){ return state.identity.role !== 'cosupervisor'; }
 function viewConsumables(){
   if(!canSeeInventory()){
     return emptyState('Not available for this role', 'Consumables & Inventory is visible to the supervisor and research scholars only.');
   }
-  const items = state.consumables.slice().sort((a,b)=>a.itemName.localeCompare(b.itemName));
-  const lowStock = items.filter(i => i.minStock!=='' && Number(i.quantity) <= Number(i.minStock));
+  const filter = state.consumableCategoryFilter || 'all';
+  const allItems = state.consumables.slice().sort((a,b)=>a.itemName.localeCompare(b.itemName));
+  const items = filter==='all' ? allItems : allItems.filter(i=>i.category===filter);
+  const lowStock = allItems.filter(i => i.minStock!=='' && Number(i.quantity) <= Number(i.minStock));
+  const categoriesInUse = [...new Set(allItems.map(i=>i.category))].sort();
   return `
     <div class="view-header">
       <div>
         <div class="view-title">Consumables & Inventory</div>
-        <div class="view-sub">Shared lab stock — chemicals, reagents, electrode materials, cell components, and consumables. Anyone who can see this page can log usage or restock; every change is kept in that item's history.</div>
+        <div class="view-sub">Shared lab stock. Anyone who can see this page can log usage or restock; every change is kept in that item's history.</div>
       </div>
-      <button class="action-btn" onclick="openAddConsumableModal()">+ Add item</button>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="action-btn ghost" onclick="downloadConsumableTemplate()">Download Excel template</button>
+        <button class="action-btn ghost" onclick="openBulkUploadConsumablesModal()">Bulk upload</button>
+        <button class="action-btn" onclick="openAddConsumableModal()">+ Add item</button>
+      </div>
     </div>
     ${lowStock.length>0 ? `
       <div class="comment-box" style="border-color:var(--warning); margin-bottom:16px;">
         <b>${lowStock.length} item(s) at or below minimum stock:</b> ${lowStock.map(i=>escapeHtml(i.itemName)).join(', ')}
       </div>
     ` : ''}
-    ${items.length===0 ? emptyState('Nothing logged yet', 'Add the chemicals, reagents, and consumables your group is tracking.') :
+    ${allItems.length>0 ? `
+      <div class="filter-row">
+        <select onchange="setConsumableCategoryFilter(this.value)">
+          <option value="all" ${filter==='all'?'selected':''}>All categories (${allItems.length})</option>
+          ${categoriesInUse.map(c=>`<option value="${escapeHtml(c)}" ${filter===c?'selected':''}>${escapeHtml(c)} (${allItems.filter(i=>i.category===c).length})</option>`).join('')}
+        </select>
+      </div>
+    ` : ''}
+    ${items.length===0 ? emptyState(allItems.length===0 ? 'Nothing logged yet' : 'No items in this category', allItems.length===0 ? 'Add items one at a time, or use "Bulk upload" to add many at once from an Excel sheet.' : 'Try a different category, or add a new item.') :
       items.map(item=>{
         const low = item.minStock!=='' && Number(item.quantity) <= Number(item.minStock);
+        const metaBits = [item.location, item.supplier, item.casNumber ? 'CAS '+item.casNumber : '', item.expiryDate ? 'Exp. '+fmtDate(item.expiryDate) : ''].filter(Boolean);
         return `
         <div class="entry-card ${low?'cat-rose':'cat-teal'}" id="item-consumable-${item.id}">
           <div class="entry-top">
             <div>
               <div class="entry-title">${escapeHtml(item.itemName)} ${low ? `<span class="stamp warn">Low stock</span>` : ''}</div>
-              <div class="entry-meta">${escapeHtml(item.category)}${item.location ? ' · '+escapeHtml(item.location) : ''}${item.supplier ? ' · '+escapeHtml(item.supplier) : ''}</div>
+              <div class="entry-meta">${escapeHtml(item.category)}${metaBits.length ? ' · '+metaBits.map(escapeHtml).join(' · ') : ''}${item.minStock!=='' ? ` · min ${escapeHtml(String(item.minStock))} ${escapeHtml(item.unit)}` : ''}</div>
             </div>
-            <div class="mono" style="font-size:15px; font-weight:700; white-space:nowrap;">${escapeHtml(String(item.quantity))} ${escapeHtml(item.unit)}</div>
-          </div>
-          <div class="entry-grid">
-            ${item.casNumber ? `<div class="entry-block"><span class="lbl">CAS number</span>${escapeHtml(item.casNumber)}</div>` : ''}
-            ${item.expiryDate ? `<div class="entry-block"><span class="lbl">Expiry</span>${fmtDate(item.expiryDate)}</div>` : ''}
-            ${item.minStock!=='' ? `<div class="entry-block"><span class="lbl">Minimum stock</span>${escapeHtml(String(item.minStock))} ${escapeHtml(item.unit)}</div>` : ''}
+            <div class="mono" style="font-size:17px; font-weight:700; white-space:nowrap;">${escapeHtml(String(item.quantity))} ${escapeHtml(item.unit)}</div>
           </div>
           ${item.safetyNotes ? `<div class="entry-block" style="margin-top:8px;"><span class="lbl">Safety notes</span>${nl2br(item.safetyNotes)}</div>` : ''}
           ${item.notes ? `<div class="entry-block" style="margin-top:8px;"><span class="lbl">Notes</span>${nl2br(item.notes)}</div>` : ''}
           ${(item.history && item.history.length>0) ? `
-            <div class="entry-block" style="margin-top:8px;">
-              <span class="lbl">Usage &amp; restock history (${item.history.length})</span>
-              <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">
+            <div style="margin-top:8px;">
+              <span class="task-link" style="font-size:12.5px;" onclick="toggleHistoryPanel('${item.id}')">Show usage &amp; restock history (${item.history.length}) ▾</span>
+              <div id="cons-history-${item.id}" style="display:none; margin-top:6px; flex-direction:column; gap:3px;">
                 ${item.history.slice().reverse().map(h=>`<div class="entry-meta">${h.change>0?'+':''}${h.change} ${escapeHtml(item.unit)} (now ${h.newQuantity}) — ${escapeHtml(h.byName)} (${escapeHtml(h.byRole)}) on ${escapeHtml(h.at)}${h.note?' — '+escapeHtml(h.note):''}</div>`).join('')}
               </div>
             </div>
           ` : ''}
-          <div class="entry-actions">
-            <button class="small-btn" onclick="openLogUsageModal('${item.id}')">Log usage / restock</button>
+          <div class="entry-actions" style="margin-top:12px;">
+            <button class="action-btn" style="padding:8px 15px; font-size:13px;" onclick="openLogUsageModal('${item.id}')">Log usage / restock</button>
             <button class="small-btn" onclick="openEditConsumableModal('${item.id}')">Edit</button>
             ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="guardedClick(this, ()=>deleteConsumable('${item.id}'))">Delete</button>` : ''}
           </div>
@@ -3010,12 +3109,18 @@ function viewConsumables(){
       `;}).join('')}
   `;
 }
+function setConsumableCategoryFilter(cat){ state.consumableCategoryFilter = cat; renderView(); }
+function toggleHistoryPanel(id){
+  const el = document.getElementById('cons-history-'+id);
+  if(el) el.style.display = el.style.display==='none' ? 'flex' : 'none';
+}
 function consumableFormFields(item){
   return `
     <label class="field-label">Item name</label>
     <input class="text-input" id="f_consName" value="${item?escapeHtml(item.itemName):''}" placeholder="e.g. Activated Carbon (YP-50F)">
     <label class="field-label">Category</label>
     <select class="text-input" id="f_consCategory">
+      ${item && item.category && !CONSUMABLE_CATEGORIES.includes(item.category) ? `<option value="${escapeHtml(item.category)}" selected>${escapeHtml(item.category)}</option>` : ''}
       ${CONSUMABLE_CATEGORIES.map(c=>`<option value="${c}" ${item&&item.category===c?'selected':''}>${c}</option>`).join('')}
     </select>
     <div class="two-col">
@@ -3049,11 +3154,29 @@ function consumableFormFields(item){
 function openAddConsumableModal(){
   showModal('Add item', consumableFormFields(null), submitAddConsumable);
 }
+// Matches on exact item name (case/whitespace-insensitive) — deliberately
+// conservative rather than fuzzy, so it catches the actual "typed the same
+// thing again" mistake without false-flagging genuinely different items
+// that happen to share some words.
+function findSameConsumable_(name, excludeId){
+  const normalized = name.trim().toLowerCase();
+  return state.consumables.find(x => x.id!==excludeId && x.itemName.trim().toLowerCase()===normalized) || null;
+}
 async function submitAddConsumable(){
   const itemName = document.getElementById('f_consName').value.trim();
   const unit = document.getElementById('f_consUnit').value.trim();
   const qty = document.getElementById('f_consQty').value;
   if(!itemName || !unit || qty===''){ alert('Please fill in the item name, quantity, and unit.'); return; }
+  const existing = findSameConsumable_(itemName, null);
+  if(existing){
+    const useExisting = confirm(`"${existing.itemName}" is already in inventory (currently ${existing.quantity} ${existing.unit} on hand).\n\nOK — log this as a purchase/restock added to that existing item.\nCancel — this is genuinely a different item; create it separately anyway.`);
+    if(useExisting){
+      closeModal();
+      openLogUsageModal(existing.id);
+      setTimeout(()=>{ const el = document.getElementById('f_usageChange'); if(el) el.value = qty; }, 0);
+      return;
+    }
+  }
   const newItem = {
     id: uid('cons'), itemName, category: document.getElementById('f_consCategory').value,
     quantity: Number(qty), unit, minStock: document.getElementById('f_consMinStock').value.trim(),
@@ -3117,6 +3240,122 @@ async function deleteConsumable(id){
   state.deletionLog.push({ id: uid('del'), type:'consumable', title:item.itemName, studentId:null, deletedByName:state.identity.name, deletedByRole:reviewerIdentity(null).roleLabel, reason:reason.trim(), deletedAt: nowIST() });
   await saveCollection('deletion-log', state.deletionLog);
   renderView();
+}
+const CONSUMABLE_TEMPLATE_HEADERS = ['Item Name','Category','Quantity','Unit','Minimum Stock','Location','Supplier','CAS Number','Expiry Date (YYYY-MM-DD)','Safety Notes','Notes'];
+function downloadConsumableTemplate(){
+  const rows = [
+    CONSUMABLE_TEMPLATE_HEADERS,
+    ['Activated Carbon (YP-50F)', 'Electrode Materials', 50, 'g', 10, 'Cabinet 2', 'Kuraray', '', '', 'Store dry', ''],
+    ['1M TEABF4 in Acetonitrile', 'Electrolytes', 500, 'mL', 100, 'Glovebox', '', '', '2027-06-01', 'Flammable — keep away from heat', ''],
+    ['CR2032 Coin Cell Casing', 'Consumables', 200, 'pieces', 50, 'Drawer 1', '', '', '', '', ''],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = CONSUMABLE_TEMPLATE_HEADERS.map(()=>({ wch: 22 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Consumables');
+  XLSX.writeFile(wb, 'consumables-template.xlsx');
+}
+function openBulkUploadConsumablesModal(){
+  showModal('Bulk upload from Excel', `
+    <div class="view-sub" style="margin-bottom:10px;">Use the template's column headers exactly — download it first if you haven't. Only Item Name, Category, Quantity, and Unit are required; everything else is optional. Category doesn't have to match the dropdown list exactly — anything not recognized is kept as-is. If a row's Item Name exactly matches something already in inventory, it's added as a restock to that existing item instead of creating a duplicate.</div>
+    <label class="field-label">Excel file (.xlsx)</label>
+    <input type="file" class="text-input" id="f_bulkUploadFile" accept=".xlsx,.xls">
+    <div id="bulkUploadPreview" style="margin-top:10px;"></div>
+  `, submitBulkUploadConsumables);
+}
+async function submitBulkUploadConsumables(){
+  const fileInput = document.getElementById('f_bulkUploadFile');
+  const file = fileInput.files[0];
+  if(!file){ alert('Please choose a file.'); return; }
+  const buffer = await file.arrayBuffer();
+  let rows;
+  try{
+    const wb = XLSX.read(buffer, { type:'array', cellDates: true });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    rows = XLSX.utils.sheet_to_json(sheet, { defval:'' });
+  } catch(e){
+    alert('Could not read that file. Please make sure it\'s a valid .xlsx file, ideally based on the downloaded template.');
+    return;
+  }
+  if(rows.length===0){ alert('No rows found in that file.'); return; }
+  let added = 0, merged = 0, skipped = 0;
+  const skippedNames = [], mergedNames = [];
+  const recorder = reviewerIdentity(null);
+  rows.forEach(row => {
+    const itemName = String(row['Item Name']||'').trim();
+    const category = String(row['Category']||'').trim();
+    const quantity = row['Quantity'];
+    const unit = String(row['Unit']||'').trim();
+    if(!itemName || !category || quantity===''||quantity===undefined || !unit || isNaN(Number(quantity))){
+      skipped++;
+      if(itemName) skippedNames.push(itemName);
+      return;
+    }
+    // A row matching an item already in inventory (including one added
+    // earlier in this same upload) is treated as a purchase against that
+    // existing item — quantity added and logged in its history — rather
+    // than creating a second, separate entry for the same thing.
+    const existing = findSameConsumable_(itemName, null);
+    if(existing){
+      const newQuantity = Math.round((Number(existing.quantity) + Number(quantity)) * 1000) / 1000;
+      if(!existing.history) existing.history = [];
+      existing.history.push({ change: Number(quantity), newQuantity, byName: recorder.name, byRole: recorder.roleLabel, at: nowIST(), note: 'Bulk upload — merged into existing item' });
+      existing.quantity = newQuantity;
+      merged++;
+      mergedNames.push(itemName);
+      return;
+    }
+    let expiryDate = row['Expiry Date (YYYY-MM-DD)'] || '';
+    if(expiryDate instanceof Date) expiryDate = expiryDate.toISOString().slice(0,10);
+    else expiryDate = String(expiryDate).trim();
+    state.consumables.push({
+      id: uid('cons'), itemName, category, quantity: Number(quantity), unit,
+      minStock: row['Minimum Stock']!==undefined && row['Minimum Stock']!=='' ? String(row['Minimum Stock']).trim() : '',
+      location: String(row['Location']||'').trim(), supplier: String(row['Supplier']||'').trim(),
+      casNumber: String(row['CAS Number']||'').trim(), expiryDate,
+      safetyNotes: String(row['Safety Notes']||'').trim(), notes: String(row['Notes']||'').trim(),
+      history: [], createdByName: state.identity.name, createdByRole: recorder.roleLabel, createdAt: nowIST()
+    });
+    added++;
+  });
+  if(added>0 || merged>0){
+    await saveCollection('consumables', state.consumables);
+  }
+  closeModal();
+  alert(`${added} new item(s) added.${merged>0 ? ` ${merged} row(s) matched existing items and were added as a restock instead: ${mergedNames.join(', ')}.` : ''}${skipped>0 ? ` ${skipped} row(s) skipped (missing Item Name, Category, Quantity, or Unit)${skippedNames.length ? ': '+skippedNames.join(', ') : ''}.` : ''}`);
+  renderView();
+}
+function viewProjectStudentsAdmin(){
+  const projectStudents = state.students.filter(s=>s.studentType==='project');
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Project Students</div>
+        <div class="view-sub">Kept separate from research scholars — this is the only place their accounts are managed. They sign in with their own "Project Student" button on the login screen.</div>
+      </div>
+    </div>
+    ${projectStudents.length===0 ? emptyState('No project students yet', 'They appear here once they sign up using the "Project Student" button on the login screen.') :
+      projectStudents.map(s=>{
+        const mentorScholar = s.mentorScholarId ? state.students.find(x=>x.id===s.mentorScholarId) : null;
+        return `
+        <div class="entry-card cat-indigo">
+          <div class="entry-top">
+            <div>
+              <div class="entry-title">${escapeHtml(s.name)}</div>
+              <div class="entry-meta">${escapeHtml(s.email || 'no email on file')}${mentorScholar ? ` · Advised by ${escapeHtml(mentorScholar.name)}` : ' · No advisor assigned yet'}${s.frozen ? ' · Frozen (login disabled)' : ''}</div>
+            </div>
+          </div>
+          <div class="entry-actions">
+            <button class="small-btn" onclick="openAssignMentorScholarModal('${s.id}')">${mentorScholar ? 'Change advisor' : 'Assign advisor'}</button>
+            <button class="small-btn" onclick="toggleStudentType('${s.id}')">Mark as Research Scholar</button>
+            <button class="small-btn" onclick="toggleFreezeStudent('${s.id}')">${s.frozen ? 'Unfreeze' : 'Freeze'}</button>
+            <button class="small-btn" onclick="openEditNotifyPrefsModal('student','${s.id}')">Notifications</button>
+            <button class="small-btn" onclick="openResetStudentPinModal('${s.id}')">Reset PIN</button>
+            <button class="small-btn danger" onclick="deleteStudentAccount('${s.id}')">Delete account</button>
+          </div>
+        </div>
+      `;}).join('')}
+  `;
 }
 function viewDeletionLog(){
   const allLog = state.deletionLog.slice().reverse();
@@ -3501,7 +3740,7 @@ async function submitResetAllData(){
   state.thesisPlans = []; state.racReviews = []; state.financialApps = []; state.courses = []; state.fabricationItems = [];
   state.events = []; state.resultsAnalysis = []; state.deletionLog = []; state.newsUpdates = [];
   state.patents = []; state.plagiarismReports = []; state.awards = []; state.collaborators = []; state.leaveRecords = [];
-  state.activityLogExclusions = []; state.consumables = []; state.filterStudentId = 'all';
+  state.activityLogExclusions = []; state.consumables = []; state.workDiary = []; state.filterStudentId = 'all';
 
   await Promise.all([
     saveCollection('students', state.students), saveCollection('weekly-reports', state.weekly),
@@ -3517,6 +3756,7 @@ async function submitResetAllData(){
     saveCollection('plagiarism-reports', state.plagiarismReports), saveCollection('awards', state.awards),
     saveCollection('collaborators', state.collaborators), saveCollection('leave-records', state.leaveRecords),
     saveCollection('consumables', state.consumables),
+    saveCollection('work-diary', state.workDiary),
     saveCollection('activity-log-exclusions', state.activityLogExclusions)
   ]);
 
@@ -3557,7 +3797,7 @@ function downloadBackup(){
     exportedAt: new Date().toISOString(),
     exportedBy: state.identity.name,
     scope,
-    students: visible.map(s=>({id:s.id, name:s.name, email:s.email||'', studentType:s.studentType||'research', frozen:!!s.frozen, notifyPrefs:s.notifyPrefs||{}, joiningDate:s.joiningDate||'', courseDuration:s.courseDuration||''})),
+    students: visible.map(s=>({id:s.id, name:s.name, email:s.email||'', studentType:s.studentType||'research', mentorScholarId:s.mentorScholarId||null, frozen:!!s.frozen, notifyPrefs:s.notifyPrefs||{}, joiningDate:s.joiningDate||'', courseDuration:s.courseDuration||''})),
     weeklyReports: scopedList(state.weekly),
     samples: scopedList(state.samples),
     papers: scopedList(state.papers),
@@ -3573,6 +3813,7 @@ function downloadBackup(){
     resultsAnalysis: scopedList(state.resultsAnalysis),
     deletionLog: scopedList(state.deletionLog),
     consumables: state.consumables,
+    workDiary: scopedList(state.workDiary),
     activityLogExclusions: state.activityLogExclusions,
     newsUpdates: state.newsUpdates,
     patents: scopedList(state.patents),
@@ -3628,6 +3869,7 @@ function handleRestoreFile(event){
     state.resultsAnalysis = Array.isArray(parsed.resultsAnalysis) ? parsed.resultsAnalysis : state.resultsAnalysis;
     state.deletionLog = Array.isArray(parsed.deletionLog) ? parsed.deletionLog : state.deletionLog;
     state.consumables = Array.isArray(parsed.consumables) ? parsed.consumables : state.consumables;
+    state.workDiary = Array.isArray(parsed.workDiary) ? parsed.workDiary : state.workDiary;
     state.activityLogExclusions = Array.isArray(parsed.activityLogExclusions) ? parsed.activityLogExclusions : state.activityLogExclusions;
     state.newsUpdates = Array.isArray(parsed.newsUpdates) ? parsed.newsUpdates : state.newsUpdates;
     state.patents = Array.isArray(parsed.patents) ? parsed.patents : state.patents;
@@ -3660,6 +3902,7 @@ function handleRestoreFile(event){
       saveCollection('results-analysis', state.resultsAnalysis),
       saveCollection('deletion-log', state.deletionLog),
       saveCollection('consumables', state.consumables),
+      saveCollection('work-diary', state.workDiary),
       saveCollection('activity-log-exclusions', state.activityLogExclusions),
       saveCollection('news-updates', state.newsUpdates),
       saveCollection('patents', state.patents),
@@ -3792,8 +4035,41 @@ async function toggleStudentType(id){
   const s = state.students.find(x=>x.id===id);
   if(!s) return;
   s.studentType = s.studentType==='project' ? 'research' : 'project';
+  if(s.studentType==='project'){
+    // No longer a research scholar, so anyone who had them assigned as an
+    // advisor needs that cleared — they can't mentor while being a project
+    // student themselves.
+    state.students.forEach(x=>{ if(x.mentorScholarId===id) x.mentorScholarId = null; });
+  }
   await saveCollection('students', state.students);
   renderView();
+}
+// Records which research scholar is advising a given project student, AND
+// grants that scholar view + review/approval access to the project
+// student's work specifically — scoped tightly to just this one advisee.
+// Deliberately does not extend further: no editing on the project
+// student's behalf, no delete capability, no visibility into anyone else's
+// records. See scopedList(), canReview_(), and visibleStudentsForIdentity()
+// for where this scoping is actually enforced.
+function openAssignMentorScholarModal(projectStudentId){
+  const ps = state.students.find(x=>x.id===projectStudentId);
+  const candidates = state.students.filter(x=>x.studentType!=='project' && x.id!==projectStudentId && !x.frozen);
+  if(candidates.length===0){ alert('No research scholars available to assign yet — add or unfreeze one first.'); return; }
+  showModal(`Assign advisor for ${ps.name}`, `
+    <label class="field-label">Research scholar</label>
+    <select class="text-input" id="f_mentorScholar">
+      <option value="">— None —</option>
+      ${candidates.map(c=>`<option value="${c.id}" ${ps.mentorScholarId===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
+    </select>
+    <div class="view-sub" style="margin-top:8px;">This gives the chosen scholar access to review and approve this project student's submitted work — the same as a mentor would for their assigned scholars. It doesn't grant anything broader: they still can't edit on the project student's behalf, delete anything, or see anyone else's records.</div>
+  `, ()=>submitAssignMentorScholar(projectStudentId));
+}
+async function submitAssignMentorScholar(projectStudentId){
+  const ps = state.students.find(x=>x.id===projectStudentId);
+  const chosen = document.getElementById('f_mentorScholar').value;
+  ps.mentorScholarId = chosen || null;
+  await saveCollection('students', state.students);
+  closeModal(); renderView();
 }
 async function deleteStudentAccount(studentId){
   const s = state.students.find(x=>x.id===studentId);
@@ -3804,6 +4080,7 @@ async function deleteStudentAccount(studentId){
   if(!second) return;
 
   state.students = state.students.filter(x=>x.id!==studentId);
+  state.students.forEach(x=>{ if(x.mentorScholarId===studentId) x.mentorScholarId = null; });
   state.weekly = state.weekly.filter(x=>x.studentId!==studentId);
   state.samples = state.samples.filter(x=>x.studentId!==studentId);
   state.papers = state.papers.filter(x=>x.studentId!==studentId);
@@ -5708,6 +5985,147 @@ async function setFabricationStage(id, stage){
 }
 
 /* ============================ WEEKLY PLAN ============================ */
+/* ============================ WORK DIARY ============================ */
+// A simple day-by-day log, deliberately without any approval workflow —
+// unlike Weekly Plan, nothing here needs review or gets locked. It exists
+// for quick daily notes rather than the more structured weekly summary.
+// Edits are still kept in a permanent history (matching how every other
+// section in this app tracks change), just without a status or lock.
+/* ============================ MY PROJECT STUDENT(S) — ADVISOR VIEW ============================ */
+// A dedicated landing page for a research scholar who's been assigned as a
+// project student's advisor — kept deliberately separate from the
+// scholar's own dashboard and data, rather than folded into it. This is
+// the "menu" entry point; the per-section filter bar (already scoped
+// correctly) is still there for digging into specifics once they land on
+// a section.
+function viewMyProjectStudents(){
+  const advisedIds = myAdvisedProjectStudentIds_();
+  const advisees = state.students.filter(s=>advisedIds.includes(s.id));
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">My Project Student(s)</div>
+        <div class="view-sub">Kept separate from your own scholar data — this is specifically about the project student(s) your supervisor has assigned you to advise.</div>
+      </div>
+    </div>
+    ${advisees.map(s=>{
+      const pendingCount = Object.keys(REVIEWABLE_COLLECTIONS).reduce((n,type)=>{
+        const list = REVIEWABLE_COLLECTIONS[type].list().filter(e=>e.studentId===s.id);
+        const field = REVIEW_STATUS_FIELD[type] || 'approvalStatus';
+        return n + list.filter(e=>(e[field]||e.approvalStatus||e.status)==='pending').length;
+      }, 0);
+      return `
+      <div class="entry-card cat-indigo">
+        <div class="entry-top">
+          <div>
+            <div class="entry-title">${escapeHtml(s.name)}</div>
+            <div class="entry-meta">${escapeHtml(s.email || 'no email on file')}${s.frozen ? ' · Frozen — can\u2019t log in' : ''}</div>
+          </div>
+          ${pendingCount>0 ? `<span class="stamp warn">${pendingCount} pending review</span>` : `<span class="stamp good">Nothing pending</span>`}
+        </div>
+        <div class="entry-actions">
+          <button class="small-btn" onclick="goToMyProjectStudentSection('${s.id}','approvals')">Review pending items</button>
+          <button class="small-btn" onclick="goToMyProjectStudentSection('${s.id}','weekly')">Weekly Plan</button>
+          <button class="small-btn" onclick="goToMyProjectStudentSection('${s.id}','fabrication')">Lab Work</button>
+          <button class="small-btn" onclick="goToMyProjectStudentSection('${s.id}','samples')">Characterization</button>
+        </div>
+      </div>
+    `;}).join('')}
+  `;
+}
+function goToMyProjectStudentSection(studentId, viewKey){
+  state.filterStudentId = studentId;
+  goView(viewKey);
+}
+function viewWorkDiary(){
+  const items = scopedList(state.workDiary).slice().sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Work Diary</div>
+        <div class="view-sub">A quick day-by-day log of what you worked on — no approval needed, just a running record.</div>
+      </div>
+      <button class="action-btn" onclick="openAddDiaryEntryModal()">+ Add entry</button>
+    </div>
+    ${supervisorFilterBar()}
+    ${items.length===0 ? emptyState('Nothing logged yet', 'Add a quick note about what you worked on today.') :
+      items.map(entry=>{
+        const isOwnEntry = entry.studentId === state.identity.id;
+        const locked = isOwnEntry && daysSince(entry.date) > 30 && !isSupervisorLike();
+        return `
+        <div class="entry-card cat-blue" id="item-diary-${entry.id}">
+          <div class="entry-top">
+            <div>
+              <div class="entry-title">${fmtDate(entry.date)}</div>
+              ${isSupervisorLike() ? `<div class="entry-meta">${escapeHtml(studentName(entry.studentId))}</div>` : ''}
+            </div>
+          </div>
+          <div style="font-size:14px; margin-top:4px; white-space:pre-wrap;">${nl2br(entry.entryText)}</div>
+          ${entry.editHistory && entry.editHistory.length>0 ? `
+            <div style="margin-top:8px;">
+              <span class="task-link" style="font-size:12px;" onclick="toggleHistoryPanel('diary-${entry.id}')">Edit history (${entry.editHistory.length}) ▾</span>
+              <div id="cons-history-diary-${entry.id}" style="display:none; margin-top:4px; flex-direction:column; gap:3px;">
+                ${entry.editHistory.slice().reverse().map(h=>`<div class="entry-meta">Edited by ${escapeHtml(h.editedByName)} (${escapeHtml(h.editedByRole)}) on ${escapeHtml(h.editedAt)}</div>`).join('')}
+              </div>
+            </div>
+          ` : ''}
+          ${locked ? `<div class="entry-meta" style="margin-top:10px;">Entries lock 30 days after their date — contact your supervisor if this needs a correction.</div>` :
+            (isOwnEntry || isSupervisorLike()) ? `<div class="entry-actions">
+              <button class="small-btn" onclick="openEditDiaryEntryModal('${entry.id}')">Edit</button>
+              ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="guardedClick(this, ()=>deleteDiaryEntry('${entry.id}'))">Delete</button>` : ''}
+            </div>` : ''}
+        </div>
+      `;}).join('')}
+  `;
+}
+function diaryEntryFields(entry){
+  return `
+    <label class="field-label">Date</label>
+    <input type="date" class="text-input" id="f_diaryDate" value="${entry?entry.date:todayStr()}" min="${shiftDate(todayStr(), -30)}" max="${todayStr()}">
+    <label class="field-label">What did you work on?</label>
+    <textarea class="text-input" id="f_diaryText" rows="4" placeholder="Quick notes — no need for full sentences.">${entry?escapeHtml(entry.entryText):''}</textarea>
+  `;
+}
+function openAddDiaryEntryModal(){
+  showModal('Add diary entry', diaryEntryFields(null), submitAddDiaryEntry);
+}
+async function submitAddDiaryEntry(){
+  const date = document.getElementById('f_diaryDate').value;
+  const entryText = document.getElementById('f_diaryText').value.trim();
+  if(!date || !entryText){ alert('Please add a date and a note.'); return; }
+  if(daysSince(date) > 30){ alert('Entries can only be added for dates within the last 30 days.'); return; }
+  const studentId = state.identity.role==='student' ? state.identity.id : (state.filterStudentId!=='all' ? state.filterStudentId : visibleStudentsForIdentity()[0]?.id);
+  if(!studentId){ alert('Please select a scholar to log this for using the filter above.'); return; }
+  const newEntry = { id: uid('diary'), studentId, date, entryText, editHistory: [] };
+  state.workDiary.push(newEntry);
+  await saveCollection('work-diary', state.workDiary);
+  if(isSupervisorLike()) logStaffCreate_(newEntry, `Work Diary — ${fmtDate(date)}`, 'workDiary');
+  closeModal(); renderView();
+}
+function openEditDiaryEntryModal(id){
+  const entry = state.workDiary.find(x=>x.id===id);
+  showModal('Edit diary entry', diaryEntryFields(entry), ()=>submitEditDiaryEntry(id));
+}
+async function submitEditDiaryEntry(id){
+  const entry = state.workDiary.find(x=>x.id===id);
+  const date = document.getElementById('f_diaryDate').value;
+  const entryText = document.getElementById('f_diaryText').value.trim();
+  if(!date || !entryText){ alert('Please add a date and a note.'); return; }
+  if(daysSince(date) > 30 && !isSupervisorLike()){ alert('Entries can only be dated within the last 30 days.'); return; }
+  entry.date = date; entry.entryText = entryText;
+  if(!entry.editHistory) entry.editHistory = [];
+  const editor = reviewerIdentity(entry.studentId);
+  entry.editHistory.push({ editedByName: editor.name, editedByRole: editor.roleLabel, editedAt: nowIST() });
+  await saveCollection('work-diary', state.workDiary);
+  if(isSupervisorLike() && entry.studentId!==state.identity.id) logStaffEdit_(entry, `Work Diary — ${fmtDate(date)}`, 'workDiary');
+  closeModal(); renderView();
+}
+async function deleteDiaryEntry(id){
+  const entry = state.workDiary.find(x=>x.id===id);
+  if(!entry) return;
+  const ok = await deleteEntryWithReason('workDiary', state.workDiary, 'work-diary', id, `Work Diary — ${fmtDate(entry.date)}`, entry.studentId);
+  if(ok) renderView();
+}
 function viewWeekly(){
   const fullList = scopedList(state.weekly);
   let list = fullList.slice().sort((a,b)=> b.weekStart.localeCompare(a.weekStart));
