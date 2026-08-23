@@ -351,6 +351,8 @@
   .stamp.neutral{ color:var(--ink-soft); background:var(--neutral-wash); }
 
   .entry-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:4px; }
+  .items-grid-2col{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .items-grid-2col .entry-card{ margin-bottom:0; }
   .entry-block{ font-size:14.5px; line-height:1.65; color:var(--ink); }
   .entry-block .lbl{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-faint); display:block; margin-bottom:4px; }
   .entry-actions{ display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
@@ -412,6 +414,7 @@
     .nav-item{ white-space:nowrap; }
     main#main{ padding:20px 16px 48px; }
     .entry-grid{ grid-template-columns:1fr; }
+    .items-grid-2col{ grid-template-columns:1fr; }
     .two-col{ grid-template-columns:1fr; }
     .topbar{ padding:12px 16px; }
     .overview-grid{ grid-template-columns:1fr; }
@@ -2976,9 +2979,11 @@ function viewConsumables(){
   }
   const filter = state.consumableCategoryFilter || 'all';
   const allItems = state.consumables.slice().sort((a,b)=>a.itemName.localeCompare(b.itemName));
-  const items = filter==='all' ? allItems : allItems.filter(i=>i.category===filter);
   const lowStock = allItems.filter(i => i.minStock!=='' && Number(i.quantity) <= Number(i.minStock));
   const categoriesInUse = [...new Set(allItems.map(i=>i.category))].sort();
+
+  const groupsToShow = filter==='all' ? categoriesInUse : [filter];
+
   return `
     <div class="view-header">
       <div>
@@ -2986,9 +2991,9 @@ function viewConsumables(){
         <div class="view-sub">Shared lab stock. Anyone who can see this page can log usage or restock; every change is kept in that item's history.</div>
       </div>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="action-btn" onclick="openAddConsumableModal()">+ Add item</button>
         <button class="action-btn ghost" onclick="downloadConsumableTemplate()">Download Excel template</button>
         <button class="action-btn ghost" onclick="openBulkUploadConsumablesModal()">Bulk upload</button>
-        <button class="action-btn" onclick="openAddConsumableModal()">+ Add item</button>
       </div>
     </div>
     ${lowStock.length>0 ? `
@@ -3004,36 +3009,51 @@ function viewConsumables(){
         </select>
       </div>
     ` : ''}
-    ${items.length===0 ? emptyState(allItems.length===0 ? 'Nothing logged yet' : 'No items in this category', allItems.length===0 ? 'Add items one at a time, or use "Bulk upload" to add many at once from an Excel sheet.' : 'Try a different category, or add a new item.') :
-      items.map(item=>{
-        const low = item.minStock!=='' && Number(item.quantity) <= Number(item.minStock);
-        const metaBits = [item.location, item.supplier, item.casNumber ? 'CAS '+item.casNumber : '', item.expiryDate ? 'Exp. '+fmtDate(item.expiryDate) : ''].filter(Boolean);
+    ${allItems.length===0 ? emptyState('Nothing logged yet', 'Add items one at a time, or use "Bulk upload" to add many at once from an Excel sheet.') :
+      groupsToShow.every(cat=>allItems.filter(i=>i.category===cat).length===0) ? emptyState('No items in this category', 'Try a different category, or add a new item.') :
+      groupsToShow.map(cat=>{
+        const catItems = allItems.filter(i=>i.category===cat);
+        if(catItems.length===0) return '';
         return `
-        <div class="entry-card ${low?'cat-rose':'cat-teal'}" id="item-consumable-${item.id}">
-          <div class="entry-top">
-            <div>
-              <div class="entry-title">${escapeHtml(item.itemName)} ${low ? `<span class="stamp warn">Low stock</span>` : ''}</div>
-              <div class="entry-meta">${escapeHtml(item.category)}${metaBits.length ? ' · '+metaBits.map(escapeHtml).join(' · ') : ''}${item.minStock!=='' ? ` · min ${escapeHtml(String(item.minStock))} ${escapeHtml(item.unit)}` : ''}</div>
-            </div>
-            <div class="mono" style="font-size:17px; font-weight:700; white-space:nowrap;">${escapeHtml(String(item.quantity))} ${escapeHtml(item.unit)}</div>
+          <h3 class="panel-title" style="margin:${filter==='all'?'18px 0 10px':'0 0 10px'};"><span class="dot" style="background:var(--stat-teal);"></span>${escapeHtml(cat)} <span class="entry-meta" style="text-transform:none; font-weight:400; letter-spacing:0;">(${catItems.length})</span></h3>
+          <div class="items-grid-2col" style="margin-bottom:8px;">
+            ${catItems.map(item=>consumableCardHtml(item)).join('')}
           </div>
-          ${item.safetyNotes ? `<div class="entry-block" style="margin-top:8px;"><span class="lbl">Safety notes</span>${nl2br(item.safetyNotes)}</div>` : ''}
-          ${item.notes ? `<div class="entry-block" style="margin-top:8px;"><span class="lbl">Notes</span>${nl2br(item.notes)}</div>` : ''}
-          ${(item.history && item.history.length>0) ? `
-            <div style="margin-top:8px;">
-              <span class="task-link" style="font-size:12.5px;" onclick="toggleHistoryPanel('${item.id}')">Show usage &amp; restock history (${item.history.length}) ▾</span>
-              <div id="cons-history-${item.id}" style="display:none; margin-top:6px; flex-direction:column; gap:3px;">
-                ${item.history.slice().reverse().map(h=>`<div class="entry-meta">${h.change>0?'+':''}${h.change} ${escapeHtml(item.unit)} (now ${h.newQuantity}) — ${escapeHtml(h.byName)} (${escapeHtml(h.byRole)}) on ${escapeHtml(h.at)}${h.note?' — '+escapeHtml(h.note):''}</div>`).join('')}
-              </div>
-            </div>
-          ` : ''}
-          <div class="entry-actions" style="margin-top:12px;">
-            <button class="action-btn" style="padding:8px 15px; font-size:13px;" onclick="openLogUsageModal('${item.id}')">Log usage / restock</button>
-            <button class="small-btn" onclick="openEditConsumableModal('${item.id}')">Edit</button>
-            ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="guardedClick(this, ()=>deleteConsumable('${item.id}'))">Delete</button>` : ''}
+        `;
+      }).join('')}
+  `;
+}
+function consumableCardHtml(item){
+  const low = item.minStock!=='' && Number(item.quantity) <= Number(item.minStock);
+  const metaBits = [item.location, item.supplier, item.casNumber ? 'CAS '+item.casNumber : '', item.expiryDate ? 'Exp. '+fmtDate(item.expiryDate) : ''].filter(Boolean);
+  return `
+    <div class="entry-card ${low?'cat-rose':'cat-teal'}" id="item-consumable-${item.id}">
+      <div class="entry-top">
+        <div>
+          <div class="entry-title">${escapeHtml(item.itemName)} ${low ? `<span class="stamp warn">Low stock</span>` : ''}</div>
+          <div class="entry-meta">${metaBits.length ? metaBits.map(escapeHtml).join(' · ') : ''}${item.minStock!=='' ? `${metaBits.length?' · ':''}min ${escapeHtml(String(item.minStock))} ${escapeHtml(item.unit)}` : ''}</div>
+        </div>
+        <div style="text-align:right; flex-shrink:0;">
+          <div class="mono" style="font-size:17px; font-weight:700; white-space:nowrap;">${escapeHtml(String(item.quantity))} ${escapeHtml(item.unit)}</div>
+          ${item.cost ? `<div class="entry-meta mono">₹${escapeHtml(String(item.cost))}</div>` : ''}
+        </div>
+      </div>
+      ${item.safetyNotes ? `<div class="entry-block" style="margin-top:8px;"><span class="lbl">Safety notes</span>${nl2br(item.safetyNotes)}</div>` : ''}
+      ${item.notes ? `<div class="entry-block" style="margin-top:8px;"><span class="lbl">Notes</span>${nl2br(item.notes)}</div>` : ''}
+      ${(item.history && item.history.length>0) ? `
+        <div style="margin-top:8px;">
+          <span class="task-link" style="font-size:12.5px;" onclick="toggleHistoryPanel('${item.id}')">Show usage &amp; restock history (${item.history.length}) ▾</span>
+          <div id="cons-history-${item.id}" style="display:none; margin-top:6px; flex-direction:column; gap:3px;">
+            ${item.history.slice().reverse().map(h=>`<div class="entry-meta">${h.change>0?'+':''}${h.change} ${escapeHtml(item.unit)} (now ${h.newQuantity}) — ${escapeHtml(h.byName)} (${escapeHtml(h.byRole)}) on ${escapeHtml(h.at)}${h.note?' — '+escapeHtml(h.note):''}</div>`).join('')}
           </div>
         </div>
-      `;}).join('')}
+      ` : ''}
+      <div class="entry-actions" style="margin-top:12px; flex-wrap:wrap;">
+        <button class="action-btn" style="padding:8px 15px; font-size:13px;" onclick="openLogUsageModal('${item.id}')">Log usage / restock</button>
+        <button class="small-btn" onclick="openEditConsumableModal('${item.id}')">Edit</button>
+        ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="guardedClick(this, ()=>deleteConsumable('${item.id}'))">Delete</button>` : ''}
+      </div>
+    </div>
   `;
 }
 function setConsumableCategoryFilter(cat){ state.consumableCategoryFilter = cat; renderView(); }
@@ -3045,11 +3065,17 @@ function consumableFormFields(item){
   return `
     <label class="field-label">Item name</label>
     <input class="text-input" id="f_consName" value="${item?escapeHtml(item.itemName):''}" placeholder="e.g. Activated Carbon (YP-50F)">
-    <label class="field-label">Category</label>
-    <select class="text-input" id="f_consCategory">
-      ${item && item.category && !CONSUMABLE_CATEGORIES.includes(item.category) ? `<option value="${escapeHtml(item.category)}" selected>${escapeHtml(item.category)}</option>` : ''}
-      ${CONSUMABLE_CATEGORIES.map(c=>`<option value="${c}" ${item&&item.category===c?'selected':''}>${c}</option>`).join('')}
-    </select>
+    <div class="two-col">
+      <div><label class="field-label">Category</label>
+        <select class="text-input" id="f_consCategory">
+          ${item && item.category && !CONSUMABLE_CATEGORIES.includes(item.category) ? `<option value="${escapeHtml(item.category)}" selected>${escapeHtml(item.category)}</option>` : ''}
+          ${CONSUMABLE_CATEGORIES.map(c=>`<option value="${c}" ${item&&item.category===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div><label class="field-label">Cost (optional)</label>
+        <input type="number" step="any" class="text-input" id="f_consCost" value="${item&&item.cost!==undefined&&item.cost!==''?item.cost:''}" placeholder="e.g. 2500">
+      </div>
+    </div>
     <div class="two-col">
       <div><label class="field-label">Quantity on hand</label>
         <input type="number" step="any" class="text-input" id="f_consQty" value="${item?item.quantity:''}" placeholder="0">
@@ -3058,20 +3084,24 @@ function consumableFormFields(item){
         <input class="text-input" id="f_consUnit" value="${item?escapeHtml(item.unit):''}" placeholder="g, mL, pieces...">
       </div>
     </div>
-    <label class="field-label">Minimum stock (optional — flags low stock below this)</label>
-    <input type="number" step="any" class="text-input" id="f_consMinStock" value="${item&&item.minStock!==''?item.minStock:''}" placeholder="Leave blank if not tracked">
-    <label class="field-label">Storage location (optional)</label>
-    <input class="text-input" id="f_consLocation" value="${item?escapeHtml(item.location||''):''}" placeholder="e.g. Glovebox, Cabinet 2">
-    <label class="field-label">Supplier (optional)</label>
-    <input class="text-input" id="f_consSupplier" value="${item?escapeHtml(item.supplier||''):''}">
     <div class="two-col">
+      <div><label class="field-label">Minimum stock (optional)</label>
+        <input type="number" step="any" class="text-input" id="f_consMinStock" value="${item&&item.minStock!==''?item.minStock:''}" placeholder="Flags low stock below this">
+      </div>
+      <div><label class="field-label">Storage location (optional)</label>
+        <input class="text-input" id="f_consLocation" value="${item?escapeHtml(item.location||''):''}" placeholder="e.g. Glovebox, Cabinet 2">
+      </div>
+    </div>
+    <div class="two-col">
+      <div><label class="field-label">Supplier (optional)</label>
+        <input class="text-input" id="f_consSupplier" value="${item?escapeHtml(item.supplier||''):''}">
+      </div>
       <div><label class="field-label">CAS number (optional)</label>
         <input class="text-input" id="f_consCas" value="${item?escapeHtml(item.casNumber||''):''}">
       </div>
-      <div><label class="field-label">Expiry date (optional)</label>
-        <input type="date" class="text-input" id="f_consExpiry" value="${item?item.expiryDate||'':''}">
-      </div>
     </div>
+    <label class="field-label">Expiry date (optional)</label>
+    <input type="date" class="text-input" id="f_consExpiry" value="${item?item.expiryDate||'':''}">
     <label class="field-label">Safety notes (optional)</label>
     <textarea class="text-input" id="f_consSafety" rows="2" placeholder="Hazard class, PPE required, storage precautions...">${item?escapeHtml(item.safetyNotes||''):''}</textarea>
     <label class="field-label">Notes (optional)</label>
@@ -3079,7 +3109,7 @@ function consumableFormFields(item){
   `;
 }
 function openAddConsumableModal(){
-  showModal('Add item', consumableFormFields(null), submitAddConsumable);
+  showModal('Add item', consumableFormFields(null), submitAddConsumable, false, '680px');
 }
 // Matches on exact item name (case/whitespace-insensitive) — deliberately
 // conservative rather than fuzzy, so it catches the actual "typed the same
@@ -3107,6 +3137,7 @@ async function submitAddConsumable(){
   const newItem = {
     id: uid('cons'), itemName, category: document.getElementById('f_consCategory').value,
     quantity: Number(qty), unit, minStock: document.getElementById('f_consMinStock').value.trim(),
+    cost: document.getElementById('f_consCost').value.trim(),
     location: document.getElementById('f_consLocation').value.trim(), supplier: document.getElementById('f_consSupplier').value.trim(),
     casNumber: document.getElementById('f_consCas').value.trim(), expiryDate: document.getElementById('f_consExpiry').value,
     safetyNotes: document.getElementById('f_consSafety').value.trim(), notes: document.getElementById('f_consNotes').value.trim(),
@@ -3118,7 +3149,7 @@ async function submitAddConsumable(){
 }
 function openEditConsumableModal(id){
   const item = state.consumables.find(x=>x.id===id);
-  showModal('Edit item', consumableFormFields(item), ()=>submitEditConsumable(id));
+  showModal('Edit item', consumableFormFields(item), ()=>submitEditConsumable(id), false, '680px');
 }
 async function submitEditConsumable(id){
   const item = state.consumables.find(x=>x.id===id);
@@ -3128,6 +3159,7 @@ async function submitEditConsumable(id){
   if(!itemName || !unit || qty===''){ alert('Please fill in the item name, quantity, and unit.'); return; }
   item.itemName = itemName; item.category = document.getElementById('f_consCategory').value;
   item.quantity = Number(qty); item.unit = unit; item.minStock = document.getElementById('f_consMinStock').value.trim();
+  item.cost = document.getElementById('f_consCost').value.trim();
   item.location = document.getElementById('f_consLocation').value.trim(); item.supplier = document.getElementById('f_consSupplier').value.trim();
   item.casNumber = document.getElementById('f_consCas').value.trim(); item.expiryDate = document.getElementById('f_consExpiry').value;
   item.safetyNotes = document.getElementById('f_consSafety').value.trim(); item.notes = document.getElementById('f_consNotes').value.trim();
@@ -3168,13 +3200,13 @@ async function deleteConsumable(id){
   await saveCollection('deletion-log', state.deletionLog);
   renderView();
 }
-const CONSUMABLE_TEMPLATE_HEADERS = ['Item Name','Category','Quantity','Unit','Minimum Stock','Location','Supplier','CAS Number','Expiry Date (YYYY-MM-DD)','Safety Notes','Notes'];
+const CONSUMABLE_TEMPLATE_HEADERS = ['Item Name','Category','Quantity','Unit','Cost','Minimum Stock','Location','Supplier','CAS Number','Expiry Date (YYYY-MM-DD)','Safety Notes','Notes'];
 function downloadConsumableTemplate(){
   const rows = [
     CONSUMABLE_TEMPLATE_HEADERS,
-    ['Activated Carbon (YP-50F)', 'Electrode Materials', 50, 'g', 10, 'Cabinet 2', 'Kuraray', '', '', 'Store dry', ''],
-    ['1M TEABF4 in Acetonitrile', 'Electrolytes', 500, 'mL', 100, 'Glovebox', '', '', '2027-06-01', 'Flammable — keep away from heat', ''],
-    ['CR2032 Coin Cell Casing', 'Consumables', 200, 'pieces', 50, 'Drawer 1', '', '', '', '', ''],
+    ['Activated Carbon (YP-50F)', 'Electrode Materials', 50, 'g', 4500, 10, 'Cabinet 2', 'Kuraray', '', '', 'Store dry', ''],
+    ['1M TEABF4 in Acetonitrile', 'Electrolytes', 500, 'mL', 3200, 100, 'Glovebox', '', '', '2027-06-01', 'Flammable — keep away from heat', ''],
+    ['CR2032 Coin Cell Casing', 'Consumables', 200, 'pieces', 850, 50, 'Drawer 1', '', '', '', '', ''],
   ];
   const ws = XLSX.utils.aoa_to_sheet(rows);
   ws['!cols'] = CONSUMABLE_TEMPLATE_HEADERS.map(()=>({ wch: 22 }));
@@ -3237,6 +3269,7 @@ async function submitBulkUploadConsumables(){
     else expiryDate = String(expiryDate).trim();
     state.consumables.push({
       id: uid('cons'), itemName, category, quantity: Number(quantity), unit,
+      cost: row['Cost']!==undefined && row['Cost']!=='' ? String(row['Cost']).trim() : '',
       minStock: row['Minimum Stock']!==undefined && row['Minimum Stock']!=='' ? String(row['Minimum Stock']).trim() : '',
       location: String(row['Location']||'').trim(), supplier: String(row['Supplier']||'').trim(),
       casNumber: String(row['CAS Number']||'').trim(), expiryDate,
@@ -8461,10 +8494,10 @@ function downloadReportCsv(){
 }
 
 /* ============================ MODAL ============================ */
-function showModal(title, bodyHtml, onSubmit, viewOnly){
+function showModal(title, bodyHtml, onSubmit, viewOnly, maxWidth){
   document.getElementById('modalRoot').innerHTML = `
     <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
-      <div class="modal-box">
+      <div class="modal-box" style="${maxWidth ? 'max-width:'+maxWidth+';' : ''}">
         <div class="modal-head"><h3>${escapeHtml(title)}</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
         <div class="modal-body">
           ${bodyHtml}
