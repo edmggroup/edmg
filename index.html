@@ -2994,6 +2994,7 @@ function viewConsumables(){
         <button class="action-btn" onclick="openAddConsumableModal()">+ Add item</button>
         <button class="action-btn ghost" onclick="downloadConsumableTemplate()">Download Excel template</button>
         <button class="action-btn ghost" onclick="openBulkUploadConsumablesModal()">Bulk upload</button>
+        ${isTrueSupervisor() ? `<button class="action-btn ghost" onclick="downloadConsumableExport()">Export inventory</button>` : ''}
       </div>
     </div>
     ${lowStock.length>0 ? `
@@ -3213,6 +3214,21 @@ function downloadConsumableTemplate(){
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Consumables');
   XLSX.writeFile(wb, 'consumables-template.xlsx');
+}
+// Exports the actual current inventory — every real item and its live
+// data — as distinct from downloadConsumableTemplate() above, which only
+// ever produces a blank starting example. Restricted to the supervisor:
+// see the button gating in viewConsumables().
+function downloadConsumableExport(){
+  const rows = [CONSUMABLE_TEMPLATE_HEADERS];
+  state.consumables.slice().sort((a,b)=>a.itemName.localeCompare(b.itemName)).forEach(item=>{
+    rows.push([item.itemName, item.category, item.quantity, item.unit, item.cost||'', item.minStock||'', item.location||'', item.supplier||'', item.casNumber||'', item.expiryDate||'', item.safetyNotes||'', item.notes||'']);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = CONSUMABLE_TEMPLATE_HEADERS.map(()=>({ wch: 22 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Consumables');
+  XLSX.writeFile(wb, 'consumables-inventory-'+todayStr()+'.xlsx');
 }
 function openBulkUploadConsumablesModal(){
   showModal('Bulk upload from Excel', `
