@@ -144,9 +144,10 @@
   .role-btn.active{ border-color:var(--navy); background:var(--navy-wash); color:var(--navy-dark); box-shadow:inset 0 0 0 1px var(--navy); }
   .field-label{ font-size:12px; font-weight:600; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin:16px 0 6px; display:block; }
   .text-input, select.text-input, textarea.text-input{
-    width:100%; padding:11px 13px; border:1px solid var(--border-strong); border-radius:7px; font-size:14.5px; color:var(--ink); background:var(--surface);
-    transition:border-color .12s, box-shadow .12s;
+    width:100%; padding:14px 16px; border:1px solid var(--border-strong); border-radius:7px; font-size:15px; color:var(--ink); background:var(--surface);
+    transition:border-color .12s, box-shadow .12s; line-height:1.55;
   }
+  textarea.text-input{ resize:vertical; min-height:96px; }
   .text-input:focus, select:focus, textarea:focus{ outline:none; border-color:var(--navy); box-shadow:0 0 0 3px var(--navy-wash); }
   .student-pick-list{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:8px; }
   .pick-chip{ padding:7px 13px; border-radius:20px; border:1px solid var(--border-strong); background:var(--surface); font-size:13px; font-weight:500; color:var(--ink-soft); transition:all .12s ease; }
@@ -361,7 +362,7 @@
   .small-btn.danger:hover{ border-color:var(--danger); color:var(--danger); background:var(--danger-wash); }
   .comment-box{ margin-top:14px; background:var(--navy-wash); border-radius:7px; padding:14px 16px; }
   .comment-box .lbl{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--navy-dark); display:block; margin-bottom:7px;}
-  .comment-box textarea{ width:100%; border:1px solid var(--border-strong); border-radius:6px; padding:9px 10px; font-size:13px; min-height:64px; resize:vertical; }
+  .comment-box textarea{ width:100%; border:1px solid var(--border-strong); border-radius:6px; padding:12px 13px; font-size:14px; line-height:1.5; min-height:88px; resize:vertical; }
   .comment-existing{ font-size:13.5px; line-height:1.55; color:var(--ink); }
 
   .empty-state{ text-align:center; padding:60px 20px; color:var(--ink-soft); }
@@ -370,7 +371,7 @@
 
   /* ---------- Modal ---------- */
   .modal-overlay{ position:fixed; inset:0; background:rgba(15,20,32,0.5); display:flex; align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto; z-index:100; animation:modalFadeIn .15s ease; }
-  .modal-box{ background:var(--surface); border-radius:10px; width:100%; max-width:520px; box-shadow:0 24px 60px rgba(0,0,0,0.28); margin:auto; animation:modalScaleIn .16s cubic-bezier(0.2,0.8,0.3,1); }
+  .modal-box{ background:var(--surface); border-radius:10px; width:100%; max-width:680px; box-shadow:0 24px 60px rgba(0,0,0,0.28); margin:auto; animation:modalScaleIn .16s cubic-bezier(0.2,0.8,0.3,1); }
   @keyframes modalFadeIn{ from{ opacity:0; } to{ opacity:1; } }
   @keyframes modalScaleIn{ from{ opacity:0; transform:scale(0.97) translateY(4px); } to{ opacity:1; transform:scale(1) translateY(0); } }
   .modal-head{ padding:20px 24px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
@@ -1776,7 +1777,7 @@ function openInstructionModal(){
       </div>
     </div>
     <label class="field-label">Instruction</label>
-    <textarea class="text-input" id="f_insText" rows="4" placeholder="e.g. Repeat the XRD scan at a slower step rate before submitting for Rietveld refinement."></textarea>
+    <textarea class="text-input" id="f_insText" rows="5" placeholder="e.g. Repeat the XRD scan at a slower step rate before submitting for Rietveld refinement."></textarea>
   `, submitInstruction);
 }
 async function submitInstruction(){
@@ -2071,7 +2072,7 @@ function genericFieldInputHtml(f, value){
     return `<select class="text-input" id="${id}">${f.options.map(o=>`<option value="${o}" ${value===o?'selected':''}>${o}</option>`).join('')}</select>`;
   }
   if(f.type==='textarea'){
-    return `<textarea class="text-input" id="${id}" rows="3">${escapeHtml(value||'')}</textarea>`;
+    return `<textarea class="text-input" id="${id}" rows="4">${escapeHtml(value||'')}</textarea>`;
   }
   if(f.type==='date'){
     return `<input type="date" class="text-input" id="${id}" value="${value||''}">`;
@@ -2311,9 +2312,9 @@ function openAddVisitModal(collabId){
     <label class="field-label">Duration (optional)</label>
     <input class="text-input" id="f_visitDuration" placeholder="e.g. 2 weeks">
     <label class="field-label">Purpose</label>
-    <textarea class="text-input" id="f_visitPurpose" rows="2" placeholder="What was this visit for?"></textarea>
+    <textarea class="text-input" id="f_visitPurpose" rows="3" placeholder="What was this visit for?"></textarea>
     <label class="field-label">Outcome (optional)</label>
-    <textarea class="text-input" id="f_visitOutcome" rows="2"></textarea>
+    <textarea class="text-input" id="f_visitOutcome" rows="3"></textarea>
   `, ()=>submitAddVisit(collabId));
 }
 async function submitAddVisit(collabId){
@@ -3104,9 +3105,9 @@ function consumableFormFields(item){
     <label class="field-label">Expiry date (optional)</label>
     <input type="date" class="text-input" id="f_consExpiry" value="${item?item.expiryDate||'':''}">
     <label class="field-label">Safety notes (optional)</label>
-    <textarea class="text-input" id="f_consSafety" rows="2" placeholder="Hazard class, PPE required, storage precautions...">${item?escapeHtml(item.safetyNotes||''):''}</textarea>
+    <textarea class="text-input" id="f_consSafety" rows="3" placeholder="Hazard class, PPE required, storage precautions...">${item?escapeHtml(item.safetyNotes||''):''}</textarea>
     <label class="field-label">Notes (optional)</label>
-    <textarea class="text-input" id="f_consNotes" rows="2">${item?escapeHtml(item.notes||''):''}</textarea>
+    <textarea class="text-input" id="f_consNotes" rows="3">${item?escapeHtml(item.notes||''):''}</textarea>
   `;
 }
 function openAddConsumableModal(){
@@ -4460,11 +4461,11 @@ function openProposalModal(){
     <label class="field-label">Title</label>
     <input class="text-input" id="f_prTitle" placeholder="e.g. PhD Work Plan — Year 1">
     <label class="field-label">Objective</label>
-    <textarea class="text-input" id="f_prObjective" rows="3" placeholder="What is the overall aim of this research?"></textarea>
+    <textarea class="text-input" id="f_prObjective" rows="4" placeholder="What is the overall aim of this research?"></textarea>
     <label class="field-label">Methodology (optional)</label>
-    <textarea class="text-input" id="f_prMethodology" rows="3" placeholder="Approach, techniques, experimental plan..."></textarea>
+    <textarea class="text-input" id="f_prMethodology" rows="4" placeholder="Approach, techniques, experimental plan..."></textarea>
     <label class="field-label">Expected outcomes (optional)</label>
-    <textarea class="text-input" id="f_prOutcomes" rows="2" placeholder="What results or deliverables are expected?"></textarea>
+    <textarea class="text-input" id="f_prOutcomes" rows="3" placeholder="What results or deliverables are expected?"></textarea>
     <div class="view-sub" style="margin-top:8px;">You can add specific goals/milestones after creating this.</div>
   `, submitProposal);
 }
@@ -4497,11 +4498,11 @@ function openEditProposalModal(id){
     <label class="field-label">Title</label>
     <input class="text-input" id="f_editPrTitle" value="${escapeHtml(pr.title)}">
     <label class="field-label">Objective</label>
-    <textarea class="text-input" id="f_editPrObjective" rows="3">${escapeHtml(pr.objective)}</textarea>
+    <textarea class="text-input" id="f_editPrObjective" rows="4">${escapeHtml(pr.objective)}</textarea>
     <label class="field-label">Methodology (optional)</label>
-    <textarea class="text-input" id="f_editPrMethodology" rows="3">${escapeHtml(pr.methodology||'')}</textarea>
+    <textarea class="text-input" id="f_editPrMethodology" rows="4">${escapeHtml(pr.methodology||'')}</textarea>
     <label class="field-label">Expected outcomes (optional)</label>
-    <textarea class="text-input" id="f_editPrOutcomes" rows="2">${escapeHtml(pr.expectedOutcomes||'')}</textarea>
+    <textarea class="text-input" id="f_editPrOutcomes" rows="3">${escapeHtml(pr.expectedOutcomes||'')}</textarea>
     ${myPapers.length>0 ? `
       <label class="field-label">Linked to which paper(s) in the pipeline? (optional)</label>
       <select class="text-input" id="f_editPrPapers" multiple size="${Math.min(5, Math.max(3, myPapers.length))}">
@@ -5031,7 +5032,7 @@ function racFormFields(r){
       </div>
     </div>
     <label class="field-label">Committee comments</label>
-    <textarea class="text-input" id="f_racComments" rows="4" placeholder="What did the committee say?">${escapeHtml(r.comments||'')}</textarea>
+    <textarea class="text-input" id="f_racComments" rows="5" placeholder="What did the committee say?">${escapeHtml(r.comments||'')}</textarea>
   `;
 }
 function openRacModal(){
@@ -5254,7 +5255,7 @@ function financialFormFields(f){
     <label class="field-label">Link (optional)</label>
     <input class="text-input" id="f_finLink" value="${escapeHtml(f.link||'')}" placeholder="Application portal or program page">
     <label class="field-label">Notes (optional)</label>
-    <textarea class="text-input" id="f_finNotes" rows="2">${escapeHtml(f.notes||'')}</textarea>
+    <textarea class="text-input" id="f_finNotes" rows="3">${escapeHtml(f.notes||'')}</textarea>
   `;
 }
 function openFinancialModal(){
@@ -5471,7 +5472,7 @@ function courseFormFields(c){
     <label class="field-label">Certificate link (optional)</label>
     <input class="text-input" id="f_courseLink" value="${escapeHtml(c.certificateLink||'')}" placeholder="Certificate or course page link">
     <label class="field-label">Notes (optional)</label>
-    <textarea class="text-input" id="f_courseNotes" rows="2">${escapeHtml(c.notes||'')}</textarea>
+    <textarea class="text-input" id="f_courseNotes" rows="3">${escapeHtml(c.notes||'')}</textarea>
   `;
 }
 function openCourseModal(){
@@ -5717,7 +5718,7 @@ function fabricationFormFields(it){
     <label class="field-label">Data / photos link (optional)</label>
     <input class="text-input" id="f_fabLink" value="${escapeHtml(it.link||'')}" placeholder="Drive link to raw data, images, or notes">
     <label class="field-label">Notes (optional)</label>
-    <textarea class="text-input" id="f_fabNotes" rows="2">${escapeHtml(it.notes||'')}</textarea>
+    <textarea class="text-input" id="f_fabNotes" rows="3">${escapeHtml(it.notes||'')}</textarea>
   `;
 }
 function openFabricationModal(){
@@ -6068,7 +6069,7 @@ function diaryEntryFields(entry){
     <label class="field-label">Date</label>
     <input type="date" class="text-input" id="f_diaryDate" value="${entry?entry.date:todayStr()}" min="${shiftDate(todayStr(), -30)}" max="${todayStr()}">
     <label class="field-label">What did you work on?</label>
-    <textarea class="text-input" id="f_diaryText" rows="4" placeholder="Quick notes — no need for full sentences.">${entry?escapeHtml(entry.entryText):''}</textarea>
+    <textarea class="text-input" id="f_diaryText" rows="5" placeholder="Quick notes — no need for full sentences.">${entry?escapeHtml(entry.entryText):''}</textarea>
   `;
 }
 function openAddDiaryEntryModal(){
@@ -6313,11 +6314,11 @@ function openWeeklyModal(){
     <label class="field-label">Week starting</label>
     <input type="date" id="f_weekStart" class="text-input" value="${monday}">
     <label class="field-label">What did you do this week?</label>
-    <textarea id="f_workDone" class="text-input" rows="3" placeholder="e.g. Completed synthesis of batch 3, ran initial XRD scans..."></textarea>
+    <textarea id="f_workDone" class="text-input" rows="4" placeholder="e.g. Completed synthesis of batch 3, ran initial XRD scans..."></textarea>
     <label class="field-label">Plan for next week</label>
-    <textarea id="f_planNext" class="text-input" rows="3" placeholder="e.g. Submit samples for SEM, start drafting methods section..."></textarea>
+    <textarea id="f_planNext" class="text-input" rows="4" placeholder="e.g. Submit samples for SEM, start drafting methods section..."></textarea>
     <label class="field-label">Challenges / blockers (optional)</label>
-    <textarea id="f_challenges" class="text-input" rows="2" placeholder="Anything blocking progress?"></textarea>
+    <textarea id="f_challenges" class="text-input" rows="3" placeholder="Anything blocking progress?"></textarea>
     ${myPapers.length>0 ? `
       <label class="field-label">Which paper(s) does this week's work relate to? (optional)</label>
       <select class="text-input" id="f_weeklyPapers" multiple size="${Math.min(5, Math.max(3, myPapers.length))}">
@@ -6417,11 +6418,11 @@ function openEditWeeklyModal(id){
     <label class="field-label">Week starting</label>
     <input type="date" id="f_editWeekStart" class="text-input" value="${w.weekStart}">
     <label class="field-label">What did you do this week?</label>
-    <textarea id="f_editWorkDone" class="text-input" rows="3">${escapeHtml(w.workDone)}</textarea>
+    <textarea id="f_editWorkDone" class="text-input" rows="4">${escapeHtml(w.workDone)}</textarea>
     <label class="field-label">Plan for next week</label>
-    <textarea id="f_editPlanNext" class="text-input" rows="3">${escapeHtml(w.planNext)}</textarea>
+    <textarea id="f_editPlanNext" class="text-input" rows="4">${escapeHtml(w.planNext)}</textarea>
     <label class="field-label">Challenges / blockers (optional)</label>
-    <textarea id="f_editChallenges" class="text-input" rows="2">${escapeHtml(w.challenges||'')}</textarea>
+    <textarea id="f_editChallenges" class="text-input" rows="3">${escapeHtml(w.challenges||'')}</textarea>
     ${myPapers.length>0 ? `
       <label class="field-label">Which paper(s) does this week's work relate to? (optional)</label>
       <select class="text-input" id="f_editWeeklyPapers" multiple size="${Math.min(5, Math.max(3, myPapers.length))}">
@@ -6611,7 +6612,7 @@ function openSampleModal(){
       <div class="view-sub" style="margin-top:4px;">Hold Ctrl (or ⌘ on Mac) to select more than one.</div>
     ` : ''}
     <label class="field-label">Notes (optional)</label>
-    <textarea class="text-input" id="f_sampleNotes" rows="2" placeholder="Any special conditions or instructions"></textarea>
+    <textarea class="text-input" id="f_sampleNotes" rows="3" placeholder="Any special conditions or instructions"></textarea>
   `, submitSample);
 }
 async function submitSample(){
@@ -6647,7 +6648,7 @@ function openReceiveModal(id){
     <label class="field-label">Data file link (optional)</label>
     <input class="text-input" id="f_dataLink" placeholder="Google Drive / Sheets link to raw data, plots, etc." value="${escapeHtml(s.dataLink || '')}">
     <label class="field-label">Notes (optional)</label>
-    <textarea class="text-input" id="f_resultsNotes" rows="3" placeholder="Summary of results, key values (capacity, efficiency, etc.), follow-up needed...">${escapeHtml(s.notes || '')}</textarea>
+    <textarea class="text-input" id="f_resultsNotes" rows="4" placeholder="Summary of results, key values (capacity, efficiency, etc.), follow-up needed...">${escapeHtml(s.notes || '')}</textarea>
   `, ()=>submitReceive(id));
 }
 async function submitReceive(id){
@@ -6729,7 +6730,7 @@ function openEditSampleModal(id){
       <div class="view-sub" style="margin-top:4px;">Hold Ctrl (or ⌘ on Mac) to select more than one.</div>
     ` : ''}
     <label class="field-label">Notes (optional)</label>
-    <textarea class="text-input" id="f_editSampleNotes" rows="2">${escapeHtml(s.notes||'')}</textarea>
+    <textarea class="text-input" id="f_editSampleNotes" rows="3">${escapeHtml(s.notes||'')}</textarea>
     ${!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Saving will send this back for approval.</div>` : ''}
   `, ()=>submitEditSample(id));
 }
@@ -6931,7 +6932,7 @@ function analysisFormFields(a){
     ` : ''}
     <div class="view-sub" style="margin-top:4px;">Hold Ctrl (or ⌘ on Mac) to select more than one in a list.</div>
     <label class="field-label">Analysis notes (optional)</label>
-    <textarea class="text-input" id="f_anNotes" rows="3" placeholder="Interpretation, key observations, conclusions so far">${escapeHtml(a.notes||'')}</textarea>
+    <textarea class="text-input" id="f_anNotes" rows="4" placeholder="Interpretation, key observations, conclusions so far">${escapeHtml(a.notes||'')}</textarea>
   `;
 }
 function openAnalysisModal(){
@@ -7239,7 +7240,7 @@ function openPaperModal(){
     <label class="field-label">Manuscript / draft link (optional)</label>
     <input class="text-input" id="f_manuscriptLink" placeholder="Google Docs / Overleaf link for the paper being written">
     <label class="field-label">Notes (optional)</label>
-    <textarea class="text-input" id="f_paperNotes" rows="2" placeholder="Co-authors, key figures needed, etc."></textarea>
+    <textarea class="text-input" id="f_paperNotes" rows="3" placeholder="Co-authors, key figures needed, etc."></textarea>
   `, submitPaper);
 }
 async function submitPaper(){
@@ -7322,7 +7323,7 @@ function openEditPaperDetails(id){
     <label class="field-label">Manuscript / draft link</label>
     <input class="text-input" id="f_editManuscriptLink" value="${escapeHtml(p.manuscriptLink || '')}" placeholder="Google Docs / Overleaf link">
     <label class="field-label">Notes</label>
-    <textarea class="text-input" id="f_editNotes" rows="4">${escapeHtml(p.notes || '')}</textarea>
+    <textarea class="text-input" id="f_editNotes" rows="5">${escapeHtml(p.notes || '')}</textarea>
     ${!isSupervisorLike() ? `<div class="view-sub" style="margin-top:8px;">Once a paper's details have been set, any change here requires your supervisor's approval before it takes effect.</div>` : ''}
   `, ()=>saveEditPaperDetails(id));
 }
@@ -7537,7 +7538,7 @@ function conferenceFormFields(c){
     <label class="field-label">Link (optional)</label>
     <input class="text-input" id="f_confLink" value="${escapeHtml(c.link||'')}" placeholder="Conference site, proceedings, or certificate link">
     <label class="field-label">Notes (optional)</label>
-    <textarea class="text-input" id="f_confNotes" rows="2">${escapeHtml(c.notes||'')}</textarea>
+    <textarea class="text-input" id="f_confNotes" rows="3">${escapeHtml(c.notes||'')}</textarea>
   `;
 }
 function openConferenceModal(){
@@ -7719,7 +7720,7 @@ function meetingCard(m, i, total){
 function openAddMeetingMinuteModal(id){
   showModal('Add minute / feedback point', `
     <label class="field-label">Point</label>
-    <textarea class="text-input" id="f_minuteText" rows="2" placeholder="e.g. Agreed to repeat the XRD scan with a slower step rate before the next review."></textarea>
+    <textarea class="text-input" id="f_minuteText" rows="3" placeholder="e.g. Agreed to repeat the XRD scan with a slower step rate before the next review."></textarea>
   `, ()=>submitAddMeetingMinute(id));
 }
 async function submitAddMeetingMinute(id){
@@ -7757,7 +7758,7 @@ function openMeetingModal(){
       </div>
     </div>
     <label class="field-label">Agenda / discussion points (optional)</label>
-    <textarea class="text-input" id="f_meetAgenda" rows="3" placeholder="What do you want to cover or discuss?"></textarea>
+    <textarea class="text-input" id="f_meetAgenda" rows="4" placeholder="What do you want to cover or discuss?"></textarea>
   `, submitMeeting);
 }
 async function submitMeeting(){
@@ -7833,7 +7834,7 @@ async function submitConfirmMeeting(id){
 function openCompleteMeetingModal(id){
   showModal('Mark as completed', `
     <label class="field-label">Outcome notes (optional)</label>
-    <textarea class="text-input" id="f_meetOutcome" rows="3" placeholder="What was covered, decided, or needs follow-up?"></textarea>
+    <textarea class="text-input" id="f_meetOutcome" rows="4" placeholder="What was covered, decided, or needs follow-up?"></textarea>
   `, ()=>submitCompleteMeeting(id));
 }
 async function submitCompleteMeeting(id){
@@ -7848,7 +7849,7 @@ async function submitCompleteMeeting(id){
 function openCancelMeetingModal(id){
   showModal('Cancel this item', `
     <label class="field-label">Reason (optional)</label>
-    <textarea class="text-input" id="f_meetCancelReason" rows="2" placeholder="Why is this being cancelled?"></textarea>
+    <textarea class="text-input" id="f_meetCancelReason" rows="3" placeholder="Why is this being cancelled?"></textarea>
   `, ()=>submitCancelMeeting(id));
 }
 async function submitCancelMeeting(id){
@@ -7952,7 +7953,7 @@ function eventFormFields(ev){
     <label class="field-label">Link (optional)</label>
     <input class="text-input" id="f_evLink" value="${escapeHtml(ev.link||'')}" placeholder="Event page, proposal document, or reference link">
     <label class="field-label">Description (optional)</label>
-    <textarea class="text-input" id="f_evDesc" rows="3" placeholder="Details, instructions, or context">${escapeHtml(ev.description||'')}</textarea>
+    <textarea class="text-input" id="f_evDesc" rows="4" placeholder="Details, instructions, or context">${escapeHtml(ev.description||'')}</textarea>
   `;
 }
 function openEventModal(){
