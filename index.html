@@ -446,6 +446,7 @@
       <div id="globalSearchResults" class="search-results-panel"></div>
     </div>
     <div class="identity-pill">
+      <button class="switch-link" id="installAppBtn" onclick="installApp()" style="display:none;">⬇ Install App</button>
       <button class="switch-link" onclick="openHelpModal()">? Help</button>
       <span class="identity-badge" id="identityBadge"></span>
       <button class="switch-link" onclick="switchUser()">Sign out</button>
@@ -1717,6 +1718,19 @@ function scopedList(arr){
   if(state.filterStudentId === 'all') return arr;
   return arr.filter(x => x.studentId === state.filterStudentId);
 }
+// Meetings need one extra layer scopedList() doesn't handle: a scholar who
+// isn't the meeting's own owner but was invited as an additional attendee
+// (a group discussion, a joint review) still needs to see it — on their
+// Overview, their Calendar, and their own Meetings list. This only adds
+// meetings scopedList() wouldn't already have returned, so it's a pure
+// addition on top of the existing scoping, not a replacement for it.
+function scopedMeetings_(){
+  const base = scopedList(state.meetings);
+  if(state.identity.role !== 'student') return base;
+  const alreadyIncluded = new Set(base.map(m=>m.id));
+  const invitedExtra = state.meetings.filter(m => (m.invitedStudentIds||[]).includes(state.identity.id) && !alreadyIncluded.has(m.id));
+  return [...base, ...invitedExtra];
+}
 
 /* ============================ SUPERVISOR INSTRUCTIONS LOG ============================ */
 function viewInstructions(){
@@ -1864,7 +1878,7 @@ function globalSearchResults_(query){
       }
     });
   });
-  scopedList(state.meetings).forEach(m => { if(m.title && m.title.toLowerCase().includes(q)) results.push({ type:'meeting', id:m.id, studentId:m.studentId, title:m.title, category:SEARCH_CATEGORY_LABEL.meeting }); });
+  scopedMeetings_().forEach(m => { if(m.title && m.title.toLowerCase().includes(q)) results.push({ type:'meeting', id:m.id, studentId:m.studentId, title:m.title, category:SEARCH_CATEGORY_LABEL.meeting }); });
   visibleEvents().forEach(ev => { if(ev.title && ev.title.toLowerCase().includes(q)) results.push({ type:'event', id:ev.id, studentId:ev.assignedStudentId, title:ev.title, category:SEARCH_CATEGORY_LABEL.event }); });
   scopedList(state.instructions).forEach(ins => { if(ins.text && ins.text.toLowerCase().includes(q)) results.push({ type:'instruction', id:ins.id, studentId:ins.studentId, title:ins.text.slice(0,80), category:SEARCH_CATEGORY_LABEL.instruction }); });
   if(canSeeInventory()){
@@ -2548,7 +2562,7 @@ function thisWeekItems(){
       title: preview || 'Weekly plan logged' });
   });
 
-  scopedList(state.meetings).filter(m=> m.plannedDate>=monday && m.plannedDate<=sunday && m.status!=='cancelled').forEach(m=>{
+  scopedMeetings_().filter(m=> m.plannedDate>=monday && m.plannedDate<=sunday && m.status!=='cancelled').forEach(m=>{
     items.push({ type:'meeting', id:m.id, studentId:m.studentId, category:'Meeting · '+fmtDate(m.plannedDate)+((m.startTime||m.endTime||m.plannedTime)?' · '+fmtTimeRange(m.startTime||m.plannedTime, m.endTime):''), color:'var(--stat-indigo)',
       title: m.title });
   });
@@ -2576,7 +2590,7 @@ function viewOverview(){
   const weekly = scopedList(state.weekly);
   const samples = scopedList(state.samples);
   const papers = scopedList(state.papers);
-  const meetings = scopedList(state.meetings);
+  const meetings = scopedMeetings_();
 
   const totalPendingApproval = pendingQueue().length;
   const changesRequestedCount = changesRequestedQueue().length;
@@ -4062,6 +4076,7 @@ async function deleteStudentAccount(studentId){
 
   state.students = state.students.filter(x=>x.id!==studentId);
   state.students.forEach(x=>{ if(x.mentorScholarId===studentId) x.mentorScholarId = null; });
+  state.meetings.forEach(m=>{ if(m.invitedStudentIds) m.invitedStudentIds = m.invitedStudentIds.filter(sid=>sid!==studentId); });
   state.weekly = state.weekly.filter(x=>x.studentId!==studentId);
   state.samples = state.samples.filter(x=>x.studentId!==studentId);
   state.papers = state.papers.filter(x=>x.studentId!==studentId);
@@ -4175,7 +4190,7 @@ function weekDates(monday){
 function upcomingDeadlines_(limit){
   const today = todayStr();
   const items = [];
-  scopedList(state.meetings).forEach(m=>{ if(m.plannedDate>=today) items.push({ date:m.plannedDate, type:'meeting', id:m.id, studentId:m.studentId, title:`${m.type}: ${m.title}`, category:'Meeting' }); });
+  scopedMeetings_().forEach(m=>{ if(m.plannedDate>=today) items.push({ date:m.plannedDate, type:'meeting', id:m.id, studentId:m.studentId, title:`${m.type}: ${m.title}`, category:'Meeting' }); });
   scopedList(state.conferences).forEach(c=>{ if(c.startDate>=today) items.push({ date:c.startDate, type:'conference', id:c.id, studentId:c.studentId, title:c.eventName, category:'Conference' }); });
   scopedList(state.fabricationItems).forEach(it=>{ if(it.targetDate && it.targetDate>=today && it.stage!=='completed') items.push({ date:it.targetDate, type:'fabrication', id:it.id, studentId:it.studentId, title:fabricationLabel(it), category:'Lab Work' }); });
   scopedList(state.resultsAnalysis).forEach(a=>{ if(a.targetDate && a.targetDate>=today && a.status!=='completed') items.push({ date:a.targetDate, type:'analysis', id:a.id, studentId:a.studentId, title:a.title, category:'Results Analysis' }); });
@@ -4188,7 +4203,7 @@ function upcomingDeadlines_(limit){
 }
 function eventsForDate(dateStr){
   const out = [];
-  scopedList(state.meetings).forEach(m=>{ if(m.plannedDate===dateStr) out.push({ type:'meeting', label:`${m.type}: ${m.title}`, cls:'indigo' }); });
+  scopedMeetings_().forEach(m=>{ if(m.plannedDate===dateStr) out.push({ type:'meeting', label:`${m.type}: ${m.title}`, cls:'indigo' }); });
   scopedList(state.conferences).forEach(c=>{
     const end = c.endDate || c.startDate;
     if(c.startDate<=dateStr && dateStr<=end) out.push({ type:'conference', label:c.eventName, cls:'purple' });
@@ -7650,7 +7665,7 @@ function meetingTypeFilterBar(){
 function setFilterMeetingType(v){ state.filterMeetingType = v; renderView(); }
 
 function viewMeetings(){
-  let list = scopedList(state.meetings);
+  let list = scopedMeetings_();
   if(state.filterMeetingType !== 'all') list = list.filter(m=>m.type===state.filterMeetingType);
   list = list.slice().sort((a,b)=> b.plannedDate.localeCompare(a.plannedDate));
   return `
@@ -7684,6 +7699,7 @@ function meetingCard(m, i, total){
           <div class="entry-idx">M${String(total-i).padStart(2,'0')} · ${escapeHtml(studentName(m.studentId))}</div>
           <div class="entry-title">${escapeHtml(m.title)}</div>
           <div class="entry-meta">${escapeHtml(m.type)} · ${fmtDate(m.plannedDate)}${(m.startTime||m.endTime||m.plannedTime) ? ' · '+escapeHtml(fmtTimeRange(m.startTime||m.plannedTime, m.endTime)) : ''}${isPast && (m.status==='proposed'||m.status==='confirmed') ? ' · past due' : ''}${m.confirmedByName ? ' · Confirmed by '+escapeHtml(m.confirmedByName)+' ('+escapeHtml(m.confirmedByRole)+') on '+escapeHtml(m.confirmedAt||'') : ''}</div>
+          ${(m.invitedStudentIds && m.invitedStudentIds.length>0) ? `<div class="entry-meta">Also attending: ${m.invitedStudentIds.map(sid=>escapeHtml(studentName(sid))).join(', ')}</div>` : ''}
         </div>
         <span class="stamp ${st.cls}">${st.label}</span>
       </div>
@@ -7789,6 +7805,8 @@ async function submitMeeting(){
 function openConfirmMeetingModal(id){
   const m = state.meetings.find(x=>x.id===id);
   const isReschedule = m.status==='confirmed';
+  const invited = m.invitedStudentIds || [];
+  const others = state.students.filter(s=>s.id!==m.studentId && !s.frozen);
   showModal(isReschedule ? 'Reschedule meeting' : 'Confirm meeting', `
     <div class="view-sub" style="margin-bottom:10px;">${escapeHtml(m.title)} — requested by ${escapeHtml(studentName(m.studentId))}</div>
     <label class="field-label">Date</label>
@@ -7802,6 +7820,17 @@ function openConfirmMeetingModal(id){
       </div>
     </div>
     <div class="view-sub" style="margin-top:8px;">${isReschedule ? 'Change the date or time to postpone or prepone this meeting — the scholar will be notified of the new time.' : "Change the date or time here if the requested slot doesn't work — the scholar will see the confirmed time, not the originally requested one."}</div>
+    ${others.length>0 ? `
+      <label class="field-label" style="margin-top:14px;">Also invite (optional)</label>
+      <div class="view-sub" style="margin:0 0 8px;">If this meeting involves others — a group discussion, a joint review — select who else should be notified and see it on their own calendar.</div>
+      <div style="display:flex; flex-direction:column; gap:6px; max-height:180px; overflow-y:auto; border:1px solid var(--border-strong); border-radius:7px; padding:10px 12px;">
+        ${others.map(s=>`
+          <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:400; text-transform:none; letter-spacing:0; cursor:pointer;">
+            <input type="checkbox" class="f_meetInvitee" value="${s.id}" ${invited.includes(s.id)?'checked':''}> ${escapeHtml(s.name)}${s.studentType==='project'?' (Project Student)':''}
+          </label>
+        `).join('')}
+      </div>
+    ` : ''}
   `, ()=>submitConfirmMeeting(id));
 }
 async function submitConfirmMeeting(id){
@@ -7814,20 +7843,33 @@ async function submitConfirmMeeting(id){
   const reviewer = reviewerIdentity(m.studentId);
   const rescheduled = newDate !== m.plannedDate || newStartTime !== (m.startTime||'') || newEndTime !== (m.endTime||'');
   const wasAlreadyConfirmed = m.status === 'confirmed';
+  const oldInvited = m.invitedStudentIds || [];
+  const newInvited = Array.from(document.querySelectorAll('.f_meetInvitee:checked')).map(el=>el.value);
+  const newlyAdded = newInvited.filter(sid=>!oldInvited.includes(sid));
   pushStatusHistory_(m, m.status, 'confirmed');
   m.plannedDate = newDate;
   m.startTime = newStartTime;
   m.endTime = newEndTime;
   m.status = 'confirmed';
+  m.invitedStudentIds = newInvited;
   m.confirmedByName = reviewer.name;
   m.confirmedByRole = reviewer.roleLabel;
   m.confirmedAt = nowIST();
   m.lastUpdate = todayStr();
   await saveCollection('meetings', state.meetings);
+  const invitePayload = (sid) => ({ studentId: sid, title: m.title, date: fmtDate(newDate), time: fmtTimeRange(newStartTime, newEndTime), reviewedByName: reviewer.name, reviewedByRole: reviewer.roleLabel });
   if(rescheduled){
-    apiNotify('meetingRescheduled', { studentId: m.studentId, title: m.title, date: fmtDate(newDate), time: fmtTimeRange(newStartTime, newEndTime), reviewedByName: reviewer.name, reviewedByRole: reviewer.roleLabel });
+    apiNotify('meetingRescheduled', invitePayload(m.studentId));
+    newInvited.forEach(sid => apiNotify('meetingRescheduled', invitePayload(sid)));
   } else if(!wasAlreadyConfirmed){
-    apiNotify('meetingConfirmed', { studentId: m.studentId, title: m.title, date: fmtDate(newDate), time: fmtTimeRange(newStartTime, newEndTime), reviewedByName: reviewer.name, reviewedByRole: reviewer.roleLabel });
+    apiNotify('meetingConfirmed', invitePayload(m.studentId));
+    newInvited.forEach(sid => apiNotify('meetingConfirmed', invitePayload(sid)));
+  } else {
+    // Nothing about the date/time changed and this wasn't a fresh
+    // confirmation — the only thing that could have changed is who's
+    // invited, so only the newly-added people need telling. Everyone
+    // already invited before already knows.
+    newlyAdded.forEach(sid => apiNotify('meetingConfirmed', invitePayload(sid)));
   }
   closeModal(); renderView();
 }
@@ -8574,6 +8616,32 @@ if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(() => { /* offline shell just won't be available — the app still works online */ });
   });
+}
+// Android install support. Chrome only fires beforeinstallprompt when the
+// site actually meets its installability criteria (manifest + service
+// worker + HTTPS) — so capturing it and revealing our own button is both
+// the trigger for showing "Install App" at all, and the only way to
+// actually invoke the native install dialog on demand instead of relying
+// on someone finding it buried in the browser's own menu.
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const btn = document.getElementById('installAppBtn');
+  if(btn) btn.style.display = '';
+});
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  const btn = document.getElementById('installAppBtn');
+  if(btn) btn.style.display = 'none';
+});
+async function installApp(){
+  if(!deferredInstallPrompt) return;
+  const btn = document.getElementById('installAppBtn');
+  if(btn) btn.style.display = 'none';
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
 }
 init();
 </script>
