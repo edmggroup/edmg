@@ -8624,6 +8624,22 @@ if('serviceWorker' in navigator){
 // actually invoke the native install dialog on demand instead of relying
 // on someone finding it buried in the browser's own menu.
 let deferredInstallPrompt = null;
+const isAlreadyInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+const isIOSSafari = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+if(isIOSSafari && !isAlreadyInstalled){
+  // iOS Safari never fires beforeinstallprompt and has no API to trigger
+  // installation programmatically — "Add to Home Screen" is only ever
+  // reachable through the manual Share-sheet flow. So instead of a button
+  // that would silently never work, this shows the actual steps.
+  window.addEventListener('load', () => {
+    const btn = document.getElementById('installAppBtn');
+    if(btn){
+      btn.style.display = '';
+      btn.textContent = '⬇ Install App';
+      btn.onclick = () => alert('To install: tap the Share button (square with an arrow) in Safari\'s toolbar, then choose "Add to Home Screen."');
+    }
+  });
+}
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredInstallPrompt = e;
