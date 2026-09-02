@@ -194,7 +194,11 @@
 
   .layout{ display:flex; align-items:flex-start; }
   .sidebar{ width:212px; flex-shrink:0; padding:14px 10px; position:sticky; top:57px; align-self:flex-start; background:var(--surface); border-right:1px solid var(--border); }
+  .mobile-menu-btn{ display:none; }
+  .sidebar-backdrop{ display:none; }
+  .sidebar-close-btn{ display:none; }
   .nav-group-label{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin:10px 8px 3px; }
+  .sidebar-identity{ display:none; }
   .nav-group-label:first-child{ margin-top:0; }
   .nav-item{
     display:flex; align-items:center; gap:9px; width:100%; text-align:left; padding:6px 9px; border-radius:6px;
@@ -422,19 +426,45 @@
     .modal-body{ padding:16px 18px 20px; }
     .view-header{ margin-bottom:16px; padding-bottom:14px; }
     .stat-card{ padding:14px 15px; }
-    .sidebar{ position:static; width:100%; height:auto; display:flex; flex-wrap:wrap; gap:6px; padding:12px 16px; border-right:none; border-bottom:1px solid var(--border); }
-    .nav-item{ white-space:nowrap; }
+    .mobile-menu-btn{
+      display:flex; align-items:center; justify-content:center; width:38px; height:38px; flex-shrink:0;
+      background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.18); border-radius:8px;
+      color:#fff; font-size:18px; cursor:pointer;
+    }
+    .sidebar{
+      position:fixed; top:0; left:0; height:100vh; width:80%; max-width:290px; z-index:300;
+      transform:translateX(-101%); transition:transform .22s ease; box-shadow:0 0 40px rgba(0,0,0,0.25);
+      overflow-y:auto; display:block; padding:16px 12px 24px; border-right:none;
+    }
+    body.sidebar-open .sidebar{ transform:translateX(0); }
+    .sidebar-close-btn{
+      display:none; position:fixed; top:8px; left:calc(min(80vw, 290px) - 50px); z-index:301; width:42px; height:42px; border-radius:8px;
+      background:rgba(0,0,0,0.06); border:none; font-size:24px; color:var(--ink-soft); cursor:pointer; line-height:1;
+    }
+    body.sidebar-open .sidebar-close-btn{ display:block; }
+    .sidebar-backdrop{
+      display:block; position:fixed; inset:0; background:rgba(15,20,32,0.5); z-index:290;
+      opacity:0; pointer-events:none; transition:opacity .22s ease;
+    }
+    body.sidebar-open{ overflow:hidden; }
+    body.sidebar-open .sidebar-backdrop{ opacity:1; pointer-events:auto; }
+    .nav-item{ white-space:nowrap; padding:14px 12px; font-size:15px; }
+    .nav-group-label{ font-size:11.5px; margin:18px 10px 6px; }
+    .sidebar-identity{ display:block; padding:6px 10px 14px; margin-bottom:6px; border-bottom:1px solid var(--border); }
+    .sidebar-identity-name{ font-size:15.5px; font-weight:600; color:var(--ink); }
+    .sidebar-identity-role{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
     main#main{ padding:20px 16px 48px; }
     .entry-grid{ grid-template-columns:1fr; }
     .items-grid-2col{ grid-template-columns:1fr; }
     .two-col{ grid-template-columns:1fr; }
     .report-table{ display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; }
     .report-table th, .report-table td{ white-space:nowrap; }
-    .topbar{ padding:12px 16px; flex-wrap:wrap; row-gap:10px; }
-    .brand{ flex:1 1 100%; }
+    .topbar{ padding:10px 14px; flex-wrap:wrap; row-gap:9px; }
+    .brand{ flex:1; min-width:0; }
     .brand-name{ font-size:15px; }
     .brand-subtitle{ display:none; }
-    .identity-pill{ order:2; flex:1 1 100%; justify-content:flex-start; }
+    .identity-pill{ flex-shrink:0; gap:2px; }
+    .identity-badge{ display:none; }
     .topbar-search{ order:3; flex:1 1 100%; max-width:100%; margin:0; }
     .overview-grid{ grid-template-columns:1fr; }
   }
@@ -446,6 +476,7 @@
 
 <div id="appShell">
   <div class="topbar">
+    <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Menu">☰</button>
     <div class="brand">
       <div class="brand-mark" style="padding:3px;"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="display:block; width:100%; height:100%;">
         <defs><linearGradient id="logoHexGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2A4A73"/><stop offset="100%" stop-color="#152A46"/></linearGradient></defs>
@@ -471,7 +502,9 @@
     </div>
   </div>
   <div class="layout">
+    <div class="sidebar-backdrop" onclick="toggleMobileSidebar(false)"></div>
     <nav class="sidebar" id="sidebar"></nav>
+    <button class="sidebar-close-btn" onclick="toggleMobileSidebar(false)" aria-label="Close menu">&times;</button>
     <main id="main"></main>
   </div>
 </div>
@@ -512,6 +545,15 @@ const state = {
   reminders: [],
   discussions: [],
   selectedDiscussionId: null,
+  // UI-only filter/view state. These were previously created on first
+  // assignment; declaring them here keeps the full state shape visible in
+  // one place and avoids depending on undefined-is-falsy at read time.
+  activityLogMonthFilter: 'all',
+  deletionLogMonthFilter: 'all',
+  consumableCategoryFilter: 'all',
+  reportSectionKey: null,
+  supervisorNotifyPrefs: {},
+  recentNotificationFailures: [],
   calendarMonth: null,
   plannerWeekStart: null,
   view: 'overview',
@@ -1317,7 +1359,13 @@ const NAV_GROUPS = [
   ]},
 ];
 function renderSidebar(){
-  document.getElementById('sidebar').innerHTML = NAV_GROUPS.map(group => `
+  const roleLabel = state.identity.role==='supervisor' ? 'Research Supervisor' : state.identity.role==='cosupervisor' ? 'Advisor / Co-Supervisor' : (myAdvisedProjectStudentIds_().length>0 ? 'Research Scholar · Advisor' : 'Research Scholar');
+  document.getElementById('sidebar').innerHTML = `
+    <div class="sidebar-identity">
+      <div class="sidebar-identity-name">${escapeHtml(state.identity.name || '')}</div>
+      <div class="sidebar-identity-role">${escapeHtml(roleLabel)}</div>
+    </div>
+  ` + NAV_GROUPS.map(group => `
     ${group.label ? `<div class="nav-group-label">${group.label}</div>` : ''}
     ${group.items.filter(item => (!item.supervisorOnly || isSupervisorLike() || (item.key==='approvals' && myAdvisedProjectStudentIds_().length>0)) && (!item.trueSupervisorOnly || isTrueSupervisor()) && (!item.studentOnly || state.identity.role==='student') && (!item.hideFromMentor || state.identity.role!=='cosupervisor') && (!item.advisorOnly || myAdvisedProjectStudentIds_().length>0)).map(item => `
       <button class="nav-item ${state.view===item.key?'active':''}" onclick="goView('${item.key}')">
@@ -1326,7 +1374,11 @@ function renderSidebar(){
     `).join('')}
   `).join('');
 }
-function goView(key){ state.view = key; renderSidebar(); renderView(); }
+function goView(key){ state.view = key; renderSidebar(); renderView(); document.body.classList.remove('sidebar-open'); }
+function toggleMobileSidebar(forceState){
+  const show = forceState !== undefined ? forceState : !document.body.classList.contains('sidebar-open');
+  document.body.classList.toggle('sidebar-open', show);
+}
 
 function renderView(){
   const main = document.getElementById('main');
