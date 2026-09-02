@@ -511,6 +511,7 @@ const state = {
   workDiary: [],
   reminders: [],
   discussions: [],
+  selectedDiscussionId: null,
   calendarMonth: null,
   plannerWeekStart: null,
   view: 'overview',
@@ -1267,7 +1268,7 @@ const NAV_ITEM_COLORS = {
   weekly:'var(--stat-blue)', workDiary:'var(--stat-blue)', myProjectStudents:'var(--stat-indigo)', fabrication:'var(--stat-teal)', samples:'var(--stat-cyan)', resultsAnalysis:'var(--stat-rose)', papers:'var(--stat-purple)',
   rac:'var(--stat-rose)', learning:'var(--stat-blue)', financial:'var(--stat-teal)', conferences:'var(--stat-rose)',
   patents:'var(--stat-indigo)', plagiarism:'var(--stat-cyan)', awards:'var(--stat-purple)', collaborators:'var(--stat-teal)',
-  meetings:'var(--stat-indigo)', events:'var(--stat-purple)', consumables:'var(--stat-cyan)', leave:'var(--warning)', instructions:'var(--navy)', links:'var(--stat-teal)', analytics:'var(--stat-blue)', activityLog:'var(--ink-faint)', deletionLog:'var(--danger)', projectStudentsAdmin:'var(--stat-indigo)', reports:'var(--navy)', account:'var(--ink-faint)'
+  meetings:'var(--stat-indigo)', events:'var(--stat-purple)', consumables:'var(--stat-cyan)', leave:'var(--warning)', instructions:'var(--navy)', links:'var(--stat-teal)', discussions:'var(--stat-purple)', analytics:'var(--stat-blue)', activityLog:'var(--ink-faint)', deletionLog:'var(--danger)', projectStudentsAdmin:'var(--stat-indigo)', reports:'var(--navy)', account:'var(--ink-faint)'
 };
 const NAV_GROUPS = [
   { items: [
@@ -1304,7 +1305,8 @@ const NAV_GROUPS = [
     { key:'events', label:'Events' },
     { key:'consumables', label:'Consumables', hideFromMentor:true },
     { key:'leave', label:'Leave / OD' },
-    { key:'instructions', label:'Discussions' },
+    { key:'instructions', label:'Information' },
+    { key:'discussions', label:'Discussions' },
     { key:'links', label:'News Update' },
     { key:'analytics', label:'Analytics' },
     { key:'activityLog', label:'Activity Log' },
@@ -1330,6 +1332,7 @@ function renderView(){
   const main = document.getElementById('main');
   if(state.view==='overview'){ main.innerHTML = viewOverview(); startLiveClock(); }
   else if(state.view==='links') main.innerHTML = viewLinks();
+  else if(state.view==='discussions') main.innerHTML = viewDiscussionsPage();
   else if(state.view==='analytics') main.innerHTML = viewAnalytics();
   else if(state.view==='activityLog') main.innerHTML = viewActivityLog();
   else if(state.view==='deletionLog') main.innerHTML = viewDeletionLog();
@@ -1583,42 +1586,67 @@ function scopedDiscussions_(){
   }
   return state.discussions.filter(d => !d.targetStudentIds || d.targetStudentIds.length===0 || d.targetStudentIds.includes(state.identity.id));
 }
-function discussionForumSectionHtml(){
+function viewDiscussionsPage(){
+  if(state.selectedDiscussionId) return discussionDetailHtml(state.selectedDiscussionId);
   const items = scopedDiscussions_().slice().sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
   return `
-    <h3 class="panel-title" style="margin:0 0 4px;"><span class="dot" style="background:var(--stat-purple);"></span>Discussion Forum</h3>
-    <div class="view-sub" style="margin-bottom:12px;">Share papers, reading suggestions, and open discussion. Anyone can start a topic; only supervisor and mentors can target one at specific scholars.</div>
-    <div class="entry-actions" style="margin-bottom:14px;"><button class="action-btn" onclick="openNewDiscussionModal()">+ New topic</button></div>
+    <div class="view-header">
+      <div>
+        <div class="view-title">Discussions</div>
+        <div class="view-sub">Share papers, reading suggestions, and open discussion. Anyone can start a topic; only supervisor and mentors can choose to keep one between just specific scholars.</div>
+      </div>
+      <button class="action-btn" onclick="openNewDiscussionModal()">+ New topic</button>
+    </div>
     ${items.length===0 ? emptyState('Nothing posted yet', 'Start a topic — share a paper, a reading suggestion, or a question.') :
       items.map(d=>{
         const targetNames = (d.targetStudentIds||[]).map(sid=>studentName(sid));
+        const replyCount = (d.replies||[]).length;
         return `
-        <div class="entry-card cat-purple" id="item-discussion-${d.id}">
+        <div class="entry-card cat-purple" style="cursor:pointer;" onclick="openDiscussionDetail('${d.id}')">
           <div class="entry-top">
             <div>
-              <div class="entry-title">${escapeHtml(d.title)}</div>
-              <div class="entry-meta">${escapeHtml(d.createdByName)} (${escapeHtml(d.createdByRole)}) · ${escapeHtml(d.createdAt)}${targetNames.length>0 ? ` · Shared with: ${targetNames.map(escapeHtml).join(', ')}` : ''}</div>
+              <div class="entry-title linkable">${escapeHtml(d.title)}</div>
+              <div class="entry-meta">${escapeHtml(d.createdByName)} (${escapeHtml(d.createdByRole)}) · ${escapeHtml(d.createdAt)} · ${targetNames.length>0 ? `With: ${targetNames.map(escapeHtml).join(', ')}` : 'Open to everyone'}</div>
             </div>
-            ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="guardedClick(this, ()=>deleteDiscussion('${d.id}'))">Delete</button>` : ''}
-          </div>
-          <div class="entry-block" style="margin-top:8px; white-space:pre-wrap;">${nl2br(d.message)}</div>
-          ${d.link ? `<div class="entry-meta" style="margin-top:4px;"><a href="${escapeHtml(d.link)}" target="_blank" rel="noopener noreferrer" class="task-link">${escapeHtml(d.link)}</a></div>` : ''}
-          ${d.replies && d.replies.length>0 ? `
-            <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px; border-top:1px solid var(--border); padding-top:10px;">
-              ${d.replies.map(r=>`
-                <div>
-                  <div class="entry-meta"><b>${escapeHtml(r.byName)}</b> (${escapeHtml(r.byRole)}) · ${escapeHtml(r.at)}</div>
-                  <div style="font-size:13.5px; white-space:pre-wrap;">${nl2br(r.text)}</div>
-                </div>
-              `).join('')}
-            </div>
-          ` : ''}
-          <div style="margin-top:10px;">
-            <textarea class="text-input" id="f_replyText-${d.id}" rows="2" placeholder="Write a reply… (Enter to send, Shift+Enter for a new line)" onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); submitDiscussionReply('${d.id}'); }"></textarea>
-            <div class="entry-actions" style="margin-top:6px;"><button class="small-btn" onclick="submitDiscussionReply('${d.id}')">Reply</button></div>
+            <span class="stamp neutral">${replyCount} repl${replyCount===1?'y':'ies'}</span>
           </div>
         </div>
       `;}).join('')}
+  `;
+}
+function openDiscussionDetail(id){ state.selectedDiscussionId = id; renderView(); }
+function backToDiscussionsList(){ state.selectedDiscussionId = null; renderView(); }
+function discussionDetailHtml(id){
+  const d = state.discussions.find(x=>x.id===id);
+  if(!d){ state.selectedDiscussionId = null; return viewDiscussionsPage(); }
+  const targetNames = (d.targetStudentIds||[]).map(sid=>studentName(sid));
+  return `
+    <div class="view-header">
+      <div>
+        <span class="task-link" onclick="backToDiscussionsList()">← All discussions</span>
+        <div class="view-title" style="margin-top:8px;">${escapeHtml(d.title)}</div>
+        <div class="view-sub">${escapeHtml(d.createdByName)} (${escapeHtml(d.createdByRole)}) · ${escapeHtml(d.createdAt)} · ${targetNames.length>0 ? `With: ${targetNames.map(escapeHtml).join(', ')}` : 'Open to everyone'}</div>
+      </div>
+      ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="guardedClick(this, ()=>deleteDiscussion('${d.id}'))">Delete</button>` : ''}
+    </div>
+    <div class="entry-card cat-purple">
+      <div class="entry-block" style="white-space:pre-wrap;">${nl2br(d.message)}</div>
+      ${d.link ? `<div class="entry-meta" style="margin-top:6px;"><a href="${escapeHtml(d.link)}" target="_blank" rel="noopener noreferrer" class="task-link">${escapeHtml(d.link)}</a></div>` : ''}
+      ${d.replies && d.replies.length>0 ? `
+        <div style="margin-top:14px; display:flex; flex-direction:column; gap:12px; border-top:1px solid var(--border); padding-top:12px;">
+          ${d.replies.map(r=>`
+            <div>
+              <div class="entry-meta"><b>${escapeHtml(r.byName)}</b> (${escapeHtml(r.byRole)}) · ${escapeHtml(r.at)}</div>
+              <div style="font-size:14px; white-space:pre-wrap;">${nl2br(r.text)}</div>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+      <div style="margin-top:14px;">
+        <textarea class="text-input" id="f_replyText-${d.id}" rows="2" placeholder="Write a reply… (Enter to send, Shift+Enter for a new line)" onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); submitDiscussionReply('${d.id}'); }"></textarea>
+        <div class="entry-actions" style="margin-top:6px;"><button class="small-btn" onclick="submitDiscussionReply('${d.id}')">Reply</button></div>
+      </div>
+    </div>
   `;
 }
 function openNewDiscussionModal(){
@@ -1626,30 +1654,45 @@ function openNewDiscussionModal(){
   showModal('New discussion topic', `
     <label class="field-label">Title</label>
     <input class="text-input" id="f_discTitle" placeholder="e.g. Interesting paper on electrode stability">
+    ${candidates.length>0 ? `
+      <label class="field-label">Who is this discussion with?</label>
+      <div style="display:flex; gap:20px; margin-bottom:4px;">
+        <label style="display:flex; align-items:center; gap:6px; font-size:13.5px; font-weight:400; text-transform:none; letter-spacing:0; cursor:pointer;">
+          <input type="radio" name="discAudience" value="everyone" checked onchange="toggleDiscTargetPicker(false)"> Anyone (open to everyone)
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13.5px; font-weight:400; text-transform:none; letter-spacing:0; cursor:pointer;">
+          <input type="radio" name="discAudience" value="specific" onchange="toggleDiscTargetPicker(true)"> A specific scholar(s)
+        </label>
+      </div>
+      <div id="discTargetPicker" style="display:none; margin:8px 0 14px;">
+        <div style="display:flex; flex-direction:column; gap:6px; max-height:180px; overflow-y:auto; border:1px solid var(--border-strong); border-radius:7px; padding:10px 12px;">
+          ${candidates.map(s=>`
+            <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:400; text-transform:none; letter-spacing:0; cursor:pointer;">
+              <input type="checkbox" class="f_discTarget" value="${s.id}"> ${escapeHtml(s.name)}${s.studentType==='project'?' (Project Student)':''}
+            </label>
+          `).join('')}
+        </div>
+      </div>
+    ` : ''}
     <label class="field-label">Link to paper or resource (optional)</label>
     <input type="url" class="text-input" id="f_discLink" placeholder="https://doi.org/... or any URL">
     <label class="field-label">Message</label>
     <textarea class="text-input" id="f_discMessage" rows="4" placeholder="What would you like to share or discuss?"></textarea>
-    ${candidates.length>0 ? `
-      <label class="field-label" style="margin-top:14px;">Share with (optional)</label>
-      <div class="view-sub" style="margin:0 0 8px;">Leave everyone unchecked to post it for the whole group. Select specific scholars to share it with just them instead.</div>
-      <div style="display:flex; flex-direction:column; gap:6px; max-height:180px; overflow-y:auto; border:1px solid var(--border-strong); border-radius:7px; padding:10px 12px;">
-        ${candidates.map(s=>`
-          <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:400; text-transform:none; letter-spacing:0; cursor:pointer;">
-            <input type="checkbox" class="f_discTarget" value="${s.id}"> ${escapeHtml(s.name)}${s.studentType==='project'?' (Project Student)':''}
-          </label>
-        `).join('')}
-      </div>
-    ` : ''}
   `, submitNewDiscussion);
+}
+function toggleDiscTargetPicker(show){
+  const el = document.getElementById('discTargetPicker');
+  if(el) el.style.display = show ? '' : 'none';
 }
 async function submitNewDiscussion(){
   const title = document.getElementById('f_discTitle').value.trim();
   const message = document.getElementById('f_discMessage').value.trim();
   if(!title || !message){ alert('Please add a title and a message.'); return; }
   const link = document.getElementById('f_discLink').value.trim();
-  const targetEl = document.querySelectorAll('.f_discTarget:checked');
-  const targetStudentIds = targetEl.length>0 ? Array.from(targetEl).map(el=>el.value) : [];
+  const audienceEl = document.querySelector('input[name="discAudience"]:checked');
+  const isSpecific = audienceEl && audienceEl.value === 'specific';
+  const targetStudentIds = isSpecific ? Array.from(document.querySelectorAll('.f_discTarget:checked')).map(el=>el.value) : [];
+  if(isSpecific && targetStudentIds.length===0){ alert('Please select at least one scholar, or choose "Anyone" instead.'); return; }
   const poster = reviewerIdentity(null);
   const newDiscussion = { id: uid('disc'), title, link, message, targetStudentIds, createdByName: state.identity.name, createdByRole: poster.roleLabel, createdById: state.identity.id, createdAt: nowIST(), replies: [] };
   state.discussions.push(newDiscussion);
@@ -1692,6 +1735,7 @@ async function deleteDiscussion(id){
   await saveCollection('discussions', state.discussions);
   state.deletionLog.push({ id: uid('del'), type:'discussion', title:d.title, studentId:null, deletedByName:state.identity.name, deletedByRole:reviewerIdentity(null).roleLabel, reason:reason.trim(), deletedAt: nowIST() });
   await saveCollection('deletion-log', state.deletionLog);
+  state.selectedDiscussionId = null;
   renderView();
 }
 function viewLinks(){
@@ -1919,14 +1963,11 @@ function viewInstructions(){
   return `
     <div class="view-header">
       <div>
-        <div class="view-title">Discussions</div>
-        <div class="view-sub">Share papers, reading suggestions, and open discussion — plus a dated log of instructions and directives.</div>
+        <div class="view-title">Information</div>
+        <div class="view-sub">${isSupervisorLike() ? 'A dated log of instructions and directives given to each student.' : 'Instructions your supervisor has logged for you.'}</div>
       </div>
+      ${isSupervisorLike() ? `<button class="action-btn" onclick="openInstructionModal()">+ Log instruction</button>` : ''}
     </div>
-    ${discussionForumSectionHtml()}
-    <h3 class="panel-title" style="margin:26px 0 4px;"><span class="dot" style="background:var(--navy);"></span>Instructions</h3>
-    <div class="view-sub" style="margin-bottom:12px;">${isSupervisorLike() ? 'A dated log of instructions and directives given to each student.' : 'Instructions your supervisor has logged for you.'}</div>
-    ${isSupervisorLike() ? `<div class="entry-actions" style="margin-bottom:14px;"><button class="action-btn" onclick="openInstructionModal()">+ Log instruction</button></div>` : ''}
     ${supervisorFilterBar()}
     ${list.length===0 ? emptyState('No instructions logged yet', isSupervisorLike() ? 'Log a directive or instruction here to keep a dated record for each student.' : "Your supervisor hasn't logged any instructions yet.") : list.map((ins,i)=>instructionCard(ins,i,list.length)).join('')}
   `;
@@ -1948,6 +1989,7 @@ function instructionCard(ins, i, total){
         </div>
       </div>
       <div class="entry-block">${nl2br(ins.text)}</div>
+      ${ins.link ? `<div class="entry-meta" style="margin-top:4px;"><a href="${escapeHtml(ins.link)}" target="_blank" rel="noopener noreferrer" class="task-link">${escapeHtml(ins.link)}</a></div>` : ''}
       <div class="entry-actions">
         <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--ink-soft);">
           <input type="checkbox" ${ins.done?'checked':''} onchange="toggleInstructionDone('${ins.id}')"> Mark as done
@@ -1976,6 +2018,8 @@ function openInstructionModal(){
     </div>
     <label class="field-label">Instruction</label>
     <textarea class="text-input" id="f_insText" rows="5" placeholder="e.g. Repeat the XRD scan at a slower step rate before submitting for Rietveld refinement."></textarea>
+    <label class="field-label">Link (optional)</label>
+    <input type="url" class="text-input" id="f_insLink" placeholder="https://... — a paper, reference, or resource">
   `, submitInstruction);
 }
 async function submitInstruction(){
@@ -1983,8 +2027,9 @@ async function submitInstruction(){
   const date = document.getElementById('f_insDate').value;
   const dueDate = document.getElementById('f_insDueDate').value;
   const text = document.getElementById('f_insText').value.trim();
+  const link = document.getElementById('f_insLink').value.trim();
   if(!studentId || !date || !text){ alert('Please fill in the research scholar, date, and instruction.'); return; }
-  state.instructions.push({ id: uid('ins'), studentId, date, dueDate, text, done:false, addedByName: state.identity.name });
+  state.instructions.push({ id: uid('ins'), studentId, date, dueDate, text, link, done:false, addedByName: state.identity.name });
   await saveCollection('instructions', state.instructions);
   const creator = reviewerIdentity(studentId);
   apiNotify('workItemCreated', { studentId, itemLabel: `an instruction: "${text}"`, addedByName: creator.name, addedByRole: creator.roleLabel, notifySupervisor: state.identity.role==='cosupervisor' });
@@ -2308,7 +2353,7 @@ const MOVE_TARGET_BUILDERS = {
   fabrication: { label:'Lab Work', needsDate:'start date', build:(studentId,title,dump,date)=>({ id:uid('fab'), studentId, title, itemName:title, stage:'planning', linkedPaperIds:[], startDate:date, targetDate:'', link:'', notes:dump, roadmap:[], approvalStatus:'changes_requested', supervisorNote:'', lastUpdate:todayStr() }) },
   proposal: { label:'Work Plan (Proposal)', needsDate:null, build:(studentId,title,dump)=>({ id:uid('pr'), studentId, title, objective:dump, methodology:'', expectedOutcomes:'', goals:[], linkedPaperIds:[], status:'changes_requested', supervisorNote:'', lastUpdate:todayStr() }) },
   rac: { label:'RAC Reviews', needsDate:'review date', build:(studentId,title,dump,date)=>({ id:uid('rac'), studentId, title, reviewDate:date, committeeMembers:'', comments:dump, actionItems:[], status:'changes_requested', supervisorNote:'', lastUpdate:todayStr() }) },
-  conference: { label:'Conferences', needsDate:'start date', build:(studentId,title,dump,date)=>({ id:uid('conf'), studentId, eventName:title, eventType:'Conference', role:'', presentationTitle:'', startDate:date, endDate:'', location:'', link:'', notes:dump, approvalStatus:'changes_requested', supervisorNote:'' }) },
+  conference: { label:'Conferences', needsDate:'start date', build:(studentId,title,dump,date)=>({ id:uid('conf'), studentId, eventName:title, eventType:'Conference', role:'', presentationTitle:'', startDate:date, endDate:'', location:'', abstractDeadline:'', registrationDeadline:'', registrationFee:'', accommodationCharges:'', link:'', notes:dump, approvalStatus:'changes_requested', supervisorNote:'' }) },
   financial: { label:'Proposals', needsDate:'application date', build:(studentId,title,dump,date)=>({ id:uid('fin'), studentId, title, type:'Other', hostInstitution:'', applicationDate:date, amount:'', link:'', notes:dump, resultDate:'', outcomeStatus:'awaiting_result', approvalStatus:'changes_requested', supervisorNote:'' }) },
   course: { label:'Learning & Courses', needsDate:'start date', build:(studentId,title,dump,date)=>({ id:uid('crs'), studentId, title, type:'Other', provider:'', startDate:date, endDate:'', status:'ongoing', certificateLink:'', notes:dump, approvalStatus:'changes_requested', supervisorNote:'' }) },
   analysis: { label:'Results Analysis', needsDate:null, build:(studentId,title,dump)=>({ id:uid('an'), studentId, title, targetDate:'', linkedSampleIds:[], linkedFabricationIds:[], linkedPaperIds:[], linkedThesisId:null, notes:dump, status:'not_started', approvalStatus:'changes_requested', supervisorNote:'', lastUpdate:todayStr() }) },
@@ -7694,6 +7739,10 @@ function conferenceCard(c, i, total){
       <div class="entry-grid">
         <div class="entry-block"><span class="lbl">Dates</span>${fmtDate(c.startDate)}${c.endDate ? ' – '+fmtDate(c.endDate) : ''}</div>
         ${c.presentationTitle ? `<div class="entry-block"><span class="lbl">Presentation title</span>${escapeHtml(c.presentationTitle)}</div>` : ''}
+        ${c.abstractDeadline ? `<div class="entry-block"><span class="lbl">Abstract deadline</span>${fmtDate(c.abstractDeadline)}</div>` : ''}
+        ${c.registrationDeadline ? `<div class="entry-block"><span class="lbl">Registration deadline</span>${fmtDate(c.registrationDeadline)}</div>` : ''}
+        ${c.registrationFee ? `<div class="entry-block"><span class="lbl">Registration fee</span>${escapeHtml(c.registrationFee)}</div>` : ''}
+        ${c.accommodationCharges ? `<div class="entry-block"><span class="lbl">Accommodation</span>${escapeHtml(c.accommodationCharges)}</div>` : ''}
         ${c.link ? `<div class="entry-block"><span class="lbl">Link</span><a href="${escapeHtml(c.link)}" target="_blank" rel="noopener">Open ↗</a></div>` : ''}
         ${c.notes ? `<div class="entry-block" style="grid-column:1/-1;"><span class="lbl">Notes</span>${nl2br(c.notes)}</div>` : ''}
       </div>
@@ -7738,6 +7787,22 @@ function conferenceFormFields(c){
     </div>
     <label class="field-label">Location (optional)</label>
     <input class="text-input" id="f_confLocation" value="${escapeHtml(c.location||'')}" placeholder="City, country, or online">
+    <div class="two-col">
+      <div><label class="field-label">Abstract submission deadline (optional)</label>
+        <input type="date" class="text-input" id="f_confAbstractDeadline" value="${c.abstractDeadline||''}">
+      </div>
+      <div><label class="field-label">Registration deadline (optional)</label>
+        <input type="date" class="text-input" id="f_confRegDeadline" value="${c.registrationDeadline||''}">
+      </div>
+    </div>
+    <div class="two-col">
+      <div><label class="field-label">Registration fee (optional)</label>
+        <input class="text-input" id="f_confRegFee" value="${escapeHtml(c.registrationFee||'')}" placeholder="e.g. ₹5,000 (student rate)">
+      </div>
+      <div><label class="field-label">Accommodation charges (optional)</label>
+        <input class="text-input" id="f_confAccommodation" value="${escapeHtml(c.accommodationCharges||'')}" placeholder="e.g. ₹2,000/night">
+      </div>
+    </div>
     <label class="field-label">Link (optional)</label>
     <input class="text-input" id="f_confLink" value="${escapeHtml(c.link||'')}" placeholder="Conference site, proceedings, or certificate link">
     <label class="field-label">Notes (optional)</label>
@@ -7760,6 +7825,10 @@ async function submitConference(){
     presentationTitle: document.getElementById('f_confPresTitle').value.trim(),
     startDate, endDate: document.getElementById('f_confEnd').value,
     location: document.getElementById('f_confLocation').value.trim(),
+    abstractDeadline: document.getElementById('f_confAbstractDeadline').value,
+    registrationDeadline: document.getElementById('f_confRegDeadline').value,
+    registrationFee: document.getElementById('f_confRegFee').value.trim(),
+    accommodationCharges: document.getElementById('f_confAccommodation').value.trim(),
     link: document.getElementById('f_confLink').value.trim(),
     notes: document.getElementById('f_confNotes').value.trim(),
     approvalStatus: isSupervisorLike() ? 'approved' : 'pending', supervisorNote:''
@@ -7789,6 +7858,10 @@ async function submitEditConference(id){
   c.startDate = startDate;
   c.endDate = document.getElementById('f_confEnd').value;
   c.location = document.getElementById('f_confLocation').value.trim();
+  c.abstractDeadline = document.getElementById('f_confAbstractDeadline').value;
+  c.registrationDeadline = document.getElementById('f_confRegDeadline').value;
+  c.registrationFee = document.getElementById('f_confRegFee').value.trim();
+  c.accommodationCharges = document.getElementById('f_confAccommodation').value.trim();
   c.link = document.getElementById('f_confLink').value.trim();
   c.notes = document.getElementById('f_confNotes').value.trim();
   if(state.identity.id === c.studentId){
