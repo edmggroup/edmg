@@ -189,7 +189,7 @@
   .search-result-meta{ font-size:11.5px; color:var(--ink-faint); margin-top:1px; }
   .identity-badge{ font-size:13.5px; padding:6px 13px; border-radius:20px; background:rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(255,255,255,0.14); }
   .identity-badge b{ font-weight:600; }
-  .switch-link{ font-size:12.5px; color:rgba(255,255,255,0.65); background:none; border:none; text-decoration:none; padding:4px; font-weight:500; }
+  .switch-link{ font-size:12.5px; color:rgba(255,255,255,0.65); background:none; border:none; text-decoration:none; padding:9px 10px; font-weight:500; border-radius:6px; }
   .switch-link:hover{ color:#fff; text-decoration:underline; }
 
   .layout{ display:flex; align-items:flex-start; }
@@ -296,7 +296,7 @@
   .planner-task span{ flex:1; word-break:break-word; }
   .planner-task-del{ background:none; border:none; color:var(--ink-faint); font-size:14px; cursor:pointer; padding:0 3px; line-height:1; }
   .planner-task-del:hover{ color:var(--danger); }
-  .planner-add-btn{ margin-top:auto; background:none; border:1px dashed var(--border-strong); border-radius:6px; padding:5px; font-size:11.5px; color:var(--ink-soft); cursor:pointer; }
+  .planner-add-btn{ margin-top:auto; background:none; border:1px dashed var(--border-strong); border-radius:6px; padding:10px; font-size:11.5px; color:var(--ink-soft); cursor:pointer; }
   .planner-add-btn:hover{ border-color:var(--navy); color:var(--navy); }
 
   @media (max-width: 860px){
@@ -342,6 +342,7 @@
   .entry-idx{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-faint); letter-spacing:.03em; text-transform:uppercase; }
   .entry-title{ font-family:'Inter', sans-serif; font-size:17px; font-weight:600; margin-top:3px; color:var(--ink); }
   .entry-title.linkable, .task-link{ cursor:pointer; }
+  .task-link{ display:inline-block; padding:6px 3px; margin:-6px -3px; }
   .entry-title.linkable:hover, .task-link:hover{ color:var(--navy); text-decoration:underline; }
   @keyframes flashHighlight{ 0%{ box-shadow:0 0 0 3px var(--navy); } 70%{ box-shadow:0 0 0 3px var(--navy); } 100%{ box-shadow:var(--shadow-sm); } }
   .flash-highlight{ animation: flashHighlight 1.7s ease; }
@@ -380,7 +381,7 @@
   @keyframes modalScaleIn{ from{ opacity:0; transform:scale(0.97) translateY(4px); } to{ opacity:1; transform:scale(1) translateY(0); } }
   .modal-head{ padding:20px 24px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
   .modal-head h3{ font-size:16px; font-weight:600; }
-  .modal-close{ background:none; border:none; font-size:20px; color:var(--ink-faint); line-height:1; padding:4px; border-radius:5px; transition:background .12s, color .12s; cursor:pointer; }
+  .modal-close{ background:none; border:none; font-size:22px; color:var(--ink-faint); line-height:1; padding:11px; border-radius:8px; transition:background .12s, color .12s; cursor:pointer; }
   .modal-close:hover{ background:var(--neutral-wash); color:var(--ink); }
   .modal-body{ padding:20px 24px 24px; }
   .modal-foot{ display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
@@ -415,6 +416,12 @@
   .overview-grid{ display:grid; grid-template-columns: 1fr 320px; gap:20px; align-items:start; }
   @media (max-width: 760px){
     .layout{ flex-direction:column; }
+    .entry-card{ padding:15px 16px; }
+    .modal-overlay{ padding:16px 10px; }
+    .modal-head{ padding:16px 18px 14px; }
+    .modal-body{ padding:16px 18px 20px; }
+    .view-header{ margin-bottom:16px; padding-bottom:14px; }
+    .stat-card{ padding:14px 15px; }
     .sidebar{ position:static; width:100%; height:auto; display:flex; flex-wrap:wrap; gap:6px; padding:12px 16px; border-right:none; border-bottom:1px solid var(--border); }
     .nav-item{ white-space:nowrap; }
     main#main{ padding:20px 16px 48px; }
@@ -503,6 +510,7 @@ const state = {
   consumables: [],
   workDiary: [],
   reminders: [],
+  discussions: [],
   calendarMonth: null,
   plannerWeekStart: null,
   view: 'overview',
@@ -658,14 +666,49 @@ async function apiNotify(type, payload){
       body: JSON.stringify({ action:'notify', type, payload, appKey: APP_KEY })
     });
     const json = await res.json().catch(()=>({}));
-    if(!json.ok){ console.error('Notification failed (backend reported an error):', type, json.error); }
-  }catch(e){ console.error('Notification failed to send (network/fetch error)', type, e); }
+    if(!json.ok){
+      console.error('Notification failed (backend reported an error):', type, json.error);
+      flagNotificationFailure_(type, json.error);
+    }
+  }catch(e){
+    console.error('Notification failed to send (network/fetch error)', type, e);
+    flagNotificationFailure_(type, String(e));
+  }
+}
+// Errors were only ever visible in the browser's DevTools console before —
+// meaning a non-technical supervisor would never actually see an email
+// silently failing (a common real cause: Google's daily send quota being
+// exhausted on a busy day). This surfaces it as a small, dismissible
+// indicator instead, so a pattern of failures actually gets noticed.
+function flagNotificationFailure_(type, errorMsg){
+  if(state.identity.role!=='supervisor') return;
+  state.recentNotificationFailures = state.recentNotificationFailures || [];
+  state.recentNotificationFailures.unshift({ type, errorMsg, at: nowIST() });
+  state.recentNotificationFailures = state.recentNotificationFailures.slice(0, 5);
+  renderNotificationFailureBanner_();
+}
+function renderNotificationFailureBanner_(){
+  let el = document.getElementById('notifFailureBanner');
+  const failures = state.recentNotificationFailures || [];
+  if(failures.length===0){ if(el) el.remove(); return; }
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'notifFailureBanner';
+    el.style.cssText = 'position:fixed; bottom:16px; right:16px; max-width:340px; background:var(--danger); color:#fff; padding:12px 16px; border-radius:8px; box-shadow:var(--shadow-md); z-index:500; font-size:13px;';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `
+    <div style="display:flex; justify-content:space-between; gap:8px; align-items:flex-start;">
+      <div><b>${failures.length} email notification(s) failed to send.</b> This often means the daily send quota is exhausted. Try "Send test email" in Account for details.</div>
+      <button onclick="document.getElementById('notifFailureBanner').remove(); state.recentNotificationFailures=[];" style="background:none; border:none; color:#fff; font-size:16px; cursor:pointer; flex-shrink:0;">&times;</button>
+    </div>
+  `;
 }
 async function apiTestEmail(to){
   try{
     const res = await fetch(DATA_API_URL, {
       method: 'POST',
-      body: JSON.stringify({ action:'testEmail', to, appKey: APP_KEY })
+      body: JSON.stringify({ action:'testEmail', to, name: state.identity.name, appKey: APP_KEY })
     });
     const json = await res.json().catch(()=>({}));
     if(json.ok){
@@ -699,7 +742,7 @@ async function saveSupervisorProfile(profile){
 
 /* ============================ INIT ============================ */
 // Every collection key the app needs at startup, fetched in one batched request.
-const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','deletion-log','news-updates','patents','plagiarism-reports','awards','collaborators','leave-records','activity-log-exclusions','consumables','work-diary','reminders','supervisor-pin'];
+const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','deletion-log','news-updates','patents','plagiarism-reports','awards','collaborators','leave-records','activity-log-exclusions','consumables','work-diary','reminders','discussions','supervisor-pin'];
 
 async function init(){
   if(!backendConfigured()){
@@ -762,6 +805,7 @@ function applyDataValues(values){
   state.consumables = arr('consumables');
   state.workDiary = arr('work-diary');
   state.reminders = arr('reminders');
+  state.discussions = arr('discussions');
   let supervisorProfile = {};
   try{ supervisorProfile = values['supervisor-pin'] ? JSON.parse(values['supervisor-pin']) : {}; }catch(e){ supervisorProfile = {}; }
   state.supervisorPinHash = supervisorProfile.hash || null;
@@ -1260,7 +1304,7 @@ const NAV_GROUPS = [
     { key:'events', label:'Events' },
     { key:'consumables', label:'Consumables', hideFromMentor:true },
     { key:'leave', label:'Leave / OD' },
-    { key:'instructions', label:'Instructions' },
+    { key:'instructions', label:'Discussions' },
     { key:'links', label:'News Update' },
     { key:'analytics', label:'Analytics' },
     { key:'activityLog', label:'Activity Log' },
@@ -1524,6 +1568,132 @@ function viewAnalytics(){
     </div>
   `;
 }
+/* ============================ DISCUSSION FORUM ============================ */
+// A shared space for sharing papers, reading suggestions, and open
+// discussion — anyone can start a topic. Supervisor and mentors additionally
+// get the option to target a topic at specific scholars, so it's only ever
+// visible to them (plus staff) instead of the whole group — matching "with
+// specific scholars at all times" from how this was asked for. Untargeted
+// topics work like a normal open forum, visible to everyone.
+function scopedDiscussions_(){
+  if(state.identity.role === 'supervisor') return state.discussions;
+  if(state.identity.role === 'cosupervisor'){
+    const ids = assignedStudentIds();
+    return state.discussions.filter(d => !d.targetStudentIds || d.targetStudentIds.length===0 || d.targetStudentIds.some(sid=>ids.includes(sid)));
+  }
+  return state.discussions.filter(d => !d.targetStudentIds || d.targetStudentIds.length===0 || d.targetStudentIds.includes(state.identity.id));
+}
+function discussionForumSectionHtml(){
+  const items = scopedDiscussions_().slice().sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+  return `
+    <h3 class="panel-title" style="margin:0 0 4px;"><span class="dot" style="background:var(--stat-purple);"></span>Discussion Forum</h3>
+    <div class="view-sub" style="margin-bottom:12px;">Share papers, reading suggestions, and open discussion. Anyone can start a topic; only supervisor and mentors can target one at specific scholars.</div>
+    <div class="entry-actions" style="margin-bottom:14px;"><button class="action-btn" onclick="openNewDiscussionModal()">+ New topic</button></div>
+    ${items.length===0 ? emptyState('Nothing posted yet', 'Start a topic — share a paper, a reading suggestion, or a question.') :
+      items.map(d=>{
+        const targetNames = (d.targetStudentIds||[]).map(sid=>studentName(sid));
+        return `
+        <div class="entry-card cat-purple" id="item-discussion-${d.id}">
+          <div class="entry-top">
+            <div>
+              <div class="entry-title">${escapeHtml(d.title)}</div>
+              <div class="entry-meta">${escapeHtml(d.createdByName)} (${escapeHtml(d.createdByRole)}) · ${escapeHtml(d.createdAt)}${targetNames.length>0 ? ` · Shared with: ${targetNames.map(escapeHtml).join(', ')}` : ''}</div>
+            </div>
+            ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="guardedClick(this, ()=>deleteDiscussion('${d.id}'))">Delete</button>` : ''}
+          </div>
+          <div class="entry-block" style="margin-top:8px; white-space:pre-wrap;">${nl2br(d.message)}</div>
+          ${d.link ? `<div class="entry-meta" style="margin-top:4px;"><a href="${escapeHtml(d.link)}" target="_blank" rel="noopener noreferrer" class="task-link">${escapeHtml(d.link)}</a></div>` : ''}
+          ${d.replies && d.replies.length>0 ? `
+            <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px; border-top:1px solid var(--border); padding-top:10px;">
+              ${d.replies.map(r=>`
+                <div>
+                  <div class="entry-meta"><b>${escapeHtml(r.byName)}</b> (${escapeHtml(r.byRole)}) · ${escapeHtml(r.at)}</div>
+                  <div style="font-size:13.5px; white-space:pre-wrap;">${nl2br(r.text)}</div>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+          <div style="margin-top:10px;">
+            <textarea class="text-input" id="f_replyText-${d.id}" rows="2" placeholder="Write a reply… (Enter to send, Shift+Enter for a new line)" onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); submitDiscussionReply('${d.id}'); }"></textarea>
+            <div class="entry-actions" style="margin-top:6px;"><button class="small-btn" onclick="submitDiscussionReply('${d.id}')">Reply</button></div>
+          </div>
+        </div>
+      `;}).join('')}
+  `;
+}
+function openNewDiscussionModal(){
+  const candidates = isSupervisorLike() ? visibleStudentsForIdentity() : [];
+  showModal('New discussion topic', `
+    <label class="field-label">Title</label>
+    <input class="text-input" id="f_discTitle" placeholder="e.g. Interesting paper on electrode stability">
+    <label class="field-label">Link to paper or resource (optional)</label>
+    <input type="url" class="text-input" id="f_discLink" placeholder="https://doi.org/... or any URL">
+    <label class="field-label">Message</label>
+    <textarea class="text-input" id="f_discMessage" rows="4" placeholder="What would you like to share or discuss?"></textarea>
+    ${candidates.length>0 ? `
+      <label class="field-label" style="margin-top:14px;">Share with (optional)</label>
+      <div class="view-sub" style="margin:0 0 8px;">Leave everyone unchecked to post it for the whole group. Select specific scholars to share it with just them instead.</div>
+      <div style="display:flex; flex-direction:column; gap:6px; max-height:180px; overflow-y:auto; border:1px solid var(--border-strong); border-radius:7px; padding:10px 12px;">
+        ${candidates.map(s=>`
+          <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:400; text-transform:none; letter-spacing:0; cursor:pointer;">
+            <input type="checkbox" class="f_discTarget" value="${s.id}"> ${escapeHtml(s.name)}${s.studentType==='project'?' (Project Student)':''}
+          </label>
+        `).join('')}
+      </div>
+    ` : ''}
+  `, submitNewDiscussion);
+}
+async function submitNewDiscussion(){
+  const title = document.getElementById('f_discTitle').value.trim();
+  const message = document.getElementById('f_discMessage').value.trim();
+  if(!title || !message){ alert('Please add a title and a message.'); return; }
+  const link = document.getElementById('f_discLink').value.trim();
+  const targetEl = document.querySelectorAll('.f_discTarget:checked');
+  const targetStudentIds = targetEl.length>0 ? Array.from(targetEl).map(el=>el.value) : [];
+  const poster = reviewerIdentity(null);
+  const newDiscussion = { id: uid('disc'), title, link, message, targetStudentIds, createdByName: state.identity.name, createdByRole: poster.roleLabel, createdById: state.identity.id, createdAt: nowIST(), replies: [] };
+  state.discussions.push(newDiscussion);
+  await saveCollection('discussions', state.discussions);
+  if(targetStudentIds.length>0){
+    targetStudentIds.forEach(sid => apiNotify('discussionShared', { studentId: sid, title, sharedByName: state.identity.name, sharedByRole: poster.roleLabel }));
+  }
+  closeModal(); renderView();
+}
+async function submitDiscussionReply(id){
+  const d = state.discussions.find(x=>x.id===id);
+  const text = document.getElementById('f_replyText-'+id).value.trim();
+  if(!text){ alert('Please write a reply.'); return; }
+  const replier = reviewerIdentity(null);
+  if(!d.replies) d.replies = [];
+  d.replies.push({ id: uid('reply'), text, byName: state.identity.name, byRole: replier.roleLabel, byId: state.identity.id, at: nowIST() });
+  await saveCollection('discussions', state.discussions);
+  // Notify the original poster and everyone else who's replied so far, so
+  // a conversation doesn't quietly go unnoticed — but never notify anyone
+  // about their own reply. Restricted to participants who are actually
+  // students: the backend resolves an email by looking up a studentId in
+  // the students list specifically, so a supervisor's or mentor's own
+  // identity.id would never resolve there and the notification would
+  // silently go nowhere — exactly the kind of gap worth avoiding here.
+  const notifyIds = new Set();
+  const isStudentId = (sid) => state.students.some(s=>s.id===sid);
+  if(d.createdById && d.createdById !== state.identity.id && isStudentId(d.createdById)) notifyIds.add(d.createdById);
+  d.replies.forEach(r=>{ if(r.byId && r.byId !== state.identity.id && isStudentId(r.byId)) notifyIds.add(r.byId); });
+  notifyIds.forEach(uid_ => apiNotify('discussionReplied', { studentId: uid_, title: d.title, repliedByName: state.identity.name, repliedByRole: replier.roleLabel }));
+  document.getElementById('f_replyText-'+id).value = '';
+  renderView();
+}
+async function deleteDiscussion(id){
+  const d = state.discussions.find(x=>x.id===id);
+  if(!d) return;
+  const reason = prompt(`Reason for deleting "${d.title}"? (required — this will be logged)`, '');
+  if(reason === null) return;
+  if(!reason.trim()){ alert('A reason is required.'); return; }
+  state.discussions = state.discussions.filter(x=>x.id!==id);
+  await saveCollection('discussions', state.discussions);
+  state.deletionLog.push({ id: uid('del'), type:'discussion', title:d.title, studentId:null, deletedByName:state.identity.name, deletedByRole:reviewerIdentity(null).roleLabel, reason:reason.trim(), deletedAt: nowIST() });
+  await saveCollection('deletion-log', state.deletionLog);
+  renderView();
+}
 function viewLinks(){
   const items = state.newsUpdates.slice().sort((a,b)=> (b.postedAt||'').localeCompare(a.postedAt||''));
   return `
@@ -1749,11 +1919,14 @@ function viewInstructions(){
   return `
     <div class="view-header">
       <div>
-        <div class="view-title">Instructions</div>
-        <div class="view-sub">${isSupervisorLike() ? 'A dated log of instructions and directives given to each student.' : 'Instructions your supervisor has logged for you.'}</div>
+        <div class="view-title">Discussions</div>
+        <div class="view-sub">Share papers, reading suggestions, and open discussion — plus a dated log of instructions and directives.</div>
       </div>
-      ${isSupervisorLike() ? `<button class="action-btn" onclick="openInstructionModal()">+ Log instruction</button>` : ''}
     </div>
+    ${discussionForumSectionHtml()}
+    <h3 class="panel-title" style="margin:26px 0 4px;"><span class="dot" style="background:var(--navy);"></span>Instructions</h3>
+    <div class="view-sub" style="margin-bottom:12px;">${isSupervisorLike() ? 'A dated log of instructions and directives given to each student.' : 'Instructions your supervisor has logged for you.'}</div>
+    ${isSupervisorLike() ? `<div class="entry-actions" style="margin-bottom:14px;"><button class="action-btn" onclick="openInstructionModal()">+ Log instruction</button></div>` : ''}
     ${supervisorFilterBar()}
     ${list.length===0 ? emptyState('No instructions logged yet', isSupervisorLike() ? 'Log a directive or instruction here to keep a dated record for each student.' : "Your supervisor hasn't logged any instructions yet.") : list.map((ins,i)=>instructionCard(ins,i,list.length)).join('')}
   `;
@@ -3742,7 +3915,7 @@ async function submitResetAllData(){
   state.thesisPlans = []; state.racReviews = []; state.financialApps = []; state.courses = []; state.fabricationItems = [];
   state.events = []; state.resultsAnalysis = []; state.deletionLog = []; state.newsUpdates = [];
   state.patents = []; state.plagiarismReports = []; state.awards = []; state.collaborators = []; state.leaveRecords = [];
-  state.activityLogExclusions = []; state.consumables = []; state.workDiary = []; state.reminders = []; state.filterStudentId = 'all';
+  state.activityLogExclusions = []; state.consumables = []; state.workDiary = []; state.reminders = []; state.discussions = []; state.filterStudentId = 'all';
 
   await Promise.all([
     saveCollection('students', state.students), saveCollection('weekly-reports', state.weekly),
@@ -3760,6 +3933,7 @@ async function submitResetAllData(){
     saveCollection('consumables', state.consumables),
     saveCollection('work-diary', state.workDiary),
     saveCollection('reminders', state.reminders),
+    saveCollection('discussions', state.discussions),
     saveCollection('activity-log-exclusions', state.activityLogExclusions)
   ]);
 
@@ -3818,6 +3992,7 @@ function downloadBackup(){
     consumables: state.consumables,
     workDiary: scopedList(state.workDiary),
     reminders: state.reminders,
+    discussions: state.discussions,
     activityLogExclusions: state.activityLogExclusions,
     newsUpdates: state.newsUpdates,
     patents: scopedList(state.patents),
@@ -3875,6 +4050,7 @@ function handleRestoreFile(event){
     state.consumables = Array.isArray(parsed.consumables) ? parsed.consumables : state.consumables;
     state.workDiary = Array.isArray(parsed.workDiary) ? parsed.workDiary : state.workDiary;
     state.reminders = Array.isArray(parsed.reminders) ? parsed.reminders : state.reminders;
+    state.discussions = Array.isArray(parsed.discussions) ? parsed.discussions : state.discussions;
     state.activityLogExclusions = Array.isArray(parsed.activityLogExclusions) ? parsed.activityLogExclusions : state.activityLogExclusions;
     state.newsUpdates = Array.isArray(parsed.newsUpdates) ? parsed.newsUpdates : state.newsUpdates;
     state.patents = Array.isArray(parsed.patents) ? parsed.patents : state.patents;
@@ -3909,6 +4085,7 @@ function handleRestoreFile(event){
       saveCollection('consumables', state.consumables),
       saveCollection('work-diary', state.workDiary),
       saveCollection('reminders', state.reminders),
+      saveCollection('discussions', state.discussions),
       saveCollection('activity-log-exclusions', state.activityLogExclusions),
       saveCollection('news-updates', state.newsUpdates),
       saveCollection('patents', state.patents),
@@ -4409,7 +4586,7 @@ function goalRow(pr, g, canEdit, canManage, isOwner){
         <input type="checkbox" ${g.done?'checked':''} ${canManage || isOwner ? '' : 'disabled'} onchange="toggleProposalGoal('${pr.id}','${g.id}')">
         <span style="flex:1; font-size:13.5px; ${g.done?'text-decoration:line-through; color:var(--ink-faint);':''}">${escapeHtml(g.text)}</span>
         ${overdue ? `<span class="stamp bad" style="padding:2px 8px; font-size:10px;">Overdue</span>` : ''}
-        ${canEdit ? `<button class="small-btn" style="padding:1px 7px; font-size:11px;" onclick="deleteProposalGoal('${pr.id}','${g.id}')">Remove</button>` : ''}
+        ${canEdit ? `<button class="small-btn" style="padding:7px 11px; font-size:11.5px;" onclick="deleteProposalGoal('${pr.id}','${g.id}')">Remove</button>` : ''}
       </div>
       ${(g.startDate || g.targetDate) ? `
         <div style="display:flex; align-items:center; gap:8px; margin-top:7px;">
@@ -4742,16 +4919,16 @@ function thesisCard(tp, i, total){
                   <span style="flex:1; min-width:140px; font-size:13.5px;">${escapeHtml(c.title)}</span>
                   ${linkedPaper ? `<span class="entry-meta">→ ${escapeHtml(linkedPaper.title)} (${escapeHtml(linkedPaper.stage)})</span>` : `<span class="entry-meta">No paper linked</span>`}
                   ${c.targetDate ? `<span class="entry-meta mono">Target: ${fmtDate(c.targetDate)}</span>` : ''}
-                  ${canEdit ? `<button class="small-btn" style="padding:1px 7px; font-size:11px;" onclick="openEditChapterDateModal('${tp.id}','${c.id}')">Edit date</button>` : ''}
+                  ${canEdit ? `<button class="small-btn" style="padding:7px 11px; font-size:11.5px;" onclick="openEditChapterDateModal('${tp.id}','${c.id}')">Edit date</button>` : ''}
                   ${canEdit ? `
-                    <select class="small-btn" style="padding:2px 6px; font-size:11px;" onchange="setThesisChapterStatus('${tp.id}','${c.id}', this.value)">
+                    <select class="small-btn" style="padding:7px 10px; font-size:16px;" onchange="setThesisChapterStatus('${tp.id}','${c.id}', this.value)">
                       <option value="not_started" ${c.status==='not_started'?'selected':''}>Not started</option>
                       <option value="in_progress" ${c.status==='in_progress'?'selected':''}>In progress</option>
                       <option value="done" ${c.status==='done'?'selected':''}>Done</option>
                     </select>
                   ` : `<span class="stamp ${chSt.cls}" style="padding:2px 8px; font-size:10px;">${chSt.label}</span>`}
                   ${chOverdue ? `<span class="stamp bad" style="padding:2px 8px; font-size:10px;">Overdue</span>` : ''}
-                  ${canEdit ? `<button class="small-btn" style="padding:1px 7px; font-size:11px;" onclick="deleteThesisChapter('${tp.id}','${c.id}')">Remove</button>` : ''}
+                  ${canEdit ? `<button class="small-btn" style="padding:7px 11px; font-size:11.5px;" onclick="deleteThesisChapter('${tp.id}','${c.id}')">Remove</button>` : ''}
                 </div>
               `;
             }).join('')}
@@ -5038,7 +5215,7 @@ function racActionItemRow(r, it, canEdit, canManage, isOwner){
         <input type="checkbox" ${it.done?'checked':''} ${canManage || isOwner ? '' : 'disabled'} onchange="toggleRacActionItem('${r.id}','${it.id}')">
         <span style="flex:1; font-size:13.5px; ${it.done?'text-decoration:line-through; color:var(--ink-faint);':''}">${escapeHtml(it.text)}</span>
         ${overdue ? `<span class="stamp bad" style="padding:2px 8px; font-size:10px;">Overdue</span>` : ''}
-        ${canEdit ? `<button class="small-btn" style="padding:1px 7px; font-size:11px;" onclick="deleteRacActionItem('${r.id}','${it.id}')">Remove</button>` : ''}
+        ${canEdit ? `<button class="small-btn" style="padding:7px 11px; font-size:11.5px;" onclick="deleteRacActionItem('${r.id}','${it.id}')">Remove</button>` : ''}
       </div>
       ${it.targetDate ? `<div class="entry-meta mono" style="font-size:11px; margin-top:6px;">Target: ${fmtDate(it.targetDate)}</div>` : ''}
     </div>
@@ -5676,7 +5853,7 @@ function fabricationCard(it, i, total){
               <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; padding:7px 2px; border-top:1px solid var(--border);">
                 <input type="checkbox" ${s.done?'checked':''} ${canManage||isOwner?'':'disabled'} onchange="toggleFabricationStep('${it.id}','${s.id}')">
                 <span style="flex:1; ${s.done?'text-decoration:line-through; color:var(--ink-faint);':''}">${escapeHtml(s.text)}</span>
-                ${canEdit ? `<button class="small-btn" style="padding:1px 7px; font-size:11px;" onclick="deleteFabricationStep('${it.id}','${s.id}')">Remove</button>` : ''}
+                ${canEdit ? `<button class="small-btn" style="padding:7px 11px; font-size:11.5px;" onclick="deleteFabricationStep('${it.id}','${s.id}')">Remove</button>` : ''}
               </label>
             `).join('')}
           </div>
@@ -6185,7 +6362,7 @@ function remindersWidgetHtml(){
         items.map((r,idx)=>`
           <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 2px; ${idx>0?'border-top:1px solid var(--border);':''}">
             <span style="font-size:13.5px;">${escapeHtml(r.text)}</span>
-            <button class="small-btn" style="flex-shrink:0; padding:3px 9px; font-size:12px;" onclick="deleteReminder('${r.id}')">✕</button>
+            <button class="small-btn" style="flex-shrink:0; padding:10px 14px; font-size:13px;" onclick="deleteReminder('${r.id}')">✕</button>
           </div>
         `).join('')}
     </div>
@@ -7173,7 +7350,7 @@ function paperCard(p, i, total){
             ${refLinks.map(l=>`
               <li style="margin-bottom:3px; font-size:13.5px;">
                 <a href="${escapeHtml(l.url)}" target="_blank" rel="noopener">${escapeHtml(l.label || l.url)}</a>
-                ${canEdit ? `<button class="small-btn" style="padding:1px 7px; font-size:11px; margin-left:6px;" onclick="deleteReferenceLink('${p.id}','${l.id}')">Remove</button>` : ''}
+                ${canEdit ? `<button class="small-btn" style="padding:7px 11px; font-size:11.5px; margin-left:6px;" onclick="deleteReferenceLink('${p.id}','${l.id}')">Remove</button>` : ''}
               </li>
             `).join('')}
           </ul>
@@ -7736,6 +7913,7 @@ function meetingCard(m, i, total){
       ${isOwner && m.status!=='proposed' ? `<div class="entry-meta" style="margin-top:6px;">Confirmed items can only be changed or cancelled by your supervisor.</div>` : ''}
       ${statusHistoryHtml(m)}
       <div class="entry-actions">
+        ${canManage ? `<button class="small-btn" onclick="openEditMeetingModal('${m.id}')">Edit</button>` : ''}
         ${canManage && (m.status==='proposed'||m.status==='confirmed') ? `<button class="small-btn" onclick="openConfirmMeetingModal('${m.id}')">${m.status==='confirmed' ? 'Reschedule' : 'Confirm'}</button>` : ''}
         ${canManage && (m.status==='proposed'||m.status==='confirmed') ? `<button class="small-btn" onclick="openCompleteMeetingModal('${m.id}')">Mark completed</button>` : ''}
         ${canManage && (m.status==='proposed'||m.status==='confirmed') ? `<button class="small-btn danger" onclick="openCancelMeetingModal('${m.id}')">Cancel</button>` : ''}
@@ -7843,6 +8021,35 @@ function openConfirmMeetingModal(id){
       </div>
     ` : ''}
   `, ()=>submitConfirmMeeting(id));
+}
+// Fixes a real gap: Confirm/Reschedule only ever touched date, time, and
+// invitees — there was no way for staff to correct a typo in the title,
+// type, or agenda once a meeting existed. Kept as its own separate action
+// rather than folded into Confirm, so "Edit" and "Reschedule" each do one
+// clear thing instead of one button doing everything.
+function openEditMeetingModal(id){
+  const m = state.meetings.find(x=>x.id===id);
+  showModal('Edit meeting details', `
+    <label class="field-label">Type</label>
+    <select class="text-input" id="f_editMeetType">${MEETING_TYPES.map(t=>`<option value="${t}" ${m.type===t?'selected':''}>${t}</option>`).join('')}</select>
+    <label class="field-label">Title / topic</label>
+    <input class="text-input" id="f_editMeetTitle" value="${escapeHtml(m.title)}">
+    <label class="field-label">Agenda / discussion points (optional)</label>
+    <textarea class="text-input" id="f_editMeetAgenda" rows="4">${escapeHtml(m.agenda||'')}</textarea>
+    <div class="view-sub" style="margin-top:8px;">This only fixes the wording — it doesn't change the date, time, or who's invited.</div>
+  `, ()=>submitEditMeetingDetails(id));
+}
+async function submitEditMeetingDetails(id){
+  const m = state.meetings.find(x=>x.id===id);
+  const title = document.getElementById('f_editMeetTitle').value.trim();
+  if(!title){ alert('Please add a title.'); return; }
+  m.type = document.getElementById('f_editMeetType').value;
+  m.title = title;
+  m.agenda = document.getElementById('f_editMeetAgenda').value.trim();
+  m.lastUpdate = todayStr();
+  await saveCollection('meetings', state.meetings);
+  logStaffEdit_(m, title, 'meeting');
+  closeModal(); renderView();
 }
 async function submitConfirmMeeting(id){
   const m = state.meetings.find(x=>x.id===id);
