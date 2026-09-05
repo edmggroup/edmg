@@ -792,6 +792,7 @@ async function init(){
     renderSetupNeeded();
     return;
   }
+  pruneOldDrafts_();
 
   // Speed: show cached data (from the last successful load on this device)
   // instantly if we have it, while a fresh network fetch happens in the
@@ -801,7 +802,7 @@ async function init(){
   const cached = loadLocalCache();
   if(cached){
     applyDataValues(cached);
-    renderLogin();
+    if(restoreSessionIfValid()) showApp(); else renderLogin();
   } else {
     renderLoginLoading();
   }
@@ -812,7 +813,9 @@ async function init(){
     saveLocalCache(values);
     // Only re-render the login screen if we're still on it — never clobber
     // an in-progress app session if this background refresh lands late.
-    if(!state.identity) renderLogin();
+    if(!state.identity){
+      if(restoreSessionIfValid()) showApp(); else renderLogin();
+    }
   }catch(e){
     console.error('Failed to load from backend', e);
     if(!cached) renderBackendError(e); // if we had cached data on screen already, a transient network hiccup shouldn't rip it away
@@ -865,6 +868,54 @@ function loadLocalCache(){
 }
 function saveLocalCache(values){
   try{ localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(values)); }catch(e){ /* quota or storage unavailable — fine, cache is a bonus not a requirement */ }
+}
+
+/* ============================ SESSION ============================ */
+// Keeps someone logged in across a page refresh instead of asking for the
+// PIN every time. Only the identity (role, id, name) is stored — never the
+// PIN or its hash — and it expires after 3 hours, so a shared or forgotten
+// device doesn't stay open indefinitely. Signing out clears it immediately.
+const SESSION_KEY = 'rgms-session-v1';
+const SESSION_MAX_AGE_MS = 3 * 60 * 60 * 1000;
+function saveSession(){
+  try{
+    if(!state.identity) return;
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ identity: state.identity, at: Date.now() }));
+  }catch(e){ /* storage unavailable — session just won't persist, login still works */ }
+}
+function loadSession(){
+  try{
+    const raw = localStorage.getItem(SESSION_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    if(!parsed || !parsed.identity || !parsed.at) return null;
+    if(Date.now() - parsed.at > SESSION_MAX_AGE_MS){ clearSession(); return null; }
+    return parsed.identity;
+  }catch(e){ return null; }
+}
+function clearSession(){
+  try{ localStorage.removeItem(SESSION_KEY); }catch(e){ /* nothing to do */ }
+}
+// A restored session must be re-checked against current data: the account
+// may have been deleted, frozen, or reclassified since it was saved.
+function restoreSessionIfValid(){
+  const identity = loadSession();
+  if(!identity) return false;
+  if(identity.role === 'supervisor'){
+    if(!state.supervisorPinHash) return false;
+  } else if(identity.role === 'student'){
+    const s = state.students.find(x=>x.id===identity.id);
+    if(!s || s.frozen) return false;
+    identity.name = s.name;
+  } else if(identity.role === 'cosupervisor'){
+    const c = state.coSupervisors.find(x=>x.id===identity.id);
+    if(!c) return false;
+    identity.name = c.name;
+  } else {
+    return false;
+  }
+  state.identity = identity;
+  return true;
 }
 function loginShell(cardHtml){
   return `
@@ -1245,6 +1296,7 @@ function openHelpModal(){
   showModal('How this works', body, null, true);
 }
 function switchUser(){
+  clearSession();
   state.identity = null;
   state.loginRole = null;
   state.loginPickId = null;
@@ -1254,6 +1306,7 @@ function switchUser(){
 
 /* ============================ APP SHELL ============================ */
 function showApp(){
+  saveSession();
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appShell').style.display='block';
   let roleLabel = state.identity.role === 'supervisor' ? 'Supervisor' : state.identity.role === 'cosupervisor' ? 'Advisor / Co-Supervisor' : 'Research Scholar';
@@ -8896,7 +8949,7 @@ function downloadReportCsv(){
 }
 
 /* ============================ MODAL ============================ */
-function showModal(title, bodyHtml, onSubmit, viewOnly, maxWidth){
+function showModal(title, bodyHtml, onSubmit, viewOnly, maxWidth, draftKey){
   document.getElementById('modalRoot').innerHTML = `
     <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
       <div class="modal-box" style="${maxWidth ? 'max-width:'+maxWidth+';' : ''}">
@@ -8904,7 +8957,9 @@ function showModal(title, bodyHtml, onSubmit, viewOnly, maxWidth){
         <div class="modal-body">
           ${bodyHtml}
           <div class="modal-foot">
+            <span id="draftStatus" class="entry-meta" style="margin-right:auto; align-self:center;"></span>
             <button class="small-btn" onclick="closeModal()">${viewOnly ? 'Close' : 'Cancel'}</button>
+            ${viewOnly ? '' : '<button class="small-btn" onclick="saveDraftNow()">Save as draft</button>'}
             ${viewOnly ? '' : '<button class="action-btn" id="modalSubmitBtn">Save</button>'}
           </div>
         </div>
@@ -8912,6 +8967,18 @@ function showModal(title, bodyHtml, onSubmit, viewOnly, maxWidth){
     </div>
   `;
   if(viewOnly) return;
+  // Auto-save: anything typed into this form is kept locally as you go, so
+  // an accidental close, a refresh, or a dead battery doesn't lose the work.
+  // The draft is cleared once the form saves successfully.
+  //
+  // The key includes a fingerprint of the form's starting state, not just
+  // its title: two "Edit item" forms for different records share a title,
+  // and keying on title alone would let one record's draft restore into
+  // another's form. The fingerprint differs per record, so each gets its
+  // own draft and a changed record naturally invalidates a stale one.
+  activeDraftKey = 'rgms-draft::' + (draftKey || title) + '::' + formFingerprint_();
+  restoreDraftInto_(activeDraftKey);
+  attachDraftAutoSave_(activeDraftKey);
   const btn = document.getElementById('modalSubmitBtn');
   const originalLabel = btn.textContent;
   // Disabling immediately on click — and only re-enabling if the modal is
@@ -8931,8 +8998,99 @@ function showModal(title, bodyHtml, onSubmit, viewOnly, maxWidth){
     } finally {
       const stillThere = document.getElementById('modalSubmitBtn');
       if(stillThere){ stillThere.disabled = false; stillThere.textContent = originalLabel; }
+      else { clearDraft_(activeDraftKey); } // modal closed = saved successfully
     }
   };
+}
+let activeDraftKey = null;
+let draftSaveTimer = null;
+// A short, stable signature of the form as it was first rendered — field
+// IDs plus whatever values were pre-filled into them. Two edit forms for
+// different records produce different signatures, which is what keeps
+// their drafts separate.
+function formFingerprint_(){
+  const parts = draftFieldsIn_().map(el => el.id + '=' + ((el.type==='checkbox'||el.type==='radio') ? el.checked : el.value));
+  const str = parts.join('|');
+  let h = 0;
+  for(let i=0; i<str.length; i++){ h = ((h<<5) - h + str.charCodeAt(i)) | 0; }
+  return String(h);
+}
+// Password fields are never kept — a draft is a convenience for long-form
+// work, not somewhere a PIN should ever end up sitting in storage.
+function draftFieldsIn_(){
+  return Array.from(document.querySelectorAll('.modal-body input, .modal-body textarea, .modal-body select'))
+    .filter(el => el.type !== 'password' && el.id);
+}
+function attachDraftAutoSave_(key){
+  draftFieldsIn_().forEach(el=>{
+    el.addEventListener('input', ()=>scheduleDraftSave_(key));
+    el.addEventListener('change', ()=>scheduleDraftSave_(key));
+  });
+}
+function scheduleDraftSave_(key){
+  clearTimeout(draftSaveTimer);
+  draftSaveTimer = setTimeout(()=>saveDraft_(key), 600);
+}
+function saveDraft_(key){
+  try{
+    const data = {};
+    draftFieldsIn_().forEach(el=>{
+      data[el.id] = (el.type==='checkbox' || el.type==='radio') ? el.checked : el.value;
+    });
+    localStorage.setItem(key, JSON.stringify({ data, at: Date.now() }));
+    const status = document.getElementById('draftStatus');
+    if(status) status.textContent = 'Draft saved';
+  }catch(e){ /* storage unavailable — the form still works normally */ }
+}
+function restoreDraftInto_(key){
+  try{
+    const raw = localStorage.getItem(key);
+    if(!raw) return;
+    const parsed = JSON.parse(raw);
+    if(!parsed || !parsed.data) return;
+    let restored = false;
+    draftFieldsIn_().forEach(el=>{
+      if(!(el.id in parsed.data)) return;
+      const val = parsed.data[el.id];
+      if(el.type==='checkbox' || el.type==='radio'){ if(el.checked !== val){ el.checked = val; restored = true; } }
+      else if(el.value !== val){ el.value = val; restored = true; }
+    });
+    const status = document.getElementById('draftStatus');
+    if(status && restored) status.textContent = 'Unsaved draft restored';
+  }catch(e){ /* malformed draft — just start fresh */ }
+}
+function clearDraft_(key){
+  try{ if(key) localStorage.removeItem(key); }catch(e){ /* nothing to do */ }
+}
+// Drafts are only cleared automatically when a form saves successfully, so
+// opening and cancelling forms would otherwise leave keys behind forever.
+// localStorage is a shared, capped budget (the offline data cache lives
+// there too), so old drafts are swept periodically. A week is well past
+// the point where a half-typed form is still wanted.
+const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+function pruneOldDrafts_(){
+  try{
+    const now = Date.now();
+    const stale = [];
+    for(let i=0; i<localStorage.length; i++){
+      const k = localStorage.key(i);
+      if(!k || k.indexOf('rgms-draft::') !== 0) continue;
+      try{
+        const parsed = JSON.parse(localStorage.getItem(k));
+        if(!parsed || !parsed.at || (now - parsed.at) > DRAFT_MAX_AGE_MS) stale.push(k);
+      }catch(e){ stale.push(k); } // unparseable, remove it
+    }
+    stale.forEach(k=>localStorage.removeItem(k));
+  }catch(e){ /* storage unavailable — nothing to prune */ }
+}
+// The explicit "Save as draft" button: saves right away (rather than after
+// the usual short pause) and closes the form, so someone can deliberately
+// step away mid-entry and pick it up later. Reopening the same form
+// restores everything automatically.
+function saveDraftNow(){
+  clearTimeout(draftSaveTimer);
+  saveDraft_(activeDraftKey);
+  closeModal();
 }
 function closeModal(){ document.getElementById('modalRoot').innerHTML = ''; }
 // Used on Approve/Reject-style buttons that aren't inside a modal (showModal
