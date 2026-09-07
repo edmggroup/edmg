@@ -700,6 +700,12 @@ async function apiSetRaw(key, value){
     body: JSON.stringify({ key, value, appKey: APP_KEY }) // no custom Content-Type — keeps this a "simple" request, avoiding CORS preflight issues with Apps Script
   });
   if(!res.ok) throw new Error('Backend returned ' + res.status);
+  // Apps Script answers with HTTP 200 even when it rejects the request
+  // (bad app key, missing key, a script error), putting the problem in the
+  // body instead. Without this check a refused save looked successful and
+  // the change was silently lost on the next refresh.
+  const json = await res.json().catch(()=>null);
+  if(json && json.error) throw new Error(json.error);
   return true;
 }
 async function apiNotify(type, payload){
@@ -777,7 +783,35 @@ function isValidEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v||'').trim(
 async function saveCollection(key, arr){
   try{
     await apiSetRaw(key, JSON.stringify(arr));
-  }catch(e){ console.error('Storage save failed', key, e); alert('Could not save your change — check your internet connection and try again. If this keeps happening, the Drive backend link may need to be reconnected.'); }
+    clearUnsavedWarning_(key);
+  }catch(e){
+    console.error('Storage save failed', key, e);
+    // The local copy already changed, so the screen is now showing an edit
+    // that never reached the server. A one-off alert is too easy to dismiss
+    // and forget — this keeps a visible warning up until a save succeeds,
+    // so nobody carries on believing their work is stored when it isn't.
+    flagUnsavedChange_(key, e);
+  }
+}
+const unsavedKeys = new Set();
+function flagUnsavedChange_(key, err){
+  unsavedKeys.add(key);
+  renderUnsavedBanner_();
+  alert('Could not save your change — check your internet connection and try again.\n\nYour change is still on screen but has NOT been stored. Avoid closing this tab until the warning at the bottom of the screen clears.');
+}
+function clearUnsavedWarning_(key){
+  if(unsavedKeys.delete(key)) renderUnsavedBanner_();
+}
+function renderUnsavedBanner_(){
+  let el = document.getElementById('unsavedBanner');
+  if(unsavedKeys.size === 0){ if(el) el.remove(); return; }
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'unsavedBanner';
+    el.style.cssText = 'position:fixed; bottom:16px; left:16px; max-width:360px; background:var(--danger); color:#fff; padding:12px 16px; border-radius:8px; box-shadow:var(--shadow-md); z-index:500; font-size:13px;';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `<b>Unsaved changes.</b> ${unsavedKeys.size} change(s) could not be saved to the server. They are still shown here but will be lost if you close this tab. Check your connection, then edit and save again.`;
 }
 async function saveSupervisorProfile(profile){
   try{ await apiSetRaw('supervisor-pin', JSON.stringify(profile)); }catch(e){ console.error('Save supervisor profile failed', e); }
@@ -1140,6 +1174,7 @@ function pickStudent(id){ state.loginPickId = id; state.loginError=''; renderLog
 function pickCoSupervisor(id){ state.loginPickId = id; state.loginError=''; renderLogin(); }
 
 async function doLogin(){
+  return runOnce_('doLogin', async ()=>{
   state.loginError = '';
   if(state.loginRole === 'supervisor'){
     const pin = document.getElementById('supervisorPin')?.value || '';
@@ -1249,6 +1284,7 @@ async function doLogin(){
     state.loginError = 'Please choose whether you are the supervisor, a mentor, or a research scholar.';
     renderLogin();
   }
+  });
 }
 function openHelpModal(){
   const role = state.identity.role;
@@ -1808,12 +1844,17 @@ async function submitNewDiscussion(){
   closeModal(); renderView();
 }
 async function submitDiscussionReply(id){
+  return runOnce_('reply::'+id, async ()=>{
   const d = state.discussions.find(x=>x.id===id);
   const text = document.getElementById('f_replyText-'+id).value.trim();
   if(!text){ alert('Please write a reply.'); return; }
   const replier = reviewerIdentity(null);
   if(!d.replies) d.replies = [];
   d.replies.push({ id: uid('reply'), text, byName: state.identity.name, byRole: replier.roleLabel, byId: state.identity.id, at: nowIST() });
+  // Clear the box immediately, before the network save: if it's still
+  // showing the text while the save is in flight, an impatient second
+  // Enter press has something to re-submit.
+  document.getElementById('f_replyText-'+id).value = '';
   await saveCollection('discussions', state.discussions);
   // Notify the original poster and everyone else who's replied so far, so
   // a conversation doesn't quietly go unnoticed — but never notify anyone
@@ -1827,8 +1868,8 @@ async function submitDiscussionReply(id){
   if(d.createdById && d.createdById !== state.identity.id && isStudentId(d.createdById)) notifyIds.add(d.createdById);
   d.replies.forEach(r=>{ if(r.byId && r.byId !== state.identity.id && isStudentId(r.byId)) notifyIds.add(r.byId); });
   notifyIds.forEach(uid_ => apiNotify('discussionReplied', { studentId: uid_, title: d.title, repliedByName: state.identity.name, repliedByRole: replier.roleLabel }));
-  document.getElementById('f_replyText-'+id).value = '';
   renderView();
+  });
 }
 async function deleteDiscussion(id){
   const d = state.discussions.find(x=>x.id===id);
@@ -1915,20 +1956,24 @@ async function submitAddNews(){
   closeModal(); renderView();
 }
 async function deleteNewsUpdate(id){
+  return runOnce_('deleteNewsUpdate::'+id, async ()=>{
   if(!confirm('Remove this update?')) return;
   state.newsUpdates = state.newsUpdates.filter(x=>x.id!==id);
   await saveCollection('news-updates', state.newsUpdates);
   renderView();
+  });
 }
 // Freezing pulls an item out of the public auto-scrolling display without
 // deleting it — the supervisor can still see and manage it on the News
 // Update page, and remove it permanently whenever they actually want to.
 async function toggleFreezeNews(id){
+  return runOnce_('toggleFreezeNews::'+id, async ()=>{
   const n = state.newsUpdates.find(x=>x.id===id);
   if(!n) return;
   n.frozen = !n.frozen;
   await saveCollection('news-updates', state.newsUpdates);
   renderView();
+  });
 }
 
 // Whoever is clicking Approve/Reject right now — used to record "who
@@ -3503,6 +3548,7 @@ function openEditConsumableModal(id){
 }
 async function submitEditConsumable(id){
   const item = state.consumables.find(x=>x.id===id);
+  if(!item){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const itemName = document.getElementById('f_consName').value.trim();
   const unit = document.getElementById('f_consUnit').value.trim();
   const qty = document.getElementById('f_consQty').value;
@@ -3812,10 +3858,12 @@ function buildFullActivityLog_(){
   return rows.filter(r => !excluded.has(r.rowId)).sort((a,b)=> parseISTTimestamp_(b.date) - parseISTTimestamp_(a.date));
 }
 async function removeFromActivityLog(rowId){
+  return runOnce_('removeFromActivityLog::'+rowId, async ()=>{
   if(!confirm('Remove this entry from the Activity Log view? The underlying record itself is not affected — this only controls what shows in this log.')) return;
   if(!state.activityLogExclusions.includes(rowId)) state.activityLogExclusions.push(rowId);
   await saveCollection('activity-log-exclusions', state.activityLogExclusions);
   renderView();
+  });
 }
 function downloadFullActivityLogCsv(){
   const rows = buildFullActivityLog_();
@@ -3930,6 +3978,7 @@ function openEditCoSupAssignmentModal(id){
 }
 async function submitEditCoSupAssignment(id){
   const c = state.coSupervisors.find(x=>x.id===id);
+  if(!c){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const checked = Array.from(document.querySelectorAll('.coSupEditCheck:checked'));
   c.assignments = checked.map(el => ({
     studentId: el.value,
@@ -3943,22 +3992,26 @@ async function submitEditCoSupAssignment(id){
   closeModal(); renderView();
 }
 async function removeCoSupervisor(id){
+  return runOnce_('removeCoSupervisor::'+id, async ()=>{
   const c = state.coSupervisors.find(x=>x.id===id);
   if(!confirm(`Remove ${c.name} as a mentor? They will no longer be able to log in.`)) return;
   state.coSupervisors = state.coSupervisors.filter(x=>x.id!==id);
   await saveCollection('co-supervisors', state.coSupervisors);
   renderView();
+  });
 }
 // Freezing blocks login without touching any of their data or their
 // scholar assignments — everything they ever reviewed or commented on
 // stays exactly as it was, and the supervisor can still filter to a frozen
 // mentor's history. Unfreezing restores login immediately.
 async function toggleFreezeCoSupervisor(id){
+  return runOnce_('toggleFreezeCoSupervisor::'+id, async ()=>{
   const c = state.coSupervisors.find(x=>x.id===id);
   if(!c) return;
   c.frozen = !c.frozen;
   await saveCollection('co-supervisors', state.coSupervisors);
   renderView();
+  });
 }
 function openResetCoSupPinModal(id){
   const c = state.coSupervisors.find(x=>x.id===id);
@@ -3976,6 +4029,7 @@ async function submitResetCoSupPin(id){
   if(next.length < 4){ alert('New PIN must be at least 4 characters.'); return; }
   if(next !== confirmNext){ alert('New PINs do not match.'); return; }
   const c = state.coSupervisors.find(x=>x.id===id);
+  if(!c){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   c.pinHash = await hashPin(next);
   await saveCollection('co-supervisors', state.coSupervisors);
   closeModal(); renderView();
@@ -4264,6 +4318,7 @@ function openChangePinModal(){
 }
 async function submitChangePin(){
   const s = state.students.find(x=>x.id===state.identity.id);
+  if(!s){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const cur = document.getElementById('f_curPin').value;
   const next = document.getElementById('f_newPin').value;
   const confirmNext = document.getElementById('f_newPinConfirm').value;
@@ -4290,6 +4345,7 @@ async function submitResetStudentPin(id){
   if(next.length < 4){ alert('New PIN must be at least 4 characters.'); return; }
   if(next !== confirmNext){ alert('New PINs do not match.'); return; }
   const s = state.students.find(x=>x.id===id);
+  if(!s){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   s.pinHash = await hashPin(next);
   await saveCollection('students', state.students);
   closeModal(); renderView();
@@ -4326,6 +4382,7 @@ async function submitChangeStudentEmail(){
   const email = document.getElementById('f_studentEmail').value.trim();
   if(!isValidEmail(email)){ alert('Please enter a valid email address.'); return; }
   const me = state.students.find(x=>x.id===state.identity.id);
+  if(!me){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   me.email = email;
   await saveCollection('students', state.students);
   closeModal(); renderView();
@@ -4341,6 +4398,7 @@ function openEditProgramDetailsModal(){
 }
 async function submitProgramDetails(){
   const me = state.students.find(x=>x.id===state.identity.id);
+  if(!me){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   me.joiningDate = document.getElementById('f_joiningDate').value;
   me.courseDuration = document.getElementById('f_courseDuration').value.trim();
   await saveCollection('students', state.students);
@@ -4353,11 +4411,13 @@ async function submitProgramDetails(){
 // duration, rather than deleteStudentAccount below, which is permanent and
 // erases their data entirely.
 async function toggleFreezeStudent(id){
+  return runOnce_('toggleFreezeStudent::'+id, async ()=>{
   const s = state.students.find(x=>x.id===id);
   if(!s) return;
   s.frozen = !s.frozen;
   await saveCollection('students', state.students);
   renderView();
+  });
 }
 // Lets the supervisor correct a mis-classification (or reclassify someone
 // whose status changed) without touching anything else about the account —
@@ -4365,6 +4425,7 @@ async function toggleFreezeStudent(id){
 // since this only changes which login button they'll appear under and how
 // their badge is labeled.
 async function toggleStudentType(id){
+  return runOnce_('toggleStudentType::'+id, async ()=>{
   const s = state.students.find(x=>x.id===id);
   if(!s) return;
   s.studentType = s.studentType==='project' ? 'research' : 'project';
@@ -4376,6 +4437,7 @@ async function toggleStudentType(id){
   }
   await saveCollection('students', state.students);
   renderView();
+  });
 }
 // Records which research scholar is advising a given project student, AND
 // grants that scholar view + review/approval access to the project
@@ -4399,16 +4461,24 @@ function openAssignMentorScholarModal(projectStudentId){
 }
 async function submitAssignMentorScholar(projectStudentId){
   const ps = state.students.find(x=>x.id===projectStudentId);
+  if(!ps){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const chosen = document.getElementById('f_mentorScholar').value;
   ps.mentorScholarId = chosen || null;
   await saveCollection('students', state.students);
   closeModal(); renderView();
 }
 async function deleteStudentAccount(studentId){
+  return runOnce_('deleteStudentAccount::'+studentId, async ()=>{
   const s = state.students.find(x=>x.id===studentId);
   if(!s) return;
   const first = confirm(`Permanently delete ${s.name}'s account? This also permanently deletes ALL of their data — weekly reports, samples, papers, proposals, thesis plan, RAC reviews, conferences, financial applications, courses, fabrication items, meetings, and instructions. This cannot be undone.`);
   if(!first) return;
+  // Same safeguard the Reset All Data flow uses: this is unrecoverable for
+  // that person's records, so offer a copy before it's gone.
+  if(confirm(`Download a backup of all group data first? Strongly recommended — ${s.name}'s records cannot be recovered after this.`)){
+    downloadBackup();
+    if(!confirm('Backup downloaded. Continue with permanently deleting the account?')) return;
+  }
   const second = confirm(`Are you completely sure? Type-check: this will erase everything on record for ${s.name}, permanently.`);
   if(!second) return;
 
@@ -4451,9 +4521,20 @@ async function deleteStudentAccount(studentId){
     saveCollection('planner-tasks', state.plannerTasks),
     saveCollection('co-supervisors', state.coSupervisors)
   ]);
+  // The most destructive action in the app leaves a record, same as any
+  // single-item deletion does — without it there's no trace of who removed
+  // whose entire research history, or when.
+  state.deletionLog.push({
+    id: uid('del'), type:'student-account', title: s.name + ' (entire account and all data)',
+    studentId: null, deletedByName: state.identity.name,
+    deletedByRole: reviewerIdentity(null).roleLabel,
+    reason: 'Account permanently deleted by supervisor.', deletedAt: nowIST()
+  });
+  await saveCollection('deletion-log', state.deletionLog);
   if(state.filterStudentId === studentId) state.filterStudentId = 'all';
   alert(`${s.name}'s account and all associated data have been deleted.`);
   renderView();
+  });
 }
 function openChangeSupervisorNameModal(){
   showModal('Update my name', `
@@ -4686,9 +4767,11 @@ async function togglePlannerTask(id){
   renderView();
 }
 async function deletePlannerTask(id){
+  return runOnce_('deletePlannerTask::'+id, async ()=>{
   state.plannerTasks = state.plannerTasks.filter(x=>x.id!==id);
   await saveCollection('planner-tasks', state.plannerTasks);
   renderView();
+  });
 }
 
 /* ============================ WORK PLAN (PROPOSAL) ============================ */
@@ -4868,6 +4951,7 @@ function openEditProposalModal(id){
 }
 async function submitEditProposal(id){
   const pr = state.proposals.find(x=>x.id===id);
+  if(!pr){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const title = document.getElementById('f_editPrTitle').value.trim();
   const objective = document.getElementById('f_editPrObjective').value.trim();
   if(!title || !objective){ alert('Please add a title and objective.'); return; }
@@ -4923,10 +5007,13 @@ async function toggleProposalGoal(prId, goalId){
   renderView();
 }
 async function deleteProposalGoal(prId, goalId){
+  return runOnce_('deleteProposalGoal::'+prId+'::'+goalId, async ()=>{
   const pr = state.proposals.find(x=>x.id===prId);
+  if(!pr){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   pr.goals = (pr.goals||[]).filter(x=>x.id!==goalId);
   await saveCollection('proposals', state.proposals);
   renderView();
+  });
 }
 function openProposalReviewBox(id){
   const pr = state.proposals.find(x=>x.id===id);
@@ -4942,6 +5029,7 @@ function openProposalReviewBox(id){
 }
 async function reviewProposal(id, decision){
   const pr = state.proposals.find(x=>x.id===id);
+  if(!pr){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const val = document.getElementById('proposalReviewInput-'+id).value.trim();
   if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
   const reviewer = reviewerIdentity(pr.studentId);
@@ -5147,6 +5235,7 @@ function openEditThesisModal(id){
 }
 async function submitEditThesis(id){
   const tp = state.thesisPlans.find(x=>x.id===id);
+  if(!tp){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const title = document.getElementById('f_editThTitle').value.trim();
   if(!title){ alert('Please add a thesis title.'); return; }
   tp.title = title;
@@ -5199,13 +5288,17 @@ async function submitAddChapter(thId){
   closeModal(); renderView();
 }
 async function deleteThesisChapter(thId, chId){
+  return runOnce_('deleteThesisChapter::'+thId+'::'+chId, async ()=>{
   const tp = state.thesisPlans.find(x=>x.id===thId);
+  if(!tp){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   tp.chapters = (tp.chapters||[]).filter(x=>x.id!==chId);
   await saveCollection('thesis-plans', state.thesisPlans);
   renderView();
+  });
 }
 async function setThesisChapterStatus(thId, chId, status){
   const tp = state.thesisPlans.find(x=>x.id===thId);
+  if(!tp){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const ch = (tp.chapters||[]).find(x=>x.id===chId);
   if(!ch) return;
   pushStatusHistory_(ch, ch.status, status, tp.studentId);
@@ -5236,6 +5329,7 @@ function openEditChapterDateModal(thId, chId){
 }
 async function submitEditChapterDate(thId, chId){
   const tp = state.thesisPlans.find(x=>x.id===thId);
+  if(!tp){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const ch = (tp.chapters||[]).find(x=>x.id===chId);
   if(!ch) return;
   const newDate = document.getElementById('f_chTargetDate').value;
@@ -5262,6 +5356,7 @@ function openThesisReviewBox(id){
 }
 async function reviewThesis(id, decision){
   const tp = state.thesisPlans.find(x=>x.id===id);
+  if(!tp){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const val = document.getElementById('thesisReviewInput-'+id).value.trim();
   if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
   const reviewer = reviewerIdentity(tp.studentId);
@@ -5418,6 +5513,7 @@ function openEditRacModal(id){
 }
 async function submitEditRac(id){
   const r = state.racReviews.find(x=>x.id===id);
+  if(!r){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const title = document.getElementById('f_racTitle').value.trim();
   const reviewDate = document.getElementById('f_racDate').value;
   if(!title || !reviewDate){ alert('Please add a title and review date.'); return; }
@@ -5464,10 +5560,13 @@ async function toggleRacActionItem(racId, itemId){
   renderView();
 }
 async function deleteRacActionItem(racId, itemId){
+  return runOnce_('deleteRacActionItem::'+racId+'::'+itemId, async ()=>{
   const r = state.racReviews.find(x=>x.id===racId);
+  if(!r){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   r.actionItems = (r.actionItems||[]).filter(x=>x.id!==itemId);
   await saveCollection('rac-reviews', state.racReviews);
   renderView();
+  });
 }
 function openRacReviewBox(id){
   const r = state.racReviews.find(x=>x.id===id);
@@ -5483,6 +5582,7 @@ function openRacReviewBox(id){
 }
 async function reviewRac(id, decision){
   const r = state.racReviews.find(x=>x.id===id);
+  if(!r){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const val = document.getElementById('racReviewInput-'+id).value.trim();
   if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
   const reviewer = reviewerIdentity(r.studentId);
@@ -5645,6 +5745,7 @@ function openEditFinancialModal(id){
 }
 async function submitEditFinancial(id){
   const f = state.financialApps.find(x=>x.id===id);
+  if(!f){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const title = document.getElementById('f_finTitle').value.trim();
   const applicationDate = document.getElementById('f_finDate').value;
   if(!title || !applicationDate){ alert('Please add a title and application date.'); return; }
@@ -5704,6 +5805,7 @@ function openFinancialReviewBox(id){
 }
 async function reviewFinancial(id, decision){
   const f = state.financialApps.find(x=>x.id===id);
+  if(!f){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const val = document.getElementById('financialReviewInput-'+id).value.trim();
   if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
   const reviewer = reviewerIdentity(f.studentId);
@@ -5862,6 +5964,7 @@ function openEditCourseModal(id){
 }
 async function submitEditCourse(id){
   const c = state.courses.find(x=>x.id===id);
+  if(!c){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const title = document.getElementById('f_courseTitle').value.trim();
   const startDate = document.getElementById('f_courseStart').value;
   if(!title || !startDate){ alert('Please add a title and start date.'); return; }
@@ -5897,6 +6000,7 @@ function openCourseReviewBox(id){
 }
 async function reviewCourse(id, decision){
   const c = state.courses.find(x=>x.id===id);
+  if(!c){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const val = document.getElementById('courseReviewInput-'+id).value.trim();
   if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
   const reviewer = reviewerIdentity(c.studentId);
@@ -6165,10 +6269,13 @@ async function toggleFabricationStep(id, stepId){
   renderView();
 }
 async function deleteFabricationStep(id, stepId){
+  return runOnce_('deleteFabricationStep::'+id+'::'+stepId, async ()=>{
   const it = state.fabricationItems.find(x=>x.id===id);
+  if(!it){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   it.roadmap = (it.roadmap||[]).filter(x=>x.id!==stepId);
   await saveCollection('fabrication-items', state.fabricationItems);
   renderView();
+  });
 }
 function openFabricationReviewBox(id){
   const it = state.fabricationItems.find(x=>x.id===id);
@@ -6184,6 +6291,7 @@ function openFabricationReviewBox(id){
 }
 async function reviewFabrication(id, decision){
   const it = state.fabricationItems.find(x=>x.id===id);
+  if(!it){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const val = document.getElementById('fabricationReviewInput-'+id).value.trim();
   if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
   const reviewer = reviewerIdentity(it.studentId);
@@ -6238,6 +6346,7 @@ function reviewHistoryHtml(entry){
 // already-approved entry without touching its status or overwriting the
 // approval note that's already there — purely additive.
 async function addAdditionalComment(type, id){
+  return runOnce_('addAdditionalComment::'+type+'::'+id, async ()=>{
   const coll = REVIEWABLE_COLLECTIONS[type];
   if(!coll) return;
   const entry = coll.list().find(x=>x.id===id);
@@ -6250,6 +6359,7 @@ async function addAdditionalComment(type, id){
   const reviewer = reviewerIdentity(entry.studentId);
   apiNotify('additionalCommentAdded', { studentId: entry.studentId, title: titleForReviewable(type, entry), comment: text.trim(), addedByName: reviewer.name, addedByRole: reviewer.roleLabel, commenterId: state.identity.id });
   renderView();
+  });
 }
 // When the SUPERVISOR or a MENTOR edits a scholar's own work directly —
 // not a review, an actual content change — that's recorded here and
@@ -6532,9 +6642,11 @@ async function submitAddReminder(){
   closeModal(); renderView();
 }
 async function deleteReminder(id){
+  return runOnce_('deleteReminder::'+id, async ()=>{
   state.reminders = state.reminders.filter(r=>r.id!==id);
   await saveCollection('reminders', state.reminders);
   renderView();
+  });
 }
 function viewWeekly(){
   const fullList = scopedList(state.weekly);
@@ -6740,6 +6852,7 @@ function openReviewBox(id){
 }
 async function reviewWeekly(id, decision){
   const w = state.weekly.find(x=>x.id===id);
+  if(!w){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const val = document.getElementById('reviewInput-'+id).value.trim();
   if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
   const reviewer = reviewerIdentity(w.studentId);
@@ -6800,6 +6913,7 @@ function openEditWeeklyModal(id){
 }
 async function submitEditWeekly(id){
   const w = state.weekly.find(x=>x.id===id);
+  if(!w){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const isOwner = state.identity.role==='student' && w.studentId===state.identity.id;
   const weekEnded = w.weekStart && shiftDate(w.weekStart, 6) < todayStr();
   if(isOwner && w.status !== 'changes_requested' && (w.status === 'approved' || weekEnded)){
@@ -7033,6 +7147,7 @@ function openSampleReviewBox(id){
 }
 async function reviewSample(id, decision){
   const s = state.samples.find(x=>x.id===id);
+  if(!s){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const val = document.getElementById('sampleReviewInput-'+id).value.trim();
   if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
   const reviewer = reviewerIdentity(s.studentId);
@@ -7089,6 +7204,7 @@ function openEditSampleModal(id){
 }
 async function submitEditSample(id){
   const s = state.samples.find(x=>x.id===id);
+  if(!s){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const sampleName = document.getElementById('f_editSampleName').value.trim();
   const submittedDate = document.getElementById('f_editSubmittedDate').value;
   if(!sampleName || !submittedDate){ alert('Please add a sample name and submission date.'); return; }
@@ -7369,6 +7485,7 @@ function openAnalysisReviewBox(id){
 }
 async function reviewAnalysis(id, decision){
   const a = state.resultsAnalysis.find(x=>x.id===id);
+  if(!a){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const val = document.getElementById('analysisReviewInput-'+id).value.trim();
   if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
   const reviewer = reviewerIdentity(a.studentId);
@@ -7618,6 +7735,7 @@ async function submitPaper(){
 }
 async function requestStageChange(id, newStage){
   const p = state.papers.find(x=>x.id===id);
+  if(!p){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   if(newStage === p.stage) return;
   if(isSupervisorLike()){
     // Supervisor/mentor changes are final immediately — no approval needed on their own call.
@@ -7638,6 +7756,7 @@ async function requestStageChange(id, newStage){
 }
 async function approvePendingStage(id){
   const p = state.papers.find(x=>x.id===id);
+  if(!p){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const reviewer = reviewerIdentity(p.studentId);
   pushStatusHistory_(p, p.stage, p.pendingStage);
   pushReviewHistory_(p, 'approved', `Stage change to ${p.pendingStage}`);
@@ -7653,6 +7772,7 @@ async function approvePendingStage(id){
 }
 async function rejectPendingStage(id){
   const p = state.papers.find(x=>x.id===id);
+  if(!p){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const note = prompt(`Optional note to ${studentName(p.studentId)} on why this stage change was rejected:`, '');
   if(note === null) return;
   const reviewer = reviewerIdentity(p.studentId);
@@ -7785,10 +7905,13 @@ async function submitReferenceLink(paperId){
   closeModal(); renderView();
 }
 async function deleteReferenceLink(paperId, linkId){
+  return runOnce_('deleteReferenceLink::'+paperId+'::'+linkId, async ()=>{
   const p = state.papers.find(x=>x.id===paperId);
+  if(!p){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   p.referenceLinks = (p.referenceLinks || []).filter(l=>l.id!==linkId);
   await saveCollection('papers', state.papers);
   renderView();
+  });
 }
 async function deletePaper(id){
   const p = state.papers.find(x=>x.id===id);
@@ -7953,6 +8076,7 @@ function openEditConferenceModal(id){
 }
 async function submitEditConference(id){
   const c = state.conferences.find(x=>x.id===id);
+  if(!c){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const eventName = document.getElementById('f_confName').value.trim();
   const startDate = document.getElementById('f_confStart').value;
   if(!eventName || !startDate){ alert('Please add an event name and start date.'); return; }
@@ -7993,6 +8117,7 @@ function openConferenceReviewBox(id){
 }
 async function reviewConference(id, decision){
   const c = state.conferences.find(x=>x.id===id);
+  if(!c){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const val = document.getElementById('conferenceReviewInput-'+id).value.trim();
   if(decision==='changes_requested' && !val){ alert('Please add a note explaining what needs to change.'); return; }
   const reviewer = reviewerIdentity(c.studentId);
@@ -8117,12 +8242,15 @@ async function submitAddMeetingMinute(id){
   closeModal(); renderView();
 }
 async function deleteMeetingMinute(id, minuteId){
+  return runOnce_('deleteMeetingMinute::'+id+'::'+minuteId, async ()=>{
   if(!confirm('Remove this point?')) return;
   const m = state.meetings.find(x=>x.id===id);
+  if(!m){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   m.minutes = (m.minutes||[]).filter(pt=>pt.id!==minuteId);
   m.lastUpdate = todayStr();
   await saveCollection('meetings', state.meetings);
   renderView();
+  });
 }
 function openMeetingModal(){
   showModal('Meetings', `
@@ -8219,6 +8347,7 @@ function openEditMeetingModal(id){
 }
 async function submitEditMeetingDetails(id){
   const m = state.meetings.find(x=>x.id===id);
+  if(!m){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const title = document.getElementById('f_editMeetTitle').value.trim();
   if(!title){ alert('Please add a title.'); return; }
   m.type = document.getElementById('f_editMeetType').value;
@@ -8231,6 +8360,7 @@ async function submitEditMeetingDetails(id){
 }
 async function submitConfirmMeeting(id){
   const m = state.meetings.find(x=>x.id===id);
+  if(!m){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const newDate = document.getElementById('f_confirmDate').value;
   const newStartTime = document.getElementById('f_confirmStartTime').value;
   const newEndTime = document.getElementById('f_confirmEndTime').value;
@@ -8277,6 +8407,7 @@ function openCompleteMeetingModal(id){
 }
 async function submitCompleteMeeting(id){
   const m = state.meetings.find(x=>x.id===id);
+  if(!m){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   pushStatusHistory_(m, m.status, 'completed');
   m.status = 'completed';
   m.outcomeNotes = document.getElementById('f_meetOutcome').value.trim();
@@ -8292,6 +8423,7 @@ function openCancelMeetingModal(id){
 }
 async function submitCancelMeeting(id){
   const m = state.meetings.find(x=>x.id===id);
+  if(!m){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   pushStatusHistory_(m, m.status, 'cancelled');
   m.status = 'cancelled';
   m.outcomeNotes = document.getElementById('f_meetCancelReason').value.trim();
@@ -8424,6 +8556,7 @@ function openEditEventModal(id){
 }
 async function submitEditEvent(id){
   const ev = state.events.find(x=>x.id===id);
+  if(!ev){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const title = document.getElementById('f_evTitle').value.trim();
   const date = document.getElementById('f_evDate').value;
   if(!title){ alert('Please add a title.'); return; }
@@ -8438,6 +8571,7 @@ async function submitEditEvent(id){
 }
 async function setEventStatus(id, status){
   const ev = state.events.find(x=>x.id===id);
+  if(!ev){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   pushStatusHistory_(ev, ev.status, status, ev.assignedStudentId);
   ev.status = status;
   await saveCollection('events', state.events);
@@ -9109,6 +9243,22 @@ async function guardedClick(el, fn){
     await fn();
   } finally {
     if(document.body.contains(el)) el.disabled = false;
+  }
+}
+// guardedClick only protects the specific button that was clicked, so it
+// can't stop a double-submit that arrives another way — pressing Enter
+// twice in the discussion reply box, or hitting Enter and then clicking
+// the button. This guards the *operation* instead of a single element, so
+// every entry point is covered. Any async function that saves data or
+// sends email should run through it.
+const inFlightOps = new Set();
+async function runOnce_(opKey, fn){
+  if(inFlightOps.has(opKey)) return;
+  inFlightOps.add(opKey);
+  try{
+    return await fn();
+  } finally {
+    inFlightOps.delete(opKey);
   }
 }
 
