@@ -1777,7 +1777,10 @@ function discussionDetailHtml(id){
         <div style="margin-top:14px; display:flex; flex-direction:column; gap:12px; border-top:1px solid var(--border); padding-top:12px;">
           ${d.replies.map(r=>`
             <div>
-              <div class="entry-meta"><b>${escapeHtml(r.byName)}</b> (${escapeHtml(r.byRole)}) · ${escapeHtml(r.at)}</div>
+              <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+                <div class="entry-meta"><b>${escapeHtml(r.byName)}</b> (${escapeHtml(r.byRole)}) · ${escapeHtml(r.at)}</div>
+                ${isTrueSupervisor() ? `<button class="small-btn danger" style="flex-shrink:0; padding:4px 10px; font-size:12px;" onclick="guardedClick(this, ()=>deleteDiscussionReply('${d.id}','${r.id}'))">Delete</button>` : ''}
+              </div>
               <div style="font-size:14px; white-space:pre-wrap;">${nl2br(r.text)}</div>
             </div>
           `).join('')}
@@ -1872,6 +1875,7 @@ async function submitDiscussionReply(id){
   });
 }
 async function deleteDiscussion(id){
+  return runOnce_('deleteDiscussion::'+id, async ()=>{
   const d = state.discussions.find(x=>x.id===id);
   if(!d) return;
   const reason = prompt(`Reason for deleting "${d.title}"? (required — this will be logged)`, '');
@@ -1883,6 +1887,27 @@ async function deleteDiscussion(id){
   await saveCollection('deletion-log', state.deletionLog);
   state.selectedDiscussionId = null;
   renderView();
+  });
+}
+// Individual replies follow exactly the same protocol as deleting a whole
+// thread: supervisor only, a typed reason is required, and it's recorded
+// in the Deletion Log so there's a permanent trace of what was removed.
+async function deleteDiscussionReply(discId, replyId){
+  return runOnce_('deleteDiscussionReply::'+discId+'::'+replyId, async ()=>{
+  const d = state.discussions.find(x=>x.id===discId);
+  if(!d){ alert('That discussion no longer exists — it may have been deleted. Refreshing.'); state.selectedDiscussionId = null; renderView(); return; }
+  const reply = (d.replies||[]).find(r=>r.id===replyId);
+  if(!reply){ alert('That reply no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
+  const preview = reply.text.length > 60 ? reply.text.slice(0,60) + '…' : reply.text;
+  const reason = prompt(`Reason for deleting ${reply.byName}'s reply ("${preview}")? (required — this will be logged)`, '');
+  if(reason === null) return;
+  if(!reason.trim()){ alert('A reason is required.'); return; }
+  d.replies = d.replies.filter(r=>r.id!==replyId);
+  await saveCollection('discussions', state.discussions);
+  state.deletionLog.push({ id: uid('del'), type:'discussion-reply', title:`Reply by ${reply.byName} in "${d.title}"`, studentId:null, deletedByName:state.identity.name, deletedByRole:reviewerIdentity(null).roleLabel, reason:reason.trim(), deletedAt: nowIST() });
+  await saveCollection('deletion-log', state.deletionLog);
+  renderView();
+  });
 }
 function viewLinks(){
   const items = state.newsUpdates.slice().sort((a,b)=> (b.postedAt||'').localeCompare(a.postedAt||''));
