@@ -221,6 +221,7 @@
   .action-btn:hover{ background:var(--navy-dark); box-shadow:0 2px 6px rgba(21,27,41,0.16); transform:translateY(-1px); }
   .action-btn:active{ transform:translateY(0); }
   .action-btn:disabled{ opacity:0.6; cursor:default; }
+  .small-btn:disabled{ opacity:0.45; cursor:default; }
   .action-btn:disabled:hover{ background:var(--navy); box-shadow:0 1px 2px rgba(21,27,41,0.08), 0 1px 1px rgba(21,27,41,0.05); transform:none; }
   .action-btn.ghost{ background:var(--surface); color:var(--ink); border:1px solid var(--border-strong); }
   .action-btn.ghost:hover{ background:var(--neutral-wash); }
@@ -545,6 +546,8 @@ const state = {
   reminders: [],
   discussions: [],
   selectedDiscussionId: null,
+  replySelectMode: false,
+  selectedReplyIds: [],
   // UI-only filter/view state. These were previously created on first
   // assignment; declaring them here keeps the full state shape visible in
   // one place and avoids depending on undefined-is-falsy at read time.
@@ -1755,8 +1758,8 @@ function viewDiscussionsPage(){
       `;}).join('')}
   `;
 }
-function openDiscussionDetail(id){ state.selectedDiscussionId = id; renderView(); }
-function backToDiscussionsList(){ state.selectedDiscussionId = null; renderView(); }
+function openDiscussionDetail(id){ state.selectedDiscussionId = id; state.replySelectMode = false; state.selectedReplyIds = []; renderView(); }
+function backToDiscussionsList(){ state.selectedDiscussionId = null; state.replySelectMode = false; state.selectedReplyIds = []; renderView(); }
 function discussionDetailHtml(id){
   const d = state.discussions.find(x=>x.id===id);
   if(!d){ state.selectedDiscussionId = null; return viewDiscussionsPage(); }
@@ -1774,16 +1777,34 @@ function discussionDetailHtml(id){
       <div class="entry-block" style="white-space:pre-wrap;">${nl2br(d.message)}</div>
       ${d.link ? `<div class="entry-meta" style="margin-top:6px;"><a href="${escapeHtml(d.link)}" target="_blank" rel="noopener noreferrer" class="task-link">${escapeHtml(d.link)}</a></div>` : ''}
       ${d.replies && d.replies.length>0 ? `
-        <div style="margin-top:14px; display:flex; flex-direction:column; gap:12px; border-top:1px solid var(--border); padding-top:12px;">
-          ${d.replies.map(r=>`
-            <div>
-              <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
-                <div class="entry-meta"><b>${escapeHtml(r.byName)}</b> (${escapeHtml(r.byRole)}) · ${escapeHtml(r.at)}</div>
-                ${isTrueSupervisor() ? `<button class="small-btn danger" style="flex-shrink:0; padding:4px 10px; font-size:12px;" onclick="guardedClick(this, ()=>deleteDiscussionReply('${d.id}','${r.id}'))">Delete</button>` : ''}
-              </div>
-              <div style="font-size:14px; white-space:pre-wrap;">${nl2br(r.text)}</div>
+        <div style="margin-top:14px; border-top:1px solid var(--border); padding-top:12px;">
+          ${isTrueSupervisor() ? `
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+              <div class="entry-meta">${d.replies.length} repl${d.replies.length===1?'y':'ies'}</div>
+              ${state.replySelectMode ? `
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                  <span class="entry-meta">${state.selectedReplyIds.length} selected</span>
+                  <button class="small-btn danger" ${state.selectedReplyIds.length===0?'disabled':''} onclick="guardedClick(this, ()=>deleteSelectedReplies('${d.id}'))">Delete selected</button>
+                  <button class="small-btn" onclick="exitReplySelectMode()">Cancel</button>
+                </div>
+              ` : `<button class="small-btn" onclick="enterReplySelectMode()">Manage replies</button>`}
             </div>
-          `).join('')}
+          ` : ''}
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            ${d.replies.map(r=>`
+              <div style="display:flex; gap:10px; align-items:flex-start;">
+                ${(isTrueSupervisor() && state.replySelectMode) ? `
+                  <input type="checkbox" style="margin-top:4px; flex-shrink:0; width:18px; height:18px; cursor:pointer;"
+                    ${state.selectedReplyIds.includes(r.id)?'checked':''}
+                    onchange="toggleReplySelection('${r.id}')">
+                ` : ''}
+                <div style="flex:1; min-width:0;">
+                  <div class="entry-meta"><b>${escapeHtml(r.byName)}</b> (${escapeHtml(r.byRole)}) · ${escapeHtml(r.at)}</div>
+                  <div style="font-size:14px; white-space:pre-wrap;">${nl2br(r.text)}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
         </div>
       ` : ''}
       <div style="margin-top:14px;">
@@ -1889,23 +1910,38 @@ async function deleteDiscussion(id){
   renderView();
   });
 }
-// Individual replies follow exactly the same protocol as deleting a whole
-// thread: supervisor only, a typed reason is required, and it's recorded
-// in the Deletion Log so there's a permanent trace of what was removed.
-async function deleteDiscussionReply(discId, replyId){
-  return runOnce_('deleteDiscussionReply::'+discId+'::'+replyId, async ()=>{
+// Reply moderation uses a deliberate selection mode rather than a Delete
+// button on every reply: it keeps the thread clean to read, and makes
+// removing something a two-step action instead of a single stray click.
+function enterReplySelectMode(){ state.replySelectMode = true; state.selectedReplyIds = []; renderView(); }
+function exitReplySelectMode(){ state.replySelectMode = false; state.selectedReplyIds = []; renderView(); }
+function toggleReplySelection(replyId){
+  const i = state.selectedReplyIds.indexOf(replyId);
+  if(i === -1) state.selectedReplyIds.push(replyId);
+  else state.selectedReplyIds.splice(i, 1);
+  renderView();
+}
+// Same protocol as deleting a whole thread: supervisor only, a typed
+// reason is required, and every removed reply gets its own Deletion Log
+// entry so the record shows exactly what was taken out.
+async function deleteSelectedReplies(discId){
+  return runOnce_('deleteSelectedReplies::'+discId, async ()=>{
   const d = state.discussions.find(x=>x.id===discId);
-  if(!d){ alert('That discussion no longer exists — it may have been deleted. Refreshing.'); state.selectedDiscussionId = null; renderView(); return; }
-  const reply = (d.replies||[]).find(r=>r.id===replyId);
-  if(!reply){ alert('That reply no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
-  const preview = reply.text.length > 60 ? reply.text.slice(0,60) + '…' : reply.text;
-  const reason = prompt(`Reason for deleting ${reply.byName}'s reply ("${preview}")? (required — this will be logged)`, '');
+  if(!d){ alert('That discussion no longer exists — it may have been deleted. Refreshing.'); state.selectedDiscussionId = null; exitReplySelectMode(); return; }
+  const ids = state.selectedReplyIds.slice();
+  const toDelete = (d.replies||[]).filter(r=>ids.includes(r.id));
+  if(toDelete.length === 0){ alert('No replies selected.'); return; }
+  const reason = prompt(`Reason for deleting ${toDelete.length} repl${toDelete.length===1?'y':'ies'}? (required — this will be logged)`, '');
   if(reason === null) return;
   if(!reason.trim()){ alert('A reason is required.'); return; }
-  d.replies = d.replies.filter(r=>r.id!==replyId);
+  d.replies = (d.replies||[]).filter(r=>!ids.includes(r.id));
   await saveCollection('discussions', state.discussions);
-  state.deletionLog.push({ id: uid('del'), type:'discussion-reply', title:`Reply by ${reply.byName} in "${d.title}"`, studentId:null, deletedByName:state.identity.name, deletedByRole:reviewerIdentity(null).roleLabel, reason:reason.trim(), deletedAt: nowIST() });
+  toDelete.forEach(r=>{
+    state.deletionLog.push({ id: uid('del'), type:'discussion-reply', title:`Reply by ${r.byName} in "${d.title}"`, studentId:null, deletedByName:state.identity.name, deletedByRole:reviewerIdentity(null).roleLabel, reason:reason.trim(), deletedAt: nowIST() });
+  });
   await saveCollection('deletion-log', state.deletionLog);
+  state.replySelectMode = false;
+  state.selectedReplyIds = [];
   renderView();
   });
 }
