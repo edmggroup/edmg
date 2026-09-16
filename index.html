@@ -1778,13 +1778,14 @@ function discussionDetailHtml(id){
       ${d.link ? `<div class="entry-meta" style="margin-top:6px;"><a href="${escapeHtml(d.link)}" target="_blank" rel="noopener noreferrer" class="task-link">${escapeHtml(d.link)}</a></div>` : ''}
       ${d.replies && d.replies.length>0 ? `
         <div style="margin-top:14px; border-top:1px solid var(--border); padding-top:12px;">
-          ${isTrueSupervisor() ? `
+          ${canManageAnyReply_(d) ? `
             <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
               <div class="entry-meta">${d.replies.length} repl${d.replies.length===1?'y':'ies'}</div>
               ${state.replySelectMode ? `
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                   <span class="entry-meta">${state.selectedReplyIds.length} selected</span>
-                  <button class="small-btn danger" ${state.selectedReplyIds.length===0?'disabled':''} onclick="guardedClick(this, ()=>deleteSelectedReplies('${d.id}'))">Delete selected</button>
+                  <button class="small-btn" ${state.selectedReplyIds.length===1?'':'disabled'} onclick="openEditReplyModal('${d.id}')">Edit selected</button>
+                  ${isTrueSupervisor() ? `<button class="small-btn danger" ${state.selectedReplyIds.length===0?'disabled':''} onclick="guardedClick(this, ()=>deleteSelectedReplies('${d.id}'))">Delete selected</button>` : ''}
                   <button class="small-btn" onclick="exitReplySelectMode()">Cancel</button>
                 </div>
               ` : `<button class="small-btn" onclick="enterReplySelectMode()">Manage replies</button>`}
@@ -1793,13 +1794,13 @@ function discussionDetailHtml(id){
           <div style="display:flex; flex-direction:column; gap:12px;">
             ${d.replies.map(r=>`
               <div style="display:flex; gap:10px; align-items:flex-start;">
-                ${(isTrueSupervisor() && state.replySelectMode) ? `
+                ${(state.replySelectMode && canManageReply_(r)) ? `
                   <input type="checkbox" style="margin-top:4px; flex-shrink:0; width:18px; height:18px; cursor:pointer;"
                     ${state.selectedReplyIds.includes(r.id)?'checked':''}
                     onchange="toggleReplySelection('${r.id}')">
-                ` : ''}
+                ` : (state.replySelectMode ? `<span style="width:18px; flex-shrink:0;"></span>` : '')}
                 <div style="flex:1; min-width:0;">
-                  <div class="entry-meta"><b>${escapeHtml(r.byName)}</b> (${escapeHtml(r.byRole)}) · ${escapeHtml(r.at)}</div>
+                  <div class="entry-meta"><b>${escapeHtml(r.byName)}</b> (${escapeHtml(r.byRole)}) · ${escapeHtml(r.at)}${r.editedAt ? ` · edited ${escapeHtml(r.editedAt)}${r.editedByName && r.editedByName !== r.byName ? ' by '+escapeHtml(r.editedByName) : ''}` : ''}</div>
                   <div style="font-size:14px; white-space:pre-wrap;">${nl2br(r.text)}</div>
                 </div>
               </div>
@@ -1913,6 +1914,15 @@ async function deleteDiscussion(id){
 // Reply moderation uses a deliberate selection mode rather than a Delete
 // button on every reply: it keeps the thread clean to read, and makes
 // removing something a two-step action instead of a single stray click.
+// Anyone can correct their own reply — fixing a typo in something you
+// wrote shouldn't need the supervisor. The supervisor can additionally
+// correct anyone's. Deleting stays supervisor-only, as before.
+function canManageReply_(r){
+  return isTrueSupervisor() || (r.byId && r.byId === state.identity.id);
+}
+function canManageAnyReply_(d){
+  return isTrueSupervisor() || (d.replies||[]).some(r=>canManageReply_(r));
+}
 function enterReplySelectMode(){ state.replySelectMode = true; state.selectedReplyIds = []; renderView(); }
 function exitReplySelectMode(){ state.replySelectMode = false; state.selectedReplyIds = []; renderView(); }
 function toggleReplySelection(replyId){
@@ -1924,8 +1934,47 @@ function toggleReplySelection(replyId){
 // Same protocol as deleting a whole thread: supervisor only, a typed
 // reason is required, and every removed reply gets its own Deletion Log
 // entry so the record shows exactly what was taken out.
+// Editing is scoped to one reply at a time — "edit these three at once"
+// isn't a meaningful action, so the button only enables on a single tick.
+function openEditReplyModal(discId){
+  const d = state.discussions.find(x=>x.id===discId);
+  if(!d){ alert('That discussion no longer exists — it may have been deleted. Refreshing.'); state.selectedDiscussionId = null; exitReplySelectMode(); return; }
+  const r = (d.replies||[]).find(x=>x.id===state.selectedReplyIds[0]);
+  if(!r){ alert('That reply no longer exists — it may have been deleted. Refreshing.'); exitReplySelectMode(); return; }
+  if(!canManageReply_(r)){ alert('You can only edit your own replies.'); return; }
+  showModal('Edit reply', `
+    <div class="view-sub" style="margin-bottom:10px;">Originally posted by ${escapeHtml(r.byName)} on ${escapeHtml(r.at)}.</div>
+    <label class="field-label">Reply</label>
+    <textarea class="text-input" id="f_editReplyText" rows="5">${escapeHtml(r.text)}</textarea>
+  `, ()=>submitEditReply(discId, r.id));
+}
+async function submitEditReply(discId, replyId){
+  return runOnce_('editReply::'+discId+'::'+replyId, async ()=>{
+  const d = state.discussions.find(x=>x.id===discId);
+  if(!d){ alert('That discussion no longer exists — it may have been deleted. Refreshing.'); closeModal(); state.selectedDiscussionId = null; exitReplySelectMode(); return; }
+  const r = (d.replies||[]).find(x=>x.id===replyId);
+  if(!r){ alert('That reply no longer exists — it may have been deleted. Refreshing.'); closeModal(); exitReplySelectMode(); return; }
+  if(!canManageReply_(r)){ alert('You can only edit your own replies.'); return; }
+  const text = document.getElementById('f_editReplyText').value.trim();
+  if(!text){ alert('A reply cannot be empty. Use "Delete selected" if you want to remove it.'); return; }
+  if(text === r.text){ closeModal(); exitReplySelectMode(); return; } // nothing changed
+  r.text = text;
+  // A correction stays visible rather than silently rewriting what someone
+  // said — this matters most when a supervisor edits a scholar's words.
+  r.editedAt = nowIST();
+  r.editedByName = state.identity.name;
+  await saveCollection('discussions', state.discussions);
+  closeModal();
+  state.replySelectMode = false;
+  state.selectedReplyIds = [];
+  renderView();
+  });
+}
 async function deleteSelectedReplies(discId){
   return runOnce_('deleteSelectedReplies::'+discId, async ()=>{
+  // Deleting stays supervisor-only. The button is hidden for everyone else,
+  // but the check belongs here too — UI visibility isn't a permission model.
+  if(!isTrueSupervisor()){ alert('Only the supervisor can delete replies.'); return; }
   const d = state.discussions.find(x=>x.id===discId);
   if(!d){ alert('That discussion no longer exists — it may have been deleted. Refreshing.'); state.selectedDiscussionId = null; exitReplySelectMode(); return; }
   const ids = state.selectedReplyIds.slice();
