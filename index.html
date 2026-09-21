@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="RG Logbook">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=optional" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
@@ -126,6 +126,11 @@
     border-radius:12px; box-shadow:var(--shadow-md); padding:40px 36px;
     animation: loginFadeIn .4s cubic-bezier(.2,.7,.3,1);
   }
+  /* After the first entrance, re-renders (choosing a role, picking a name,
+     a background data refresh) swap content in place without replaying the
+     slide-in — replaying it on every re-render reads as flicker. */
+  #loginScreen.settled .login-card{ animation:none; }
+  .login-loading{ align-self:center; font-size:14px; color:var(--ink-soft); letter-spacing:.02em; }
   @media (max-width: 860px){
     .login-hero{ display:none; }
     .login-card-wrap{ flex:1 1 100%; padding:24px 18px; }
@@ -603,7 +608,15 @@ const PAPER_STAGES = ['Planning','Drafting','Internal Review','Submitted','Under
 
 /* ============================ HELPERS ============================ */
 function uid(prefix){ return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+// Formats a Date as YYYY-MM-DD in the user's LOCAL calendar. The previous
+// helpers used toISOString(), which is UTC: in India (UTC+5:30) that made
+// "today" read as yesterday until 5:30 AM, and made shiftDate(+1) return
+// the same day and mondayOf() return Sunday — local midnight is 18:30 the
+// previous day in UTC. Every date helper now goes through this instead.
+function localDateStr(d){
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function todayStr(){ return localDateStr(new Date()); }
 // Whole days between a date and today. Both sides are parsed as UTC
 // midnight specifically (not local time) — for a pure calendar-date
 // subtraction like this, mixing in local time zones risks an off-by-one
@@ -721,10 +734,13 @@ async function apiNotify(type, payload){
     if(!json.ok){
       console.error('Notification failed (backend reported an error):', type, json.error);
       flagNotificationFailure_(type, json.error);
+      return false;
     }
+    return true;
   }catch(e){
     console.error('Notification failed to send (network/fetch error)', type, e);
     flagNotificationFailure_(type, String(e));
+    return false;
   }
 }
 // Errors were only ever visible in the browser's DevTools console before —
@@ -846,12 +862,17 @@ async function init(){
 
   try{
     const values = await apiGetAll(ALL_DATA_KEYS);
+    // If the fresh data matches what's already on screen from the cache,
+    // there is nothing to redraw — re-rendering anyway caused a visible
+    // repaint and threw away anything already typed into the login form.
+    const unchanged = cached && JSON.stringify(values) === JSON.stringify(cached);
     applyDataValues(values);
     saveLocalCache(values);
     // Only re-render the login screen if we're still on it — never clobber
     // an in-progress app session if this background refresh lands late.
     if(!state.identity){
-      if(restoreSessionIfValid()) showApp(); else renderLogin();
+      if(restoreSessionIfValid()) showApp();
+      else if(!unchanged) rerenderLoginKeepingInput_();
     }
   }catch(e){
     console.error('Failed to load from backend', e);
@@ -1038,7 +1059,11 @@ function renderBackendError(err){
 function renderLoginLoading(){
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('appShell').style.display='none';
-  document.getElementById('loginScreen').innerHTML = loginShell(`<div class="login-card"><div class="login-eyebrow">Research Group Management System</div><div class="login-title">Loading group data…</div></div>`);
+  // Deliberately NOT a .login-card: that class plays an entrance animation,
+  // and rendering one card here and then replacing it with the real login
+  // card made the card slide in twice on first load — the flicker. A plain
+  // line keeps the screen calm until the real card animates in once.
+  document.getElementById('loginScreen').innerHTML = loginShell(`<div class="login-loading">Loading group data…</div>`);
 }
 
 function renderLogin(){
@@ -1171,6 +1196,26 @@ function renderLogin(){
       <button class="primary-btn" onclick="doLogin()">Enter logbook</button>
     </div>
   `);
+  // Let the very first entrance animation finish, then stop it replaying.
+  // Adding the class immediately would snap the running animation off.
+  if(!loginSettleScheduled){
+    loginSettleScheduled = true;
+    setTimeout(()=>{ const el = document.getElementById('loginScreen'); if(el) el.classList.add('settled'); }, 450);
+  }
+}
+let loginSettleScheduled = false;
+// Used when fresh data arrives while someone is on the login screen (e.g. a
+// new scholar was added on another device). The card has to redraw so the
+// name list is current, but it shouldn't erase a PIN or email someone has
+// already started typing, or steal their cursor.
+function rerenderLoginKeepingInput_(){
+  const screen = document.getElementById('loginScreen');
+  const typed = {};
+  screen.querySelectorAll('input[id]').forEach(el=>{ typed[el.id] = el.value; });
+  const focusedId = document.activeElement && screen.contains(document.activeElement) ? document.activeElement.id : null;
+  renderLogin();
+  Object.keys(typed).forEach(id=>{ const el = document.getElementById(id); if(el && typed[id]) el.value = typed[id]; });
+  if(focusedId){ const el = document.getElementById(focusedId); if(el) el.focus(); }
 }
 function chooseRole(r){ state.loginRole = r; state.loginPickId = null; state.loginError=''; renderLogin(); }
 function pickStudent(id){ state.loginPickId = id; state.loginError=''; renderLogin(); setTimeout(()=>{ const el=document.getElementById('newStudentName') || document.getElementById('existingStudentPin') || document.getElementById('firstTimeStudentPin'); if(el) el.focus(); },0); }
@@ -3198,9 +3243,166 @@ function viewOverview(){
             </div>
           `;
         })()}
+        ${isTrueSupervisor() ? birthdaysPanelHtml_() : ''}
       </div>
     </div>
   `;
+}
+// Supervisor-only: everyone's date of birth, soonest birthday first, with
+// anyone who hasn't entered theirs listed underneath so it can be chased
+// up or filled in directly. Frozen accounts are left out.
+function birthdaysPanelHtml_(){
+  const today = todayStr();
+  const people = [
+    ...state.students.filter(s=>!s.frozen).map(s=>({ kind:'student', id:s.id, name:s.name, dob:s.dob||'', email:s.email||'', wishSentOn:s.wishSentOn||'', role: s.studentType==='project' ? 'Project Student' : 'Research Scholar' })),
+    ...state.coSupervisors.filter(c=>!c.frozen).map(c=>({ kind:'cosupervisor', id:c.id, name:c.name, dob:c.dob||'', email:c.email||'', wishSentOn:c.wishSentOn||'', role:'Advisor' }))
+  ];
+  const withDob = people.filter(p=>p.dob).map(p=>{
+    const next = nextBirthday_(p.dob, today);
+    return { ...p, next, inDays: daysUntil_(next), turning: ageOn_(p.dob, next) };
+  }).sort((a,b)=> a.inDays - b.inDays || a.name.localeCompare(b.name));
+  const missing = people.filter(p=>!p.dob).sort((a,b)=>a.name.localeCompare(b.name));
+  if(people.length === 0) return '';
+  const whenLabel = d => d===0 ? '<b style="color:var(--stat-rose);">Today 🎂</b>' : d===1 ? '<b>Tomorrow</b>' : d<=7 ? `<b>in ${d} days</b>` : `in ${d} days`;
+  return `
+    <div style="margin-top:14px;">
+      <h3 class="panel-title" style="margin:0 0 8px;"><span class="dot" style="background:var(--stat-rose);"></span>Birthdays</h3>
+      <div class="entry-card compact-card" style="max-height:340px; overflow-y:auto;">
+        ${withDob.length===0 ? `<div class="entry-meta">No dates of birth entered yet.</div>` :
+          withDob.map((p,i)=>`
+            <div style="padding:8px 2px; ${i>0?'border-top:1px solid var(--border);':''} ${p.inDays===0?'background:var(--navy-wash); border-radius:6px; padding-left:6px;':''}">
+              <div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline;">
+                <span class="task-link" style="font-size:13.5px; font-weight:600;" onclick="openEditDobModal('${p.kind}','${p.id}')">${escapeHtml(p.name)}</span>
+                <span class="entry-meta" style="white-space:nowrap;">${whenLabel(p.inDays)}</span>
+              </div>
+              <div class="entry-meta">${escapeHtml(p.role)} · ${fmtDate(p.dob)} · turns ${p.turning}</div>
+              ${p.inDays===0 ? `
+                <div style="margin-top:6px;">
+                  ${!p.email ? `<span class="entry-meta">No email on file — can't send wishes.</span>`
+                    : p.wishSentOn===today ? `<span class="entry-meta" style="color:var(--success);">Wishes sent ✓</span> <span class="task-link" style="font-size:12px;" onclick="openBirthdayWishModal('${p.kind}','${p.id}')">send again</span>`
+                    : `<button class="small-btn" onclick="openBirthdayWishModal('${p.kind}','${p.id}')">🎉 Send wishes</button>`}
+                </div>
+              ` : ''}
+            </div>
+          `).join('')}
+        ${missing.length>0 ? `
+          <div style="margin-top:10px; padding-top:8px; border-top:1px dashed var(--border-strong);">
+            <div class="entry-meta" style="margin-bottom:4px;">Not entered yet (${missing.length}) — click a name to add:</div>
+            <div style="display:flex; flex-wrap:wrap; gap:4px 10px;">
+              ${missing.map(p=>`<span class="task-link" style="font-size:12.5px;" onclick="openEditDobModal('${p.kind}','${p.id}')">${escapeHtml(p.name)}</span>`).join('')}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+/* ============================ BIRTHDAY WISHES ============================ */
+// The supervisor can send a personal birthday email from the dashboard.
+// It starts from a ready-made draft (three tones to choose from), which is
+// fully editable before sending. The email goes out from the app with the
+// supervisor's name as sender and their address as reply-to, so any reply
+// reaches the supervisor directly.
+function wishFirstName_(name){
+  const parts = String(name||'').trim().split(/\s+/);
+  // "Dr. Mehta" / "Prof. Rao" read oddly as just "Dr." — use the full name.
+  if(/^(dr|prof|mr|mrs|ms|miss)\.?$/i.test(parts[0]||'')) return parts.join(' ');
+  return parts[0] || String(name||'');
+}
+const BIRTHDAY_WISH_TEMPLATES = {
+  warm: {
+    label: 'Warm',
+    subject: n => `Happy Birthday, ${n}!`,
+    body: (n, isAdvisor, sup) => `Dear ${n},
+
+Wishing you a very happy birthday! ${isAdvisor
+  ? 'Thank you for all your guidance and support to the Energy Devices and Materials Group — it makes a real difference to all of us.'
+  : 'Thank you for everything you bring to the Energy Devices and Materials Group — your hard work and enthusiasm make a real difference.'}
+
+May the year ahead bring you good health, happiness${isAdvisor ? ', and continued success' : ', and exciting results in your research'}.
+
+Warm regards,
+${sup}`
+  },
+  formal: {
+    label: 'Formal',
+    subject: n => `Birthday Greetings`,
+    body: (n, isAdvisor, sup) => `Dear ${n},
+
+On behalf of the Energy Devices and Materials Group, I extend my warmest wishes on your birthday. I wish you continued success in your ${isAdvisor ? 'work' : 'research'} and a healthy, fulfilling year ahead.
+
+Best regards,
+${sup}
+Energy Devices and Materials Group
+Christ University, Bengaluru`
+  },
+  short: {
+    label: 'Short',
+    subject: n => `Happy Birthday!`,
+    body: (n, isAdvisor, sup) => `Dear ${n},
+
+Happy birthday! Have a wonderful day.
+
+Best wishes,
+${sup}`
+  }
+};
+function birthdayWishDraft_(kind, rec, templateKey){
+  const t = BIRTHDAY_WISH_TEMPLATES[templateKey] || BIRTHDAY_WISH_TEMPLATES.warm;
+  const n = wishFirstName_(rec.name);
+  const sup = state.supervisorName || 'Your supervisor';
+  return { subject: t.subject(n), body: t.body(n, kind==='cosupervisor', sup) };
+}
+function openBirthdayWishModal(kind, id){
+  if(!isTrueSupervisor()) return;
+  const rec = dobRecordFor_(kind, id);
+  if(!rec){ alert('That account no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
+  if(!rec.email){ alert(rec.name + " has no email address on file, so wishes can't be sent."); return; }
+  const draft = birthdayWishDraft_(kind, rec, 'warm');
+  showModal('Birthday wishes — ' + rec.name, `
+    <div class="view-sub" style="margin-bottom:10px;">To: <b>${escapeHtml(rec.name)}</b> &lt;${escapeHtml(rec.email)}&gt; · replies come back to you.</div>
+    <label class="field-label">Start from a draft</label>
+    <select class="text-input" id="f_wishTemplate" onchange="applyBirthdayWishTemplate('${kind}','${id}')">
+      ${Object.keys(BIRTHDAY_WISH_TEMPLATES).map(k=>`<option value="${k}">${escapeHtml(BIRTHDAY_WISH_TEMPLATES[k].label)}</option>`).join('')}
+    </select>
+    <label class="field-label">Subject</label>
+    <input class="text-input" id="f_wishSubject" value="${escapeHtml(draft.subject)}">
+    <label class="field-label">Message</label>
+    <textarea class="text-input" id="f_wishBody" rows="11">${escapeHtml(draft.body)}</textarea>
+    <div class="view-sub" style="margin-top:6px;">Edit anything you like before sending — this is exactly what ${escapeHtml(wishFirstName_(rec.name))} will receive.</div>
+  `, ()=>submitBirthdayWish(kind, id), false, '640px', null, 'Send wishes');
+}
+// Switching drafts replaces the text, so ask first if it has been edited.
+function applyBirthdayWishTemplate(kind, id){
+  const rec = dobRecordFor_(kind, id);
+  if(!rec) return;
+  const subjEl = document.getElementById('f_wishSubject');
+  const bodyEl = document.getElementById('f_wishBody');
+  const key = document.getElementById('f_wishTemplate').value;
+  if(bodyEl.dataset.touched === '1' && !confirm('Replace your edited message with the "' + BIRTHDAY_WISH_TEMPLATES[key].label + '" draft?')) return;
+  const draft = birthdayWishDraft_(kind, rec, key);
+  subjEl.value = draft.subject;
+  bodyEl.value = draft.body;
+  bodyEl.dataset.touched = '0';
+}
+document.addEventListener('input', e => { if(e.target && e.target.id === 'f_wishBody') e.target.dataset.touched = '1'; });
+async function submitBirthdayWish(kind, id){
+  return runOnce_('birthdayWish::'+kind+'::'+id, async ()=>{
+  if(!isTrueSupervisor()){ alert('Only the supervisor can send birthday wishes.'); return; }
+  const rec = dobRecordFor_(kind, id);
+  if(!rec){ alert('That account no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
+  const subject = document.getElementById('f_wishSubject').value.trim();
+  const message = document.getElementById('f_wishBody').value.trim();
+  if(!subject || !message){ alert('Please add a subject and a message.'); return; }
+  const sent = await apiNotify('birthdayWish', { kind, recipientId: id, subject, message, fromName: state.supervisorName || '' });
+  if(!sent){ alert('The email could not be sent. Please check your connection and try again — nothing was sent.'); return; }
+  rec.wishSentOn = todayStr();
+  await saveCollection(kind==='cosupervisor' ? 'co-supervisors' : 'students', kind==='cosupervisor' ? state.coSupervisors : state.students);
+  closeModal();
+  alert('Birthday wishes sent to ' + rec.name + '.');
+  renderView();
+  });
 }
 
 function renderStatusPie(counts, size){
@@ -3327,6 +3529,7 @@ const NOTIFY_PREF_LABELS = {
   meetings: 'When a meeting is confirmed at a different time than I requested',
   assignments: 'When I\'m assigned to review something',
   submissions: 'When a scholar submits something new for approval',
+  birthdays: 'A morning alert when it\'s a group member\'s birthday',
 };
 // The supervisor's own preference — this is fine to be self-serve, since
 // it's the supervisor's own inbox and no one else's oversight depends on
@@ -3343,12 +3546,17 @@ function notificationPrefsSection(){
       <label style="display:flex; align-items:center; gap:8px; font-size:13.5px;">
         <input type="checkbox" id="notifyPref_submissions" ${prefs.submissions===false?'':'checked'}> ${escapeHtml(NOTIFY_PREF_LABELS.submissions)}
       </label>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; margin-top:6px;">
+        <input type="checkbox" id="notifyPref_birthdays" ${prefs.birthdays===false?'':'checked'}> ${escapeHtml(NOTIFY_PREF_LABELS.birthdays)}
+      </label>
       <div class="entry-actions"><button class="small-btn" onclick="saveNotificationPrefs()">Save preference</button></div>
     </div>
   `;
 }
 async function saveNotificationPrefs(){
-  const prefs = { submissions: document.getElementById('notifyPref_submissions').checked };
+  const prefs = { ...(state.supervisorNotifyPrefs || {}),
+    submissions: document.getElementById('notifyPref_submissions').checked,
+    birthdays: document.getElementById('notifyPref_birthdays').checked };
   state.supervisorNotifyPrefs = prefs;
   await saveSupervisorProfile({ hash: state.supervisorPinHash, email: state.supervisorEmail, name: state.supervisorName, notifyPrefs: prefs });
   renderView();
@@ -3402,6 +3610,12 @@ function accessSection(){
         <div class="entry-meta" style="margin-top:8px;">Keep this up to date yourself — your supervisor can see it but this is self-reported.</div>
         <div class="entry-actions"><button class="small-btn" onclick="openEditProgramDetailsModal()">Edit program details</button></div>
       </div>
+      <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Personal details</h3>
+      <div class="entry-card">
+        <div class="entry-block"><span class="lbl">Date of birth</span>${me?.dob ? fmtDate(me.dob) : 'Not set'}</div>
+        <div class="entry-meta" style="margin-top:8px;">Visible only to you and the supervisor.</div>
+        <div class="entry-actions"><button class="small-btn" onclick="openEditDobModal('student', '${state.identity.id}')">${me?.dob ? 'Edit date of birth' : 'Add date of birth'}</button></div>
+      </div>
       <div class="entry-meta" style="margin:22px 0;">Which emails you receive is set by your supervisor, not by you — this keeps everyone on the same page about feedback and deadlines.</div>
       ${backupSection()}
     `;
@@ -3423,6 +3637,12 @@ function accessSection(){
           <button class="small-btn" onclick="openChangeCoSupEmailModal()">Change my email</button>
           <button class="small-btn" onclick="testMyEmail()">Send test email</button>
         </div>
+      </div>
+      <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Personal details</h3>
+      <div class="entry-card">
+        <div class="entry-block"><span class="lbl">Date of birth</span>${me?.dob ? fmtDate(me.dob) : 'Not set'}</div>
+        <div class="entry-meta" style="margin-top:8px;">Visible only to you and the supervisor.</div>
+        <div class="entry-actions"><button class="small-btn" onclick="openEditDobModal('cosupervisor', '${state.identity.id}')">${me?.dob ? 'Edit date of birth' : 'Add date of birth'}</button></div>
       </div>
       <div class="entry-meta" style="margin:22px 0;">Which emails you receive is set by your supervisor, not by you — this keeps everyone on the same page about who's responsible for reviewing what.</div>
       ${backupSection()}
@@ -3786,7 +4006,11 @@ async function submitBulkUploadConsumables(){
       return;
     }
     let expiryDate = row['Expiry Date (YYYY-MM-DD)'] || '';
-    if(expiryDate instanceof Date) expiryDate = expiryDate.toISOString().slice(0,10);
+    // SheetJS derives the time-zone offset from Excel's 1899 epoch, when
+    // India's local time differed slightly, so in IST a date cell arrives a
+    // few seconds BEFORE midnight of the previous day (1 Jun -> 31 May
+    // 23:59:50). Expiry dates are whole days, so round to the nearest day.
+    if(expiryDate instanceof Date) expiryDate = localDateStr(new Date(expiryDate.getTime() + 12*60*60*1000));
     else expiryDate = String(expiryDate).trim();
     state.consumables.push({
       id: uid('cons'), itemName, category, quantity: Number(quantity), unit,
@@ -4288,7 +4512,7 @@ function downloadBackup(){
     exportedAt: new Date().toISOString(),
     exportedBy: state.identity.name,
     scope,
-    students: visible.map(s=>({id:s.id, name:s.name, email:s.email||'', studentType:s.studentType||'research', mentorScholarId:s.mentorScholarId||null, frozen:!!s.frozen, notifyPrefs:s.notifyPrefs||{}, joiningDate:s.joiningDate||'', courseDuration:s.courseDuration||''})),
+    students: visible.map(s=>({id:s.id, name:s.name, email:s.email||'', studentType:s.studentType||'research', mentorScholarId:s.mentorScholarId||null, frozen:!!s.frozen, notifyPrefs:s.notifyPrefs||{}, joiningDate:s.joiningDate||'', courseDuration:s.courseDuration||'', dob:(isSupervisor || s.id===state.identity.id) ? (s.dob||'') : ''})),
     weeklyReports: scopedList(state.weekly),
     samples: scopedList(state.samples),
     papers: scopedList(state.papers),
@@ -4316,7 +4540,7 @@ function downloadBackup(){
     leaveRecords: scopedList(state.leaveRecords),
     instructions: scopedList(state.instructions),
     meetings: scopedList(state.meetings),
-    coSupervisors: isSupervisor ? state.coSupervisors.map(c=>({id:c.id, name:c.name, email:c.email||'', assignments:mentorAssignments_(c), frozen:!!c.frozen, notifyPrefs:c.notifyPrefs||{}})) : undefined
+    coSupervisors: isSupervisor ? state.coSupervisors.map(c=>({id:c.id, name:c.name, email:c.email||'', assignments:mentorAssignments_(c), frozen:!!c.frozen, notifyPrefs:c.notifyPrefs||{}, dob:c.dob||''})) : undefined
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
   const url = URL.createObjectURL(blob);
@@ -4343,7 +4567,7 @@ function handleRestoreFile(event){
     if(!confirm(`This will replace the group's current data with the contents of "${file.name}". This cannot be undone. Continue?`)) return;
     state.students = parsed.students.map(s => {
       const existing = state.students.find(x=>x.id===s.id);
-      return { ...s, pinHash: existing?.pinHash || s.pinHash || null, email: s.email || existing?.email || '' };
+      return { ...s, pinHash: existing?.pinHash || s.pinHash || null, email: s.email || existing?.email || '', dob: s.dob || existing?.dob || '' };
     });
     state.weekly = parsed.weeklyReports;
     state.samples = parsed.samples;
@@ -4375,7 +4599,7 @@ function handleRestoreFile(event){
     if(Array.isArray(parsed.coSupervisors)){
       state.coSupervisors = parsed.coSupervisors.map(c => {
         const existing = state.coSupervisors.find(x=>x.id===c.id);
-        return { ...c, pinHash: existing?.pinHash || null };
+        return { ...c, pinHash: existing?.pinHash || null, dob: c.dob || existing?.dob || '' };
       });
     }
     await Promise.all([
@@ -4496,6 +4720,67 @@ async function submitChangeStudentEmail(){
   me.email = email;
   await saveCollection('students', state.students);
   closeModal(); renderView();
+}
+/* ============================ DATE OF BIRTH ============================ */
+// Stored on the person's own record (students or co-supervisors) as a
+// plain YYYY-MM-DD string. Each person enters their own from the Account
+// page; the supervisor can also fill it in for someone who hasn't. Only
+// the person themselves and the supervisor ever see it — it is not shown
+// to mentors or other scholars.
+function dobRecordFor_(kind, id){
+  return kind==='cosupervisor' ? state.coSupervisors.find(x=>x.id===id) : state.students.find(x=>x.id===id);
+}
+function openEditDobModal(kind, id){
+  const rec = dobRecordFor_(kind, id);
+  if(!rec){ alert('That account no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
+  const forSelf = rec.id === state.identity.id;
+  showModal(forSelf ? 'Date of birth' : 'Date of birth — ' + rec.name, `
+    <label class="field-label">Date of birth</label>
+    <input type="date" class="text-input" id="f_dob" value="${rec.dob || ''}" max="${todayStr()}">
+    <div class="view-sub" style="margin-top:8px;">${forSelf ? 'Visible only to you and the supervisor.' : 'Visible only to ' + escapeHtml(rec.name) + ' and you.'}</div>
+  `, ()=>submitEditDob(kind, id));
+}
+async function submitEditDob(kind, id){
+  return runOnce_('editDob::'+kind+'::'+id, async ()=>{
+  const rec = dobRecordFor_(kind, id);
+  if(!rec){ alert('That account no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
+  // Only the person themselves, or the supervisor, may set this.
+  if(rec.id !== state.identity.id && !isTrueSupervisor()){ alert('You can only edit your own date of birth.'); return; }
+  const dob = document.getElementById('f_dob').value;
+  if(dob){
+    if(dob > todayStr()){ alert('Date of birth cannot be in the future.'); return; }
+    const age = ageOn_(dob, todayStr());
+    if(age < 10 || age > 100){ alert('Please check the year — that gives an age of ' + age + '.'); return; }
+  }
+  rec.dob = dob; // empty string clears it
+  await saveCollection(kind==='cosupervisor' ? 'co-supervisors' : 'students', kind==='cosupervisor' ? state.coSupervisors : state.students);
+  closeModal(); renderView();
+  });
+}
+// Completed years between a birth date and a given date (both YYYY-MM-DD).
+function ageOn_(dob, onDate){
+  const [by,bm,bd] = dob.split('-').map(Number);
+  const [ty,tm,td] = onDate.split('-').map(Number);
+  let age = ty - by;
+  if(tm < bm || (tm === bm && td < bd)) age--;
+  return age;
+}
+// The next occurrence of this birthday on or after `fromDate`. A 29 Feb
+// birthday falls on 28 Feb in non-leap years, so it never silently skips
+// a year.
+function nextBirthday_(dob, fromDate){
+  const [, bm, bd] = dob.split('-').map(Number);
+  const [fy, fm, fd] = fromDate.split('-').map(Number);
+  const isLeap = y => (y%4===0 && y%100!==0) || y%400===0;
+  const onYear = y => {
+    const day = (bm===2 && bd===29 && !isLeap(y)) ? 28 : bd;
+    return y + '-' + String(bm).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+  };
+  const thisYear = onYear(fy);
+  return thisYear >= fromDate ? thisYear : onYear(fy+1);
+}
+function daysUntil_(dateStr){
+  return 0 - daysSince(dateStr) || 0; // `|| 0` turns -0 into 0
 }
 function openEditProgramDetailsModal(){
   const me = state.students.find(x=>x.id===state.identity.id);
@@ -4700,12 +4985,12 @@ function mondayOf(dateStr){
   const d = new Date(dateStr+'T00:00:00');
   const day = d.getDay();
   const diff = d.getDate() - day + (day===0?-6:1);
-  return new Date(d.setDate(diff)).toISOString().slice(0,10);
+  return localDateStr(new Date(d.setDate(diff)));
 }
 function shiftDate(dateStr, days){
   const d = new Date(dateStr+'T00:00:00');
   d.setDate(d.getDate()+days);
-  return d.toISOString().slice(0,10);
+  return localDateStr(d);
 }
 function weekDates(monday){
   const out = [];
@@ -6920,7 +7205,7 @@ function getMondayStr(){
   const day = d.getDay();
   const diff = d.getDate() - day + (day===0?-6:1);
   const monday = new Date(d.setDate(diff));
-  return monday.toISOString().slice(0,10);
+  return localDateStr(monday);
 }
 async function submitWeekly(){
   const weekStart = document.getElementById('f_weekStart').value;
@@ -9193,7 +9478,7 @@ function downloadReportCsv(){
 }
 
 /* ============================ MODAL ============================ */
-function showModal(title, bodyHtml, onSubmit, viewOnly, maxWidth, draftKey){
+function showModal(title, bodyHtml, onSubmit, viewOnly, maxWidth, draftKey, submitLabel){
   document.getElementById('modalRoot').innerHTML = `
     <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
       <div class="modal-box" style="${maxWidth ? 'max-width:'+maxWidth+';' : ''}">
@@ -9204,7 +9489,7 @@ function showModal(title, bodyHtml, onSubmit, viewOnly, maxWidth, draftKey){
             <span id="draftStatus" class="entry-meta" style="margin-right:auto; align-self:center;"></span>
             <button class="small-btn" onclick="closeModal()">${viewOnly ? 'Close' : 'Cancel'}</button>
             ${viewOnly ? '' : '<button class="small-btn" onclick="saveDraftNow()">Save as draft</button>'}
-            ${viewOnly ? '' : '<button class="action-btn" id="modalSubmitBtn">Save</button>'}
+            ${viewOnly ? '' : `<button class="action-btn" id="modalSubmitBtn">${escapeHtml(submitLabel || 'Save')}</button>`}
           </div>
         </div>
       </div>
