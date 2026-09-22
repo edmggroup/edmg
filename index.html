@@ -386,6 +386,24 @@
   .empty-state .em-sub{ font-size:13.5px; max-width:360px; margin:0 auto; }
 
   /* ---------- Modal ---------- */
+  /* One-time celebration card shown to the person being congratulated */
+  .cg-flash-overlay{ position:fixed; inset:0; z-index:700; background:rgba(15,20,32,0.55); display:flex; align-items:center; justify-content:center; padding:20px; overflow:hidden; animation:modalFadeIn .2s ease; }
+  .cg-flash-card{ position:relative; z-index:2; width:100%; max-width:440px; background:var(--surface); border-radius:16px; padding:34px 30px 26px; text-align:center; box-shadow:0 24px 60px rgba(0,0,0,0.3); animation:cgFlashPop .45s cubic-bezier(.2,1.3,.4,1); }
+  .cg-flash-card.academic{ border-top:6px solid var(--stat-purple); }
+  .cg-flash-card.personal{ border-top:6px solid var(--stat-rose); }
+  .cg-flash-emoji{ font-size:54px; line-height:1; animation:cgFlashBounce 1.2s ease .3s 2; }
+  .cg-flash-title{ font-size:24px; font-weight:700; color:var(--ink); margin:14px 0 4px; letter-spacing:-0.01em; }
+  .cg-flash-occasion{ font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; }
+  .cg-flash-card.academic .cg-flash-occasion{ color:var(--stat-purple); }
+  .cg-flash-card.personal .cg-flash-occasion{ color:var(--stat-rose); }
+  .cg-flash-message{ font-size:15.5px; line-height:1.65; color:var(--ink); margin:16px 0 6px; white-space:pre-wrap; }
+  .cg-flash-from{ font-size:13px; color:var(--ink-soft); margin-bottom:22px; }
+  .cg-flash-counter{ font-size:12px; color:var(--ink-faint); margin-top:10px; }
+  .cg-confetti{ position:absolute; top:-12px; width:9px; height:14px; border-radius:2px; z-index:1; opacity:0; animation:cgConfettiFall 2.8s linear forwards; }
+  @keyframes cgFlashPop{ from{ opacity:0; transform:scale(.85) translateY(12px); } to{ opacity:1; transform:scale(1) translateY(0); } }
+  @keyframes cgFlashBounce{ 0%,100%{ transform:translateY(0) rotate(0); } 30%{ transform:translateY(-10px) rotate(-8deg); } 60%{ transform:translateY(0) rotate(6deg); } }
+  @keyframes cgConfettiFall{ 0%{ opacity:1; transform:translateY(0) rotate(0); } 100%{ opacity:0; transform:translateY(105vh) rotate(720deg); } }
+  @media (prefers-reduced-motion: reduce){ .cg-flash-card, .cg-flash-emoji, .cg-flash-overlay{ animation:none; } .cg-confetti{ display:none; } }
   .modal-overlay{ position:fixed; inset:0; background:rgba(15,20,32,0.5); display:flex; align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto; z-index:100; animation:modalFadeIn .15s ease; }
   .modal-box{ background:var(--surface); border-radius:10px; width:100%; max-width:680px; box-shadow:0 24px 60px rgba(0,0,0,0.28); margin:auto; animation:modalScaleIn .16s cubic-bezier(0.2,0.8,0.3,1); }
   @keyframes modalFadeIn{ from{ opacity:0; } to{ opacity:1; } }
@@ -1422,6 +1440,7 @@ function openHelpModal(){
 }
 function switchUser(){
   clearSession();
+  const flash = document.getElementById('congratsFlash'); if(flash) flash.remove();
   state.identity = null;
   state.loginRole = null;
   state.loginPickId = null;
@@ -1443,6 +1462,7 @@ function showApp(){
   renderSidebar();
   renderView();
   showDigestPopup();
+  setTimeout(showCongratsFlash_, 350); // sits above the digest; closing it reveals the digest
 }
 function showDigestPopup(){
   let bodyHtml = '';
@@ -3778,6 +3798,92 @@ function congratsDashboardHtml_(){
   }).join('');
 }
 
+// When a member's account is deleted or an advisor is removed, take them
+// off every congratulation post. A post that was only about them is hidden
+// (not deleted, so it stays visible in the list) rather than left on
+// dashboards congratulating someone who is no longer in the group.
+function dropMemberFromCongrats_(memberId){
+  let changed = false;
+  state.congratulations.forEach(g=>{
+    const hadHonorees = (g.honoreeIds||[]).length > 0;
+    const h = (g.honoreeIds||[]).filter(x=>x!==memberId);
+    const a = (g.audienceIds||[]).filter(x=>x!==memberId);
+    if(h.length !== (g.honoreeIds||[]).length || a.length !== (g.audienceIds||[]).length){
+      g.honoreeIds = h; g.audienceIds = a; changed = true;
+      if(hadHonorees && h.length === 0) g.hidden = true;
+    }
+  });
+  return changed;
+}
+
+/* ---------------- One-time celebration card ---------------- */
+// The first time someone who is being congratulated opens the app, a
+// celebration card pops up for them. Once they close it, they just see the
+// normal card on their dashboard. "Seen" is remembered on their own
+// device, not on the shared congratulations list: writing that list from a
+// member's browser could overwrite an edit or deletion the supervisor made
+// at the same moment. So it shows once per device.
+const CONGRATS_SEEN_PREFIX = 'rgms-congrats-seen::';
+function congratsSeenIds_(){
+  try{ return JSON.parse(localStorage.getItem(CONGRATS_SEEN_PREFIX + state.identity.id) || '[]'); }
+  catch(e){ return []; }
+}
+function markCongratsSeen_(id){
+  try{
+    const seen = congratsSeenIds_().filter(x=>x!==id);
+    seen.push(id);
+    localStorage.setItem(CONGRATS_SEEN_PREFIX + state.identity.id, JSON.stringify(seen.slice(-200)));
+  }catch(e){ /* storage unavailable — worst case the card shows again next time */ }
+}
+function pendingCongratsFlash_(){
+  if(!state.identity || state.identity.role === 'supervisor') return [];
+  const t = todayStr(), me = state.identity.id, seen = new Set(congratsSeenIds_());
+  return state.congratulations.filter(g =>
+    !g.hidden && g.startDate <= t && g.endDate >= t &&
+    (g.honoreeIds||[]).includes(me) && !seen.has(g.id)
+  ).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
+}
+function showCongratsFlash_(){
+  if(document.getElementById('congratsFlash')) return;
+  const queue = pendingCongratsFlash_();
+  if(queue.length === 0) return;
+  const g = queue[0];
+  const occ = congratsOccasionInfo_(g.occasion);
+  const first = wishFirstName_(state.identity.name);
+  const colours = ['#6E4A9E','#B5476B','#2B5FA8','#E8B84B','#1F8A70','#E07A5F'];
+  const confetti = Array.from({length:26}, (_,i)=>
+    `<span class="cg-confetti" style="left:${(i*37)%100}%; background:${colours[i%colours.length]}; animation-delay:${(i%9)*0.12}s; transform:rotate(${i*23}deg);"></span>`).join('');
+  const el = document.createElement('div');
+  el.id = 'congratsFlash';
+  el.className = 'cg-flash-overlay';
+  el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-modal', 'true');
+  el.setAttribute('aria-labelledby', 'cgFlashTitle');
+  el.innerHTML = `
+    ${confetti}
+    <div class="cg-flash-card ${occ.type}">
+      <div class="cg-flash-emoji" aria-hidden="true">${occ.type==='personal' ? '💐' : '🎉'}</div>
+      <div class="cg-flash-title" id="cgFlashTitle">Congratulations, ${escapeHtml(first)}!</div>
+      <div class="cg-flash-occasion">${escapeHtml(occ.label)}</div>
+      <div class="cg-flash-message">${nl2br(g.message)}</div>
+      <div class="cg-flash-from">— ${escapeHtml(g.createdByName || state.supervisorName || 'Your supervisor')}</div>
+      <button class="primary-btn" id="cgFlashClose" style="max-width:220px; margin:0 auto;">Thank you!</button>
+      ${queue.length > 1 ? `<div class="cg-flash-counter">1 of ${queue.length}</div>` : ''}
+    </div>`;
+  document.body.appendChild(el);
+  const close = () => {
+    markCongratsSeen_(g.id);
+    el.remove();
+    document.removeEventListener('keydown', onKey);
+    setTimeout(showCongratsFlash_, 200); // next one, if several arrived at once
+  };
+  const onKey = e => { if(e.key === 'Escape') close(); };
+  document.getElementById('cgFlashClose').onclick = close;
+  el.addEventListener('click', e => { if(e.target === el) close(); });
+  document.addEventListener('keydown', onKey);
+  setTimeout(()=>{ const b = document.getElementById('cgFlashClose'); if(b) b.focus(); }, 60);
+}
+
 function renderStatusPie(counts, size){
   size = size || 130;
   const inset = Math.round(size * 0.14);
@@ -4267,6 +4373,7 @@ async function submitEditConsumable(id){
 }
 function openLogUsageModal(id){
   const item = state.consumables.find(x=>x.id===id);
+  if(!item){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   showModal(`Log usage / restock — ${item.itemName}`, `
     <div class="view-sub" style="margin-bottom:10px;">Currently ${escapeHtml(String(item.quantity))} ${escapeHtml(item.unit)} on hand.</div>
     <label class="field-label">Change</label>
@@ -4657,6 +4764,7 @@ async function submitAddCoSupervisor(){
 }
 function openEditCoSupAssignmentModal(id){
   const c = state.coSupervisors.find(x=>x.id===id);
+  if(!c){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   const assignments = mentorAssignments_(c);
   showModal(`Edit ${c.name}`, `
     <label class="field-label">Assigned research scholars</label>
@@ -4701,9 +4809,11 @@ async function submitEditCoSupAssignment(id){
 async function removeCoSupervisor(id){
   return runOnce_('removeCoSupervisor::'+id, async ()=>{
   const c = state.coSupervisors.find(x=>x.id===id);
+  if(!c){ alert('That advisor no longer exists — they may already have been removed. Refreshing.'); renderView(); return; }
   if(!confirm(`Remove ${c.name} as a mentor? They will no longer be able to log in.`)) return;
   state.coSupervisors = state.coSupervisors.filter(x=>x.id!==id);
   await saveCollection('co-supervisors', state.coSupervisors);
+  if(dropMemberFromCongrats_(id)) await saveCollection('congratulations', state.congratulations);
   renderView();
   });
 }
@@ -4722,6 +4832,7 @@ async function toggleFreezeCoSupervisor(id){
 }
 function openResetCoSupPinModal(id){
   const c = state.coSupervisors.find(x=>x.id===id);
+  if(!c){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   showModal(`Reset PIN for ${c.name}`, `
     <div class="view-sub" style="margin-bottom:6px;">This immediately replaces their current PIN. Share the new PIN with ${escapeHtml(c.name)} directly.</div>
     <label class="field-label">New PIN</label>
@@ -5042,6 +5153,7 @@ async function submitChangePin(){
 }
 function openResetStudentPinModal(id){
   const s = state.students.find(x=>x.id===id);
+  if(!s){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   showModal(`Reset PIN for ${s.name}`, `
     <div class="view-sub" style="margin-bottom:6px;">This immediately replaces their current PIN. Share the new PIN with ${escapeHtml(s.name)} directly.</div>
     <label class="field-label">New PIN</label>
@@ -5224,6 +5336,7 @@ async function toggleStudentType(id){
 // for where this scoping is actually enforced.
 function openAssignMentorScholarModal(projectStudentId){
   const ps = state.students.find(x=>x.id===projectStudentId);
+  if(!ps){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   const candidates = state.students.filter(x=>x.studentType!=='project' && x.id!==projectStudentId && !x.frozen);
   if(candidates.length===0){ alert('No research scholars available to assign yet — add or unfreeze one first.'); return; }
   showModal(`Assign advisor for ${ps.name}`, `
@@ -5261,6 +5374,7 @@ async function deleteStudentAccount(studentId){
   state.students = state.students.filter(x=>x.id!==studentId);
   state.students.forEach(x=>{ if(x.mentorScholarId===studentId) x.mentorScholarId = null; });
   state.meetings.forEach(m=>{ if(m.invitedStudentIds) m.invitedStudentIds = m.invitedStudentIds.filter(sid=>sid!==studentId); });
+  dropMemberFromCongrats_(studentId);
   state.weekly = state.weekly.filter(x=>x.studentId!==studentId);
   state.samples = state.samples.filter(x=>x.studentId!==studentId);
   state.papers = state.papers.filter(x=>x.studentId!==studentId);
@@ -5294,6 +5408,7 @@ async function deleteStudentAccount(studentId){
     saveCollection('fabrication-items', state.fabricationItems),
     saveCollection('instructions', state.instructions),
     saveCollection('meetings', state.meetings),
+    saveCollection('congratulations', state.congratulations),
     saveCollection('planner-tasks', state.plannerTasks),
     saveCollection('co-supervisors', state.coSupervisors)
   ]);
@@ -5704,6 +5819,7 @@ async function submitProposal(){
 }
 function openEditProposalModal(id){
   const pr = state.proposals.find(x=>x.id===id);
+  if(!pr){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   const myPapers = state.papers.filter(p=>p.studentId===pr.studentId);
   const linked = pr.linkedPaperIds || [];
   showModal('Work Plan (Proposal)', `
@@ -6001,6 +6117,7 @@ async function submitThesis(){
 }
 function openEditThesisModal(id){
   const tp = state.thesisPlans.find(x=>x.id===id);
+  if(!tp){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   showModal('Thesis Plan', `
     <label class="field-label">Thesis title</label>
     <input class="text-input" id="f_editThTitle" value="${escapeHtml(tp.title)}">
@@ -6029,6 +6146,7 @@ async function submitEditThesis(id){
 }
 function openAddChapterModal(thId){
   const tp = state.thesisPlans.find(x=>x.id===thId);
+  if(!tp){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   const myPapers = state.papers.filter(p=>p.studentId===tp.studentId);
   showModal('Add chapter', `
     <label class="field-label">Chapter title</label>
@@ -6085,8 +6203,9 @@ async function setThesisChapterStatus(thId, chId, status){
 }
 function openEditChapterDateModal(thId, chId){
   const tp = state.thesisPlans.find(x=>x.id===thId);
+  if(!tp){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   const ch = (tp.chapters||[]).find(x=>x.id===chId);
-  if(!ch) return;
+  if(!ch){ alert('That chapter no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   const history = ch.targetDateHistory || [];
   showModal('Edit target date', `
     <div class="view-sub" style="margin-bottom:8px;">${escapeHtml(ch.title)}</div>
@@ -6544,6 +6663,7 @@ async function submitEditFinancial(id){
 }
 function openFinancialOutcomeModal(id){
   const f = state.financialApps.find(x=>x.id===id);
+  if(!f){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   showModal('Record outcome', `
     <label class="field-label">Outcome</label>
     <select class="text-input" id="f_finOutcome">
@@ -7650,6 +7770,7 @@ async function deleteWeekly(id){
 }
 function openEditWeeklyModal(id){
   const w = state.weekly.find(x=>x.id===id);
+  if(!w){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   const myPapers = state.papers.filter(p=>p.studentId===w.studentId);
   const linked = w.linkedPaperIds || [];
   const myApprovedProposals = state.proposals.filter(p=>p.studentId===w.studentId && p.status==='approved');
@@ -7885,6 +8006,7 @@ async function submitSample(){
 }
 function openReceiveModal(id){
   const s = state.samples.find(x=>x.id===id);
+  if(!s){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   showModal(s.resultsReceivedDate ? 'Edit data entry' : 'Mark results received', `
     <label class="field-label">Date results received</label>
     <input type="date" class="text-input" id="f_resultsDate" value="${s.resultsReceivedDate || todayStr()}">
@@ -7945,6 +8067,7 @@ async function deleteSample(id){
 }
 function openEditSampleModal(id){
   const s = state.samples.find(x=>x.id===id);
+  if(!s){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   const myFabItems = state.fabricationItems.filter(it=>it.studentId===s.studentId);
   const linked = s.linkedFabricationIds || [];
   showModal('Characterization', `
@@ -8431,6 +8554,7 @@ function paperCard(p, i, total){
 }
 function openConsolidatedWeeklyModal(paperId){
   const p = state.papers.find(x=>x.id===paperId);
+  if(!p){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   const linked = scopedList(state.weekly)
     .filter(w => (w.linkedPaperIds||[]).includes(paperId))
     .sort((a,b)=> a.weekStart.localeCompare(b.weekStart));
@@ -9075,6 +9199,7 @@ async function submitMeeting(){
 // this lets them adjust the date/time as part of approving it.
 function openConfirmMeetingModal(id){
   const m = state.meetings.find(x=>x.id===id);
+  if(!m){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   const isReschedule = m.status==='confirmed';
   const invited = m.invitedStudentIds || [];
   const others = state.students.filter(s=>s.id!==m.studentId && !s.frozen);
@@ -9111,6 +9236,7 @@ function openConfirmMeetingModal(id){
 // clear thing instead of one button doing everything.
 function openEditMeetingModal(id){
   const m = state.meetings.find(x=>x.id===id);
+  if(!m){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   showModal('Edit meeting details', `
     <label class="field-label">Type</label>
     <select class="text-input" id="f_editMeetType">${MEETING_TYPES.map(t=>`<option value="${t}" ${m.type===t?'selected':''}>${t}</option>`).join('')}</select>
