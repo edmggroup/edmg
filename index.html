@@ -551,6 +551,12 @@ const state = {
   reminders: [],
   discussions: [],
   selectedDiscussionId: null,
+  // Contact details are never cached or saved in the browser: they are
+  // fetched from the server after a PIN check and held in memory only.
+  contacts: null,
+  contactsPin: null,
+  contactsSearch: '',
+  contactsFilter: 'all',
   replySelectMode: false,
   selectedReplyIds: [],
   // UI-only filter/view state. These were previously created on first
@@ -1381,6 +1387,8 @@ function openHelpModal(){
 }
 function switchUser(){
   clearSession();
+  state.contacts = null;
+  state.contactsPin = null;
   state.identity = null;
   state.loginRole = null;
   state.loginPickId = null;
@@ -1447,7 +1455,7 @@ const NAV_ITEM_COLORS = {
   weekly:'var(--stat-blue)', workDiary:'var(--stat-blue)', myProjectStudents:'var(--stat-indigo)', fabrication:'var(--stat-teal)', samples:'var(--stat-cyan)', resultsAnalysis:'var(--stat-rose)', papers:'var(--stat-purple)',
   rac:'var(--stat-rose)', learning:'var(--stat-blue)', financial:'var(--stat-teal)', conferences:'var(--stat-rose)',
   patents:'var(--stat-indigo)', plagiarism:'var(--stat-cyan)', awards:'var(--stat-purple)', collaborators:'var(--stat-teal)',
-  meetings:'var(--stat-indigo)', events:'var(--stat-purple)', consumables:'var(--stat-cyan)', leave:'var(--warning)', instructions:'var(--navy)', links:'var(--stat-teal)', discussions:'var(--stat-purple)', analytics:'var(--stat-blue)', activityLog:'var(--ink-faint)', deletionLog:'var(--danger)', projectStudentsAdmin:'var(--stat-indigo)', reports:'var(--navy)', account:'var(--ink-faint)'
+  meetings:'var(--stat-indigo)', events:'var(--stat-purple)', consumables:'var(--stat-cyan)', leave:'var(--warning)', instructions:'var(--navy)', links:'var(--stat-teal)', discussions:'var(--stat-purple)', analytics:'var(--stat-blue)', activityLog:'var(--ink-faint)', deletionLog:'var(--danger)', projectStudentsAdmin:'var(--stat-indigo)', contactDirectory:'var(--stat-teal)', reports:'var(--navy)', account:'var(--ink-faint)'
 };
 const NAV_GROUPS = [
   { items: [
@@ -1491,6 +1499,7 @@ const NAV_GROUPS = [
     { key:'activityLog', label:'Activity Log' },
     { key:'deletionLog', label:'Deletion Log', trueSupervisorOnly:true },
     { key:'projectStudentsAdmin', label:'Project Students', trueSupervisorOnly:true },
+    { key:'contactDirectory', label:'Contact Directory', trueSupervisorOnly:true },
     { key:'reports', label:'Reports' },
     { key:'account', label:'Account' },
   ]},
@@ -1526,6 +1535,7 @@ function renderView(){
   else if(state.view==='activityLog') main.innerHTML = viewActivityLog();
   else if(state.view==='deletionLog') main.innerHTML = viewDeletionLog();
   else if(state.view==='projectStudentsAdmin') main.innerHTML = viewProjectStudentsAdmin();
+  else if(state.view==='contactDirectory') main.innerHTML = viewContactDirectory();
   else if(state.view==='consumables') main.innerHTML = viewConsumables();
   else if(state.view==='patents') main.innerHTML = viewGenericSection('patent');
   else if(state.view==='plagiarism') main.innerHTML = viewGenericSection('plagiarism');
@@ -3248,51 +3258,32 @@ function viewOverview(){
     </div>
   `;
 }
-// Supervisor-only: everyone's date of birth, soonest birthday first, with
-// anyone who hasn't entered theirs listed underneath so it can be chased
-// up or filled in directly. Frozen accounts are left out.
+// Supervisor-only, and only on a day when someone has a birthday: the
+// panel lists just today's birthdays, with a button to send wishes. On any
+// other day it doesn't appear at all. Frozen accounts are left out.
 function birthdaysPanelHtml_(){
   const today = todayStr();
-  const people = [
-    ...state.students.filter(s=>!s.frozen).map(s=>({ kind:'student', id:s.id, name:s.name, dob:s.dob||'', email:s.email||'', wishSentOn:s.wishSentOn||'', role: s.studentType==='project' ? 'Project Student' : 'Research Scholar' })),
-    ...state.coSupervisors.filter(c=>!c.frozen).map(c=>({ kind:'cosupervisor', id:c.id, name:c.name, dob:c.dob||'', email:c.email||'', wishSentOn:c.wishSentOn||'', role:'Advisor' }))
-  ];
-  const withDob = people.filter(p=>p.dob).map(p=>{
-    const next = nextBirthday_(p.dob, today);
-    return { ...p, next, inDays: daysUntil_(next), turning: ageOn_(p.dob, next) };
-  }).sort((a,b)=> a.inDays - b.inDays || a.name.localeCompare(b.name));
-  const missing = people.filter(p=>!p.dob).sort((a,b)=>a.name.localeCompare(b.name));
-  if(people.length === 0) return '';
-  const whenLabel = d => d===0 ? '<b style="color:var(--stat-rose);">Today 🎂</b>' : d===1 ? '<b>Tomorrow</b>' : d<=7 ? `<b>in ${d} days</b>` : `in ${d} days`;
+  const todays = [
+    ...state.students.filter(s=>!s.frozen && s.dob).map(s=>({ kind:'student', id:s.id, name:s.name, dob:s.dob, email:s.email||'', wishSentOn:s.wishSentOn||'', role: s.studentType==='project' ? 'Project Student' : 'Research Scholar' })),
+    ...state.coSupervisors.filter(c=>!c.frozen && c.dob).map(c=>({ kind:'cosupervisor', id:c.id, name:c.name, dob:c.dob, email:c.email||'', wishSentOn:c.wishSentOn||'', role:'Advisor' }))
+  ].filter(p => nextBirthday_(p.dob, today) === today)
+   .sort((a,b)=>a.name.localeCompare(b.name));
+  if(todays.length === 0) return '';
   return `
     <div style="margin-top:14px;">
-      <h3 class="panel-title" style="margin:0 0 8px;"><span class="dot" style="background:var(--stat-rose);"></span>Birthdays</h3>
-      <div class="entry-card compact-card" style="max-height:340px; overflow-y:auto;">
-        ${withDob.length===0 ? `<div class="entry-meta">No dates of birth entered yet.</div>` :
-          withDob.map((p,i)=>`
-            <div style="padding:8px 2px; ${i>0?'border-top:1px solid var(--border);':''} ${p.inDays===0?'background:var(--navy-wash); border-radius:6px; padding-left:6px;':''}">
-              <div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline;">
-                <span class="task-link" style="font-size:13.5px; font-weight:600;" onclick="openEditDobModal('${p.kind}','${p.id}')">${escapeHtml(p.name)}</span>
-                <span class="entry-meta" style="white-space:nowrap;">${whenLabel(p.inDays)}</span>
-              </div>
-              <div class="entry-meta">${escapeHtml(p.role)} · ${fmtDate(p.dob)} · turns ${p.turning}</div>
-              ${p.inDays===0 ? `
-                <div style="margin-top:6px;">
-                  ${!p.email ? `<span class="entry-meta">No email on file — can't send wishes.</span>`
-                    : p.wishSentOn===today ? `<span class="entry-meta" style="color:var(--success);">Wishes sent ✓</span> <span class="task-link" style="font-size:12px;" onclick="openBirthdayWishModal('${p.kind}','${p.id}')">send again</span>`
-                    : `<button class="small-btn" onclick="openBirthdayWishModal('${p.kind}','${p.id}')">🎉 Send wishes</button>`}
-                </div>
-              ` : ''}
-            </div>
-          `).join('')}
-        ${missing.length>0 ? `
-          <div style="margin-top:10px; padding-top:8px; border-top:1px dashed var(--border-strong);">
-            <div class="entry-meta" style="margin-bottom:4px;">Not entered yet (${missing.length}) — click a name to add:</div>
-            <div style="display:flex; flex-wrap:wrap; gap:4px 10px;">
-              ${missing.map(p=>`<span class="task-link" style="font-size:12.5px;" onclick="openEditDobModal('${p.kind}','${p.id}')">${escapeHtml(p.name)}</span>`).join('')}
+      <h3 class="panel-title" style="margin:0 0 8px;"><span class="dot" style="background:var(--stat-rose);"></span>Birthday today 🎂</h3>
+      <div class="entry-card compact-card">
+        ${todays.map((p,i)=>`
+          <div style="padding:8px 2px; ${i>0?'border-top:1px solid var(--border);':''}">
+            <div style="font-size:14px; font-weight:600;">${escapeHtml(p.name)}</div>
+            <div class="entry-meta">${escapeHtml(p.role)} · turns ${Number(today.slice(0,4)) - Number(p.dob.slice(0,4))}</div>
+            <div style="margin-top:6px;">
+              ${!p.email ? `<span class="entry-meta">No email on file — can't send wishes.</span>`
+                : p.wishSentOn===today ? `<span class="entry-meta" style="color:var(--success);">Wishes sent ✓</span> <span class="task-link" style="font-size:12px;" onclick="openBirthdayWishModal('${p.kind}','${p.id}')">send again</span>`
+                : `<button class="small-btn" onclick="openBirthdayWishModal('${p.kind}','${p.id}')">🎉 Send wishes</button>`}
             </div>
           </div>
-        ` : ''}
+        `).join('')}
       </div>
     </div>
   `;
@@ -4778,9 +4769,6 @@ function nextBirthday_(dob, fromDate){
   };
   const thisYear = onYear(fy);
   return thisYear >= fromDate ? thisYear : onYear(fy+1);
-}
-function daysUntil_(dateStr){
-  return 0 - daysSince(dateStr) || 0; // `|| 0` turns -0 into 0
 }
 function openEditProgramDetailsModal(){
   const me = state.students.find(x=>x.id===state.identity.id);
