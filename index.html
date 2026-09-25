@@ -570,6 +570,8 @@ const state = {
   reminders: [],
   discussions: [],
   congratulations: [],
+  emailTemplates: [],
+  emailTemplateFilter: 'all',
   membersTab: 'profiles',
   membersFilter: 'all',
   selectedDiscussionId: null,
@@ -860,7 +862,7 @@ async function saveSupervisorProfile(profile){
 
 /* ============================ INIT ============================ */
 // Every collection key the app needs at startup, fetched in one batched request.
-const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','deletion-log','news-updates','patents','plagiarism-reports','awards','collaborators','leave-records','activity-log-exclusions','consumables','work-diary','reminders','discussions','congratulations','supervisor-pin'];
+const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','deletion-log','news-updates','patents','plagiarism-reports','awards','collaborators','leave-records','activity-log-exclusions','consumables','work-diary','reminders','discussions','congratulations','email-templates','supervisor-pin'];
 
 async function init(){
   if(!backendConfigured()){
@@ -933,6 +935,7 @@ function applyDataValues(values){
   state.reminders = arr('reminders');
   state.discussions = arr('discussions');
   state.congratulations = arr('congratulations');
+  state.emailTemplates = arr('email-templates');
   let supervisorProfile = {};
   try{ supervisorProfile = values['supervisor-pin'] ? JSON.parse(values['supervisor-pin']) : {}; }catch(e){ supervisorProfile = {}; }
   state.supervisorPinHash = supervisorProfile.hash || null;
@@ -1508,7 +1511,7 @@ const NAV_ITEM_COLORS = {
   weekly:'var(--stat-blue)', workDiary:'var(--stat-blue)', myProjectStudents:'var(--stat-indigo)', fabrication:'var(--stat-teal)', samples:'var(--stat-cyan)', resultsAnalysis:'var(--stat-rose)', papers:'var(--stat-purple)',
   rac:'var(--stat-rose)', learning:'var(--stat-blue)', financial:'var(--stat-teal)', conferences:'var(--stat-rose)',
   patents:'var(--stat-indigo)', plagiarism:'var(--stat-cyan)', awards:'var(--stat-purple)', collaborators:'var(--stat-teal)',
-  meetings:'var(--stat-indigo)', events:'var(--stat-purple)', consumables:'var(--stat-cyan)', leave:'var(--warning)', instructions:'var(--navy)', links:'var(--stat-teal)', discussions:'var(--stat-purple)', analytics:'var(--stat-blue)', activityLog:'var(--ink-faint)', deletionLog:'var(--danger)', projectStudentsAdmin:'var(--stat-indigo)', members:'var(--stat-rose)', reports:'var(--navy)', account:'var(--ink-faint)'
+  meetings:'var(--stat-indigo)', events:'var(--stat-purple)', consumables:'var(--stat-cyan)', leave:'var(--warning)', instructions:'var(--navy)', links:'var(--stat-teal)', discussions:'var(--stat-purple)', analytics:'var(--stat-blue)', activityLog:'var(--ink-faint)', deletionLog:'var(--danger)', projectStudentsAdmin:'var(--stat-indigo)', members:'var(--stat-rose)', emailTemplates:'var(--stat-teal)', reports:'var(--navy)', account:'var(--ink-faint)'
 };
 const NAV_GROUPS = [
   { items: [
@@ -1553,6 +1556,7 @@ const NAV_GROUPS = [
     { key:'deletionLog', label:'Deletion Log', trueSupervisorOnly:true },
     { key:'projectStudentsAdmin', label:'Project Students', trueSupervisorOnly:true },
     { key:'members', label:'Members', trueSupervisorOnly:true },
+    { key:'emailTemplates', label:'Email Templates', trueSupervisorOnly:true },
     { key:'reports', label:'Reports' },
     { key:'account', label:'Account' },
   ]},
@@ -1585,6 +1589,7 @@ function renderView(){
   else if(state.view==='links') main.innerHTML = viewLinks();
   else if(state.view==='discussions') main.innerHTML = viewDiscussionsPage();
   else if(state.view==='members') main.innerHTML = isTrueSupervisor() ? viewMembers() : emptyState('Not available', 'This page is for the supervisor only.');
+  else if(state.view==='emailTemplates') main.innerHTML = isTrueSupervisor() ? viewEmailTemplates() : emptyState('Not available', 'This page is for the supervisor only.');
   else if(state.view==='analytics') main.innerHTML = viewAnalytics();
   else if(state.view==='activityLog') main.innerHTML = viewActivityLog();
   else if(state.view==='deletionLog') main.innerHTML = viewDeletionLog();
@@ -3450,6 +3455,214 @@ async function submitBirthdayWish(kind, id){
   });
 }
 
+const EMAIL_TASKS = [
+  { type:'weeklyReviewed', section:'Weekly Plan', label:'Weekly Plan — approved or changes requested', to:'The scholar (and you, if an advisor reviewed it)', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{weekStart}','{workDone}'], draft:'Your Weekly Plan entry “{itemTitle}” has been reviewed by {reviewer}.\n\nOpen the logbook to read the full feedback and take any action required.' },
+  { type:'weeklySubmitted', section:'Weekly Plan', label:'Weekly Plan — submitted for approval', to:'Supervisor and assigned advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{weekStart}','{workDone}'], draft:'{scholarName} has submitted a new Weekly Plan entry, “{itemTitle}”, for your approval.\n\nPlease open the logbook to review the work and record your decision.' },
+  { type:'fabricationReviewed', section:'Lab Work', label:'Lab Work — approved or changes requested', to:'The scholar (and you, if an advisor reviewed it)', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{itemName}'], draft:'Your Lab Work entry “{itemTitle}” has been reviewed by {reviewer}.\n\nOpen the logbook to read the full feedback and take any action required.' },
+  { type:'fabricationSubmitted', section:'Lab Work', label:'Lab Work — submitted for approval', to:'Supervisor and assigned advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{itemName}'], draft:'{scholarName} has submitted a new Lab Work entry, “{itemTitle}”, for your approval.\n\nPlease open the logbook to review the work and record your decision.' },
+  { type:'sampleReviewed', section:'Characterization', label:'Characterization — approved or changes requested', to:'The scholar (and you, if an advisor reviewed it)', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{sampleName}','{technique}'], draft:'Your Characterization entry “{itemTitle}” has been reviewed by {reviewer}.\n\nOpen the logbook to read the full feedback and take any action required.' },
+  { type:'sampleSubmitted', section:'Characterization', label:'Characterization — submitted for approval', to:'Supervisor and assigned advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{sampleName}','{technique}'], draft:'{scholarName} has submitted a new Characterization entry, “{itemTitle}”, for your approval.\n\nPlease open the logbook to review the work and record your decision.' },
+  { type:'analysisReviewed', section:'Results Analysis', label:'Results Analysis — approved or changes requested', to:'The scholar (and you, if an advisor reviewed it)', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}'], draft:'Your Results Analysis entry “{itemTitle}” has been reviewed by {reviewer}.\n\nOpen the logbook to read the full feedback and take any action required.' },
+  { type:'analysisSubmitted', section:'Results Analysis', label:'Results Analysis — submitted for approval', to:'Supervisor and assigned advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}'], draft:'{scholarName} has submitted a new Results Analysis entry, “{itemTitle}”, for your approval.\n\nPlease open the logbook to review the work and record your decision.' },
+  { type:'paperDetailsDecided', section:'Paper Pipeline', label:'Paper Pipeline — detail change decided', to:'The scholar (and you, if an advisor decided)', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}','{decision}'], draft:'Your requested changes to the paper “{title}” have been reviewed by {reviewer}.\n\nOpen the logbook to see the current details.' },
+  { type:'paperDetailsProposed', section:'Paper Pipeline', label:'Paper Pipeline — detail change proposed', to:'Supervisor and assigned advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}','{summary}'], draft:'{scholarName} has requested changes to the details of the paper “{title}”.\n\nPlease open the logbook to approve or decline the change.' },
+  { type:'paperStageDecided', section:'Paper Pipeline', label:'Paper Pipeline — stage change decided', to:'The scholar (and you, if an advisor decided)', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}','{stage}','{decision}'], draft:'The paper “{title}” has been reviewed by {reviewer} and its stage is now recorded as “{stage}”.\n\nOpen the logbook to see the full record.' },
+  { type:'paperStageProposed', section:'Paper Pipeline', label:'Paper Pipeline — stage change proposed', to:'Supervisor and assigned advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}','{stage}','{pendingStage}'], draft:'{scholarName} has proposed moving the paper “{title}” to the “{pendingStage}” stage.\n\nPlease open the logbook to approve the change or request revisions.' },
+  { type:'proposalReviewed', section:'Proposals', label:'Proposals — approved or changes requested', to:'The scholar (and you, if an advisor reviewed it)', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}'], draft:'Your Proposals entry “{itemTitle}” has been reviewed by {reviewer}.\n\nOpen the logbook to read the full feedback and take any action required.' },
+  { type:'proposalSubmitted', section:'Proposals', label:'Proposals — submitted for approval', to:'Supervisor and assigned advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}'], draft:'{scholarName} has submitted a new Proposals entry, “{itemTitle}”, for your approval.\n\nPlease open the logbook to review the work and record your decision.' },
+  { type:'thesisReviewed', section:'Thesis Plan', label:'Thesis Plan — approved or changes requested', to:'The scholar (and you, if an advisor reviewed it)', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}'], draft:'Your Thesis Plan entry “{itemTitle}” has been reviewed by {reviewer}.\n\nOpen the logbook to read the full feedback and take any action required.' },
+  { type:'thesisSubmitted', section:'Thesis Plan', label:'Thesis Plan — submitted for approval', to:'Supervisor and assigned advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}'], draft:'{scholarName} has submitted a new Thesis Plan entry, “{itemTitle}”, for your approval.\n\nPlease open the logbook to review the work and record your decision.' },
+  { type:'racReviewed', section:'RAC Reviews', label:'RAC Reviews — approved or changes requested', to:'The scholar (and you, if an advisor reviewed it)', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}'], draft:'Your RAC Reviews entry “{itemTitle}” has been reviewed by {reviewer}.\n\nOpen the logbook to read the full feedback and take any action required.' },
+  { type:'racSubmitted', section:'RAC Reviews', label:'RAC Reviews — submitted for approval', to:'Supervisor and assigned advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}'], draft:'{scholarName} has submitted a new RAC Reviews entry, “{itemTitle}”, for your approval.\n\nPlease open the logbook to review the work and record your decision.' },
+  { type:'courseReviewed', section:'Learning & Courses', label:'Learning & Courses — approved or changes requested', to:'The scholar (and you, if an advisor reviewed it)', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{itemName}'], draft:'Your Learning & Courses entry “{itemTitle}” has been reviewed by {reviewer}.\n\nOpen the logbook to read the full feedback and take any action required.' },
+  { type:'courseSubmitted', section:'Learning & Courses', label:'Learning & Courses — submitted for approval', to:'Supervisor and assigned advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{itemName}'], draft:'{scholarName} has submitted a new Learning & Courses entry, “{itemTitle}”, for your approval.\n\nPlease open the logbook to review the work and record your decision.' },
+  { type:'financialReviewed', section:'Funding Applications', label:'Funding Applications — approved or changes requested', to:'The scholar (and you, if an advisor reviewed it)', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}'], draft:'Your Funding Applications entry “{itemTitle}” has been reviewed by {reviewer}.\n\nOpen the logbook to read the full feedback and take any action required.' },
+  { type:'financialSubmitted', section:'Funding Applications', label:'Funding Applications — submitted for approval', to:'Supervisor and assigned advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}'], draft:'{scholarName} has submitted a new Funding Applications entry, “{itemTitle}”, for your approval.\n\nPlease open the logbook to review the work and record your decision.' },
+  { type:'conferenceReviewed', section:'Conferences', label:'Conferences — approved or changes requested', to:'The scholar (and you, if an advisor reviewed it)', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{eventName}'], draft:'Your Conferences entry “{itemTitle}” has been reviewed by {reviewer}.\n\nOpen the logbook to read the full feedback and take any action required.' },
+  { type:'conferenceSubmitted', section:'Conferences', label:'Conferences — submitted for approval', to:'Supervisor and assigned advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{eventName}'], draft:'{scholarName} has submitted a new Conferences entry, “{itemTitle}”, for your approval.\n\nPlease open the logbook to review the work and record your decision.' },
+  { type:'patentReviewed', section:'Patents', label:'Patents — approved or changes requested', to:'The scholar (and you, if an advisor reviewed it)', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}'], draft:'Your Patents entry “{itemTitle}” has been reviewed by {reviewer}.\n\nOpen the logbook to read the full feedback and take any action required.' },
+  { type:'patentSubmitted', section:'Patents', label:'Patents — submitted for approval', to:'Supervisor and assigned advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}'], draft:'{scholarName} has submitted a new Patents entry, “{itemTitle}”, for your approval.\n\nPlease open the logbook to review the work and record your decision.' },
+  { type:'plagiarismReviewed', section:'Similarity Reports', label:'Similarity Reports — approved or changes requested', to:'The scholar (and you, if an advisor reviewed it)', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}'], draft:'Your Similarity Reports entry “{itemTitle}” has been reviewed by {reviewer}.\n\nOpen the logbook to read the full feedback and take any action required.' },
+  { type:'plagiarismSubmitted', section:'Similarity Reports', label:'Similarity Reports — submitted for approval', to:'Supervisor and assigned advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}'], draft:'{scholarName} has submitted a new Similarity Reports entry, “{itemTitle}”, for your approval.\n\nPlease open the logbook to review the work and record your decision.' },
+  { type:'awardReviewed', section:'Awards', label:'Awards — approved or changes requested', to:'The scholar (and you, if an advisor reviewed it)', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}'], draft:'Your Awards entry “{itemTitle}” has been reviewed by {reviewer}.\n\nOpen the logbook to read the full feedback and take any action required.' },
+  { type:'awardSubmitted', section:'Awards', label:'Awards — submitted for approval', to:'Supervisor and assigned advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}'], draft:'{scholarName} has submitted a new Awards entry, “{itemTitle}”, for your approval.\n\nPlease open the logbook to review the work and record your decision.' },
+  { type:'collaboratorReviewed', section:'Collaborators', label:'Collaborators — approved or changes requested', to:'The scholar (and you, if an advisor reviewed it)', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}'], draft:'Your Collaborators entry “{itemTitle}” has been reviewed by {reviewer}.\n\nOpen the logbook to read the full feedback and take any action required.' },
+  { type:'collaboratorSubmitted', section:'Collaborators', label:'Collaborators — submitted for approval', to:'Supervisor and assigned advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}'], draft:'{scholarName} has submitted a new Collaborators entry, “{itemTitle}”, for your approval.\n\nPlease open the logbook to review the work and record your decision.' },
+  { type:'leaveReviewed', section:'Leave / OD', label:'Leave / OD — approved or changes requested', to:'The scholar (and you, if an advisor reviewed it)', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}'], draft:'Your Leave / OD entry “{itemTitle}” has been reviewed by {reviewer}.\n\nOpen the logbook to read the full feedback and take any action required.' },
+  { type:'leaveSubmitted', section:'Leave / OD', label:'Leave / OD — submitted for approval', to:'Supervisor and assigned advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}'], draft:'{scholarName} has submitted a new Leave / OD entry, “{itemTitle}”, for your approval.\n\nPlease open the logbook to review the work and record your decision.' },
+  { type:'meetingProposed', section:'Meetings', label:'Meetings — a scholar proposed a meeting', to:'Supervisor and assigned advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}','{plannedDate}','{type}'], draft:'{scholarName} has proposed a meeting, “{title}”, for {plannedDate}.\n\nPlease open the logbook to confirm it or suggest another time.' },
+  { type:'meetingConfirmed', section:'Meetings', label:'Meetings — meeting confirmed', to:'The scholar and anyone invited', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}','{date}','{time}'], draft:'The meeting “{title}” is confirmed for {date}{time}.\n\nPlease come prepared with your latest results and any points you would like to discuss.' },
+  { type:'meetingRescheduled', section:'Meetings', label:'Meetings — meeting moved to a new time', to:'The scholar and anyone invited', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}','{date}','{time}'], draft:'The meeting “{title}” has been moved to {date}{time}.\n\nPlease update your calendar, and open the logbook if this time does not suit you.' },
+  { type:'discussionReplied', section:'Discussions', label:'Discussions — new reply in a topic', to:'Everyone in that conversation', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}','{repliedByName}','{repliedByRole}'], draft:'{repliedByName} has replied to the discussion “{title}”.\n\nOpen the logbook to follow the conversation.' },
+  { type:'discussionShared', section:'Discussions', label:'Discussions — topic shared with specific people', to:'The chosen members', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}','{sharedByName}','{sharedByRole}'], draft:'{sharedByName} has shared a discussion topic with you: “{title}”.\n\nOpen the logbook to read it and add your comments.' },
+  { type:'reviewAssigned', section:'Reviews', label:'Reviews — an advisor was assigned to review something', to:'The assigned advisor', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}','{studentName}','{category}'], draft:'You have been assigned to review “{title}”, submitted by {studentName}.\n\nPlease open the logbook at your convenience to record your feedback.' },
+  { type:'newStudent', section:'Accounts', label:'Accounts — a new member created an account', to:'Supervisor and advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{name}','{studentType}'], draft:'{name} has created an account in the group logbook.\n\nOpen the logbook to set their programme details and assign an advisor if required.' },
+  { type:'entryDeleted', section:'Any section', label:'Any section — an entry was deleted', to:'The scholar', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}','{reason}','{deletedByName}'], draft:'The entry “{title}” has been removed from the logbook by {deletedByName}, for the following reason: “{reason}”\n\nPlease contact the supervisor if you have any questions.' },
+  { type:'additionalCommentAdded', section:'Any section', label:'Any section — comment added after approval', to:'The scholar, supervisor and advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}','{comment}','{addedByName}','{addedByRole}'], draft:'{addedByName} has added a comment on “{title}” after it was approved: “{comment}”\n\nThe approval status is unchanged. Open the logbook for the full record.' },
+  { type:'workItemCreated', section:'Any section', label:'Any section — staff created an entry for a scholar', to:'The scholar (and you, if staff did it)', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{itemLabel}','{addedByName}','{addedByRole}'], draft:'An entry has been added to your logbook on your behalf by {addedByName} ({addedByRole}): {itemLabel}.\n\nPlease review it and let the supervisor know if anything needs correcting.' },
+  { type:'workItemEdited', section:'Any section', label:'Any section — staff edited a scholar\u2019s entry', to:'The scholar, supervisor and advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}','{editedByName}','{editedByRole}'], draft:'Your entry “{title}” has been updated by {editedByName} ({editedByRole}).\n\nOpen the logbook to see what changed.' },
+  { type:'birthdayAlert', section:'Daily emails', label:'Birthdays — your morning alert', to:'You', vars:['{recipientName}','{supervisorName}','{names}','{count}','{itemList}','{groupName}'], draft:'It is a birthday in the group today:\n\n{itemList}\n\nYou can send personal wishes from the Birthdays panel on your dashboard.' },
+  { type:'deadlineDigestScholar', section:'Daily emails', label:'Deadlines — daily digest to each scholar', to:'Each scholar with something due', vars:['{recipientName}','{scholarName}','{items}','{itemList}','{groupName}'], draft:'You have {items} item(s) due in the next three days:\n\n{itemList}\n\nPlease open the logbook to update their status.' },
+  { type:'deadlineDigestSupervisor', section:'Daily emails', label:'Deadlines — daily digest to you', to:'You', vars:['{recipientName}','{supervisorName}','{items}','{itemList}','{groupName}'], draft:'{items} item(s) are due across the group in the next three days:\n\n{itemList}\n\nOpen the logbook for the full picture.' },
+];
+
+/* ============================ EMAIL TEMPLATES (supervisor only) ============================ */
+// Each task's email keeps its built-in wording until you write your own
+// here. Leaving the message blank always means "use the built-in wording",
+// so there is a safe way back from any change.
+function emailTemplateFor_(type){
+  return state.emailTemplates.find(t=>t.id===type) || null;
+}
+function hasCustomTemplate_(type){
+  const t = emailTemplateFor_(type);
+  return !!(t && (t.body||'').trim());
+}
+function setEmailTemplateFilter(v){ state.emailTemplateFilter = v; renderView(); }
+function viewEmailTemplates(){
+  const sections = [...new Set(EMAIL_TASKS.map(t=>t.section))];
+  const f = state.emailTemplateFilter || 'all';
+  const shown = f==='all' ? EMAIL_TASKS : f==='custom' ? EMAIL_TASKS.filter(t=>hasCustomTemplate_(t.type)) : EMAIL_TASKS.filter(t=>t.section===f);
+  const customCount = EMAIL_TASKS.filter(t=>hasCustomTemplate_(t.type)).length;
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Email Templates</div>
+        <div class="view-sub">Every email the app sends has its own wording. Each one works out of the box — edit a task only if you want different words. ${customCount} of ${EMAIL_TASKS.length} are customised.</div>
+      </div>
+    </div>
+    <div class="filter-row">
+      <select onchange="setEmailTemplateFilter(this.value)">
+        <option value="all" ${f==='all'?'selected':''}>All tasks (${EMAIL_TASKS.length})</option>
+        <option value="custom" ${f==='custom'?'selected':''}>Customised only (${customCount})</option>
+        ${sections.map(s=>`<option value="${escapeHtml(s)}" ${f===s?'selected':''}>${escapeHtml(s)} (${EMAIL_TASKS.filter(t=>t.section===s).length})</option>`).join('')}
+      </select>
+    </div>
+    ${shown.length===0 ? emptyState('Nothing here', f==='custom' ? 'You have not customised any wording yet — every email uses its built-in text.' : 'No tasks in this section.') :
+      sections.filter(s=>shown.some(t=>t.section===s)).map(sec=>`
+        <h3 class="panel-title" style="margin:18px 0 8px;"><span class="dot" style="background:var(--stat-teal);"></span>${escapeHtml(sec)}</h3>
+        ${shown.filter(t=>t.section===sec).map(t=>{
+          const custom = hasCustomTemplate_(t.type);
+          const tpl = emailTemplateFor_(t.type);
+          return `
+            <div class="entry-card ${custom?'cat-teal':''}">
+              <div class="entry-top">
+                <div>
+                  <div class="entry-title" style="font-size:15px;">${escapeHtml(t.label)}</div>
+                  <div class="entry-meta">Sent to: ${escapeHtml(t.to)}</div>
+                </div>
+                <span class="stamp ${custom?'good':'neutral'}">${custom?'Customised':'Built-in wording'}</span>
+              </div>
+              ${custom ? `<div class="entry-block" style="margin-top:8px; white-space:pre-wrap;">${nl2br((tpl.body||'').slice(0,240))}${(tpl.body||'').length>240?'…':''}</div>` : ''}
+              <div class="entry-actions">
+                <button class="small-btn" onclick="openEmailTemplateModal('${t.type}')">${custom?'Edit wording':'Write my own wording'}</button>
+                ${custom ? `<button class="small-btn" onclick="guardedClick(this, ()=>resetEmailTemplate('${t.type}'))">Back to built-in</button>` : ''}
+              </div>
+            </div>`;
+        }).join('')}
+      `).join('')}
+  `;
+}
+function openEmailTemplateModal(type){
+  if(!isTrueSupervisor()) return;
+  const task = EMAIL_TASKS.find(t=>t.type===type);
+  if(!task){ alert('Unknown email task.'); return; }
+  const tpl = emailTemplateFor_(type) || { subject:'', body:'' };
+  showModal(task.label, `
+    <div class="view-sub" style="margin-bottom:10px;">Sent to: ${escapeHtml(task.to)}. Leave the message empty to go back to the built-in wording.</div>
+    <label class="field-label">Subject (optional)</label>
+    <input class="text-input" id="f_tplSubject" value="${escapeHtml(tpl.subject||'')}" placeholder="Leave blank to keep the built-in subject">
+    <label class="field-label">Message</label>
+    <textarea class="text-input" id="f_tplBody" rows="9" placeholder="Leave blank to use the built-in wording">${escapeHtml(tpl.body || task.draft || '')}</textarea>
+    <div class="view-sub" style="margin-top:8px;">${(tpl.body||'').trim() ? 'The greeting (Dear …) and the sign-off are added automatically.' : 'This is a suggested wording you can check and edit. Save it to use these words, or clear the box to keep the built-in message. The greeting (Dear …) and the sign-off are added automatically.'}</div>
+    <div class="entry-actions" style="margin-top:10px;"><button type="button" class="small-btn" onclick="previewEmailTemplate('${type}')">Preview with sample details</button></div>
+    <div id="tplPreview" style="display:none; margin-top:10px;"></div>
+    <label class="field-label" style="margin-top:14px;">Click to insert</label>
+    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+      ${task.vars.map(v=>`<button type="button" class="small-btn" style="padding:6px 10px; font-size:12px;" onclick="insertTemplateVar('${v}')">${escapeHtml(v)}</button>`).join('')}
+    </div>
+    <div class="view-sub" style="margin-top:8px;">Each one is replaced with the real value when the email is sent. Anything the app doesn't recognise is left exactly as you typed it, so a mistake is easy to spot.</div>
+  `, ()=>submitEmailTemplate(type), false, '680px', null, 'Save wording');
+}
+// Drops a placeholder in at the cursor rather than making it a typing exercise.
+function insertTemplateVar(v){
+  const box = document.getElementById('f_tplBody');
+  if(!box) return;
+  const start = box.selectionStart ?? box.value.length, end = box.selectionEnd ?? box.value.length;
+  box.value = box.value.slice(0, start) + v + box.value.slice(end);
+  box.focus();
+  box.selectionStart = box.selectionEnd = start + v.length;
+}
+// Fills the placeholders with sample details so the wording can be checked
+// before it ever reaches anyone.
+const TEMPLATE_PREVIEW_VALUES = {
+  recipientName:'Priya Nair', scholarName:'Priya Nair', studentName:'Priya Nair', name:'Priya Nair',
+  itemTitle:'Week of 24 August 2026', title:'Na-ion layered oxide cathodes',
+  reviewer:'your Advisor / Co-Supervisor, Dr. Mehta', note:'Please repeat the scan at a slower step rate',
+  groupName:'Energy Devices and Materials Group', weekStart:'24 August 2026',
+  workDone:'Assembled and cycled three coin cells', sampleName:'NaMnO2-A', technique:'XRD',
+  stage:'Submitted', pendingStage:'Submitted', decision:'approved', date:'2 September 2026',
+  time:', 10:00-11:00', plannedDate:'2 September 2026', type:'Review', eventName:'ICMAT 2026',
+  itemName:'Cathode slurry batch 4', itemLabel:'Lab Work entry', summary:'Author order updated',
+  sharedByName:'Dr. Krishnakumar M', sharedByRole:'Research Supervisor',
+  repliedByName:'Arjun Kumar', repliedByRole:'Research Scholar',
+  comment:'Good improvement in the second cycle', reason:'Duplicate entry',
+  deletedByName:'Dr. Krishnakumar M', addedByName:'Dr. Krishnakumar M', addedByRole:'Research Supervisor',
+  editedByName:'Dr. Krishnakumar M', editedByRole:'Research Supervisor', category:'Characterization',
+  studentType:'research scholar', names:'Priya Nair', count:'1', items:'3',
+  itemList:'- Weekly Plan: due 23 September 2026\n- Characterization: results expected 24 September 2026'
+};
+function fillPreview_(text){
+  const vals = Object.assign({}, TEMPLATE_PREVIEW_VALUES, { supervisorName: state.supervisorName || 'Dr. Krishnakumar M' });
+  return String(text).replace(/\{(\w+)\}/g, function(whole, k){
+    return Object.prototype.hasOwnProperty.call(vals, k) ? vals[k] : whole;
+  });
+}
+function previewEmailTemplate(type){
+  const task = EMAIL_TASKS.find(t=>t.type===type);
+  const box = document.getElementById('tplPreview');
+  if(!box || !task) return;
+  const body = document.getElementById('f_tplBody').value.trim();
+  const subject = document.getElementById('f_tplSubject').value.trim();
+  if(!body){
+    box.style.display = '';
+    box.innerHTML = `<div class="comment-box"><b>Nothing to preview.</b> With the message empty, this task keeps its built-in wording.</div>`;
+    return;
+  }
+  const used = (body + ' ' + subject).match(/\{\w+\}/g) || [];
+  const unknown = [...new Set(used)].filter(v=>task.vars.indexOf(v) === -1);
+  const shown = 'Dear ' + fillPreview_('{recipientName}') + ',\n\n' + fillPreview_(body) +
+                '\n\nRegards,\nResearch Group Management System\nEnergy Devices and Materials Group';
+  box.style.display = '';
+  box.innerHTML = `
+    <div class="entry-card cat-teal" style="margin:0;">
+      <div class="entry-meta">How it would arrive, with sample details filled in:</div>
+      <div class="entry-block" style="margin-top:6px;"><span class="lbl">Subject</span>${escapeHtml(subject ? fillPreview_(subject) : '(the built-in subject for this task)')}</div>
+      <div class="entry-block" style="margin-top:8px; white-space:pre-wrap;">${escapeHtml(shown)}</div>
+      ${unknown.length ? `<div class="comment-box" style="border-color:var(--warning); margin-top:8px;"><b>Check these:</b> ${unknown.map(escapeHtml).join(', ')} ${unknown.length===1?'is not a placeholder':'are not placeholders'} for this task, so ${unknown.length===1?'it':'they'} will appear in the email exactly as typed.</div>` : ''}
+    </div>`;
+}
+async function submitEmailTemplate(type){
+  return runOnce_('emailTemplate::'+type, async ()=>{
+  if(!isTrueSupervisor()){ alert('Only the supervisor can change email wording.'); return; }
+  const subject = document.getElementById('f_tplSubject').value.trim();
+  const body = document.getElementById('f_tplBody').value.trim();
+  state.emailTemplates = state.emailTemplates.filter(t=>t.id!==type);
+  if(body) state.emailTemplates.push({ id:type, subject, body, updatedAt: nowIST(), updatedByName: state.identity.name });
+  await saveCollection('email-templates', state.emailTemplates);
+  closeModal(); renderView();
+  });
+}
+async function resetEmailTemplate(type){
+  return runOnce_('emailTemplateReset::'+type, async ()=>{
+  if(!isTrueSupervisor()) return;
+  const task = EMAIL_TASKS.find(t=>t.type===type);
+  if(!confirm(`Go back to the built-in wording for "${task ? task.label : type}"? Your custom text will be removed.`)) return;
+  state.emailTemplates = state.emailTemplates.filter(t=>t.id!==type);
+  await saveCollection('email-templates', state.emailTemplates);
+  renderView();
+  });
+}
+
 /* ============================ MEMBERS (supervisor only) ============================ */
 // One place for the supervisor to see and correct every member's profile,
 // and to post congratulation messages that appear on members' dashboards.
@@ -4937,7 +5150,7 @@ async function submitResetAllData(){
   state.thesisPlans = []; state.racReviews = []; state.financialApps = []; state.courses = []; state.fabricationItems = [];
   state.events = []; state.resultsAnalysis = []; state.deletionLog = []; state.newsUpdates = [];
   state.patents = []; state.plagiarismReports = []; state.awards = []; state.collaborators = []; state.leaveRecords = [];
-  state.activityLogExclusions = []; state.consumables = []; state.workDiary = []; state.reminders = []; state.discussions = []; state.congratulations = []; state.filterStudentId = 'all';
+  state.activityLogExclusions = []; state.consumables = []; state.workDiary = []; state.reminders = []; state.discussions = []; state.congratulations = []; state.emailTemplates = []; state.filterStudentId = 'all';
 
   await Promise.all([
     saveCollection('students', state.students), saveCollection('weekly-reports', state.weekly),
@@ -4957,6 +5170,7 @@ async function submitResetAllData(){
     saveCollection('reminders', state.reminders),
     saveCollection('discussions', state.discussions),
     saveCollection('congratulations', state.congratulations),
+    saveCollection('email-templates', state.emailTemplates),
     saveCollection('activity-log-exclusions', state.activityLogExclusions)
   ]);
 
@@ -5017,6 +5231,7 @@ function downloadBackup(){
     reminders: state.reminders,
     discussions: state.discussions,
     congratulations: isSupervisor ? state.congratulations : undefined,
+    emailTemplates: isSupervisor ? state.emailTemplates : undefined,
     activityLogExclusions: state.activityLogExclusions,
     newsUpdates: state.newsUpdates,
     patents: scopedList(state.patents),
@@ -5076,6 +5291,7 @@ function handleRestoreFile(event){
     state.reminders = Array.isArray(parsed.reminders) ? parsed.reminders : state.reminders;
     state.discussions = Array.isArray(parsed.discussions) ? parsed.discussions : state.discussions;
     state.congratulations = Array.isArray(parsed.congratulations) ? parsed.congratulations : state.congratulations;
+    state.emailTemplates = Array.isArray(parsed.emailTemplates) ? parsed.emailTemplates : state.emailTemplates;
     state.activityLogExclusions = Array.isArray(parsed.activityLogExclusions) ? parsed.activityLogExclusions : state.activityLogExclusions;
     state.newsUpdates = Array.isArray(parsed.newsUpdates) ? parsed.newsUpdates : state.newsUpdates;
     state.patents = Array.isArray(parsed.patents) ? parsed.patents : state.patents;
@@ -5112,6 +5328,7 @@ function handleRestoreFile(event){
       saveCollection('reminders', state.reminders),
       saveCollection('discussions', state.discussions),
       saveCollection('congratulations', state.congratulations),
+      saveCollection('email-templates', state.emailTemplates),
       saveCollection('activity-log-exclusions', state.activityLogExclusions),
       saveCollection('news-updates', state.newsUpdates),
       saveCollection('patents', state.patents),
