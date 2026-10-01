@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Energy Devices and Materials Group, Christ University, Bengaluru</title>
 <meta name="description" content="Weekly progress, characterization tracking, and paper pipeline management for research groups.">
+<!-- Build stamp. The app compares this against the published copy of the page to
+     decide whether to offer "Update now". Bump it on every deployment; if it's
+     ever left unchanged, no banner appears and the app simply updates silently
+     on the next open, exactly as it did before this existed. -->
+<meta name="app-build" content="2026-10-01-2">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1F3A5F">
 <link rel="icon" href="icons/icon-192.png">
@@ -232,7 +237,11 @@
   .action-btn.ghost:hover{ background:var(--neutral-wash); }
 
   .filter-row{ display:flex; gap:8px; align-items:center; margin-bottom:18px; flex-wrap:wrap; }
-  .filter-row select{ padding:8px 11px; border-radius:7px; border:1px solid var(--border-strong); font-size:16px; background:var(--surface); color:var(--ink); }
+  /* max-width keeps a long option label (a scholar's full name and role, or a
+     filter option added later) from stretching the control past its container
+     and making the whole page scroll sideways on a narrow screen. A select's
+     intrinsic width follows its widest option, so without this it grows freely. */
+  .filter-row select{ padding:8px 11px; border-radius:7px; border:1px solid var(--border-strong); font-size:16px; background:var(--surface); color:var(--ink); max-width:100%; }
 
   /* ---------- Dashboard cards ---------- */
   .stat-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(168px,1fr)); gap:14px; margin-bottom:30px; }
@@ -242,6 +251,16 @@
   @media (max-width: 480px){ .stat-grid.dash{ grid-template-columns:1fr; } }
   .stat-card{ background:var(--surface); border:1px solid var(--border); border-top:3px solid var(--border-strong); border-radius:var(--radius); padding:17px 19px; box-shadow:var(--shadow-sm); transition:box-shadow .15s, transform .15s; min-width:0; }
   .stat-card:hover{ box-shadow:var(--shadow-md); transform:translateY(-2px); }
+  /* Clickable stat boxes on the Overview — each opens its own page, filtered to
+     the set it counts. The arrow appears on hover so the boxes stay calm at rest
+     while still signalling they lead somewhere. */
+  .stat-card.clickable{ cursor:pointer; position:relative; }
+  .stat-card.clickable:after{
+    content:"›"; position:absolute; top:10px; right:13px; font-size:17px; line-height:1;
+    color:var(--ink-faint); opacity:0; transition:opacity .15s, transform .15s; transform:translateX(-3px);
+  }
+  .stat-card.clickable:hover:after, .stat-card.clickable:focus-visible:after{ opacity:1; transform:translateX(0); }
+  .stat-card.clickable:focus-visible{ outline:2px solid var(--navy); outline-offset:2px; }
   .stat-card.compact{ padding:14px 16px; }
   .stat-card.compact .stat-num{ font-size:25px; }
   .stat-card.compact .stat-label{ font-size:11px; margin-top:2px; }
@@ -419,6 +438,94 @@
     .cg-flash-message{ font-size:14.5px; margin:12px 0 6px; }
     .cg-flash-from{ margin-bottom:16px; }
   }
+  /* ---------- Day brief (once-a-day greeting) ---------- */
+  .modal-box.day-brief{ max-width:620px; overflow:hidden; }
+  .day-brief-head{
+    position:relative; padding:26px 30px 22px; color:#fff;
+    background-image:
+      radial-gradient(circle, rgba(255,255,255,0.09) 1px, transparent 1px),
+      linear-gradient(135deg, var(--navy) 0%, var(--navy-dark) 100%);
+    background-size: 20px 20px, auto;
+  }
+  .day-brief-close{ position:absolute; top:12px; right:14px; color:rgba(255,255,255,0.75); }
+  .day-brief-close:hover{ color:#fff; }
+  .day-brief-greeting{ font-family:'Inter', sans-serif; font-size:25px; font-weight:600; letter-spacing:-0.01em; line-height:1.25; padding-right:30px; }
+  .day-brief-date{ font-size:13px; color:rgba(255,255,255,0.68); margin-top:5px; letter-spacing:.01em; }
+  .day-brief-body{ padding:22px 30px 24px; }
+  .day-brief-tiles{ display:grid; grid-template-columns:repeat(3, 1fr); gap:11px; margin-bottom:24px; }
+  .day-brief-tile{
+    border:1px solid var(--border); border-top:3px solid var(--tile); border-radius:var(--radius);
+    padding:13px 14px; cursor:pointer; background:var(--surface); min-width:0;
+    transition:box-shadow .15s, transform .15s;
+  }
+  .day-brief-tile:hover{ box-shadow:var(--shadow-md); transform:translateY(-2px); }
+  .day-brief-tile:focus-visible{ outline:2px solid var(--navy); outline-offset:2px; }
+  .day-brief-tile-num{ font-family:'Inter', sans-serif; font-size:26px; font-weight:700; line-height:1.1; color:var(--tile); }
+  .day-brief-tile-num.is-text{ font-size:17px; font-weight:600; padding-top:5px; padding-bottom:4px; }
+  .day-brief-tile-label{ font-size:11.5px; color:var(--ink-soft); margin-top:3px; line-height:1.35; }
+  .day-brief-needs-title{
+    font-size:11.5px; font-weight:600; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--ink-faint); margin-bottom:9px;
+  }
+  .day-brief-needs{ border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .day-brief-need{
+    display:flex; align-items:flex-start; gap:10px; padding:11px 14px; cursor:pointer;
+    border-bottom:1px solid var(--border); font-size:13.5px; line-height:1.5;
+  }
+  .day-brief-need:last-child{ border-bottom:none; }
+  .day-brief-need:hover{ background:var(--bg); }
+  .day-brief-need-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:6px; }
+  .day-brief-need-text{ min-width:0; }
+  .day-brief-need-when{ color:var(--ink-soft); font-size:12.5px; }
+  .day-brief-clear{
+    padding:16px; border:1px dashed var(--border-strong); border-radius:var(--radius);
+    color:var(--ink-soft); font-size:13.5px; text-align:center;
+  }
+  @media (max-width: 760px){
+    .day-brief-head{ padding:20px 18px 18px; }
+    .day-brief-greeting{ font-size:21px; }
+    .day-brief-body{ padding:18px 18px 20px; }
+    .day-brief-tiles{ grid-template-columns:repeat(2, 1fr); gap:9px; margin-bottom:20px; }
+  }
+  /* Phone or tablet in landscape: a shorter header and tighter tiles so the
+     greeting, the numbers and the button are all reachable without a long scroll. */
+  @media (max-height: 520px){
+    .day-brief-head{ padding:14px 20px 12px; }
+    .day-brief-greeting{ font-size:19px; }
+    .day-brief-date{ font-size:12px; margin-top:2px; }
+    .day-brief-body{ padding:14px 20px 16px; }
+    .day-brief-tiles{ gap:8px; margin-bottom:16px; }
+    .day-brief-tile{ padding:9px 11px; }
+    .day-brief-tile-num{ font-size:21px; }
+  }
+
+  /* ---------- "A newer version is available" bar ---------- */
+  /* Sits directly under the top bar, above the sidebar and page, so it reads as
+     a property of the whole app rather than of the page you happen to be on. */
+  .update-bar{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    padding:11px 28px; background:var(--warning-wash);
+    border-bottom:1px solid var(--warning);
+    box-shadow:0 1px 3px rgba(0,0,0,0.05); font-size:13.5px; color:var(--ink);
+    animation:updateBarIn .22s ease;
+  }
+  @keyframes updateBarIn{ from{ opacity:0; transform:translateY(-6px); } to{ opacity:1; transform:translateY(0); } }
+  .update-bar-text{ flex:1 1 260px; min-width:0; line-height:1.5; }
+  .update-bar-actions{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .update-bar .update-now-btn{
+    background:var(--navy); color:#fff; border:none; border-radius:7px;
+    padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;
+  }
+  .update-bar .update-now-btn:hover{ background:var(--navy-dark); }
+  .update-bar .update-later-btn{
+    background:none; border:none; color:var(--ink-soft); font-size:13px;
+    cursor:pointer; font-family:inherit; text-decoration:underline;
+  }
+  @media (prefers-reduced-motion: reduce){ .update-bar{ animation:none; } }
+  @media (max-width: 760px){
+    .update-bar{ padding:10px 16px; font-size:13px; }
+    .update-bar-actions{ width:100%; justify-content:flex-start; }
+  }
   .modal-overlay{ position:fixed; inset:0; background:rgba(15,20,32,0.5); display:flex; align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto; z-index:100; animation:modalFadeIn .15s ease; }
   .modal-box{ background:var(--surface); border-radius:10px; width:100%; max-width:680px; box-shadow:0 24px 60px rgba(0,0,0,0.28); margin:auto; animation:modalScaleIn .16s cubic-bezier(0.2,0.8,0.3,1); }
   @keyframes modalFadeIn{ from{ opacity:0; } to{ opacity:1; } }
@@ -541,6 +648,7 @@
       <button class="switch-link" onclick="switchUser()">Sign out</button>
     </div>
   </div>
+  <div id="appUpdateBar"></div>
   <div class="layout">
     <div class="sidebar-backdrop" onclick="toggleMobileSidebar(false)"></div>
     <nav class="sidebar" id="sidebar"></nav>
@@ -606,6 +714,7 @@ const state = {
   view: 'overview',
   filterStudentId: 'all',
   filterMeetingType: 'all',
+  filterMeetingWhen: 'all',   // 'all' | 'upcoming' — set by the Overview's "Upcoming meetings" box
   filterWeeklyStatus: 'all',
   filterSampleStatus: 'all',
   filterFabricationStatus: 'all',
@@ -1479,40 +1588,175 @@ function showApp(){
   document.getElementById('identityBadge').innerHTML = `<b>${escapeHtml(state.identity.name)}</b> · ${roleLabel}`;
   renderSidebar();
   renderView();
-  showDigestPopup();
-  setTimeout(showCongratsFlash_, 350); // sits above the digest; closing it reveals the digest
+  showDayBrief_();
+  setTimeout(showCongratsFlash_, 350); // sits above the day brief; closing it reveals the brief
+  // Deliberately after the page is up: an update notice is never urgent enough
+  // to compete with the first paint or with loading the user's own data.
+  setTimeout(checkForAppUpdate_, 2500);
 }
-function showDigestPopup(){
-  let bodyHtml = '';
-  let primaryAction = '';
+/* ======================= DAY BRIEF =======================
+   Shown once per person per day, on the first open of that date. It used to
+   appear on every showApp(), which meant every page refresh re-opened it —
+   restoring a session calls showApp() exactly like signing in does. */
+
+const DAY_BRIEF_PREFIX = 'rgms-daybrief::';
+// Backstop for repeat showApp() calls inside one page life (signing out and
+// back in again), where localStorage has already been written for today.
+let dayBriefShownThisSession = false;
+
+function dayBriefWho_(){
+  // Per person, so two people sharing one computer each get their own.
+  return state.identity.role === 'supervisor' ? 'supervisor' : (state.identity.id || 'unknown');
+}
+function dayBriefSeenToday_(){
+  if(dayBriefShownThisSession) return true;
+  try{ return localStorage.getItem(DAY_BRIEF_PREFIX + dayBriefWho_() + '::' + todayStr()) === '1'; }
+  catch(e){ return false; }   // storage unavailable: show it rather than never showing it
+}
+function markDayBriefSeen_(){
+  dayBriefShownThisSession = true;
+  try{
+    localStorage.setItem(DAY_BRIEF_PREFIX + dayBriefWho_() + '::' + todayStr(), '1');
+    pruneOldDayBriefMarks_();
+  }catch(e){ /* nothing to do — the in-memory flag still holds for this page */ }
+}
+function pruneOldDayBriefMarks_(){
+  // One marker per person per day would otherwise accumulate forever.
+  try{
+    const cutoff = shiftDate(todayStr(), -7);
+    for(let i = localStorage.length - 1; i >= 0; i--){
+      const k = localStorage.key(i);
+      if(!k || k.indexOf(DAY_BRIEF_PREFIX) !== 0) continue;
+      const day = k.slice(k.lastIndexOf('::') + 2);
+      if(day < cutoff) localStorage.removeItem(k);
+    }
+  }catch(e){ /* best effort */ }
+}
+
+function istHour_(){
+  const now = new Date();
+  const ist = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (5.5 * 60 * 60000));
+  return ist.getHours();
+}
+function greetingWord_(){
+  const h = istHour_();
+  if(h < 12) return 'Good morning';
+  if(h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+function longDateToday_(){
+  const d = new Date(todayStr() + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+
+// Anything falling due between today and two days from now.
+function dueSoonCount_(){
+  const limit = shiftDate(todayStr(), 3);
+  return upcomingDeadlines_(500).filter(d => d.date <= limit).length;
+}
+
+function dayBriefTiles_(){
+  const samples = scopedList(state.samples);
+  const papers = scopedList(state.papers);
+  const meetings = scopedMeetings_();
+  const upcomingMeetings = meetings.filter(OVERVIEW_PREDICATES.meetingUpcoming).length;
+  const activePapers = papers.filter(OVERVIEW_PREDICATES.paperActive).length;
+  const dueSoon = dueSoonCount_();
+
   if(isSupervisorLike()){
-    const count = pendingQueue().length;
-    bodyHtml = count>0
-      ? `<p style="font-size:14px; line-height:1.6;">You have <b>${count}</b> item${count===1?'':'s'} waiting on your approval.</p>`
-      : `<p style="font-size:14px; line-height:1.6; color:var(--ink-soft);">Nothing is waiting on your approval right now.</p>`;
-    if(count>0) primaryAction = `<button class="action-btn" onclick="closeModal(); goView('approvals');">Go to Pending Approval</button>`;
-  } else {
-    const changesNeeded = changesRequestedQueue().length;
-    const upcomingMeetings = state.meetings.filter(m=>m.studentId===state.identity.id && (m.status==='proposed'||m.status==='confirmed') && m.plannedDate>=todayStr()).length;
-    if(changesNeeded>0){
-      bodyHtml += `<p style="font-size:14px; line-height:1.6;"><b>${changesNeeded}</b> item${changesNeeded===1?'':'s'} need${changesNeeded===1?'s':''} your attention — your supervisor requested changes.</p>`;
-      primaryAction = `<button class="action-btn" onclick="closeModal(); goView('changesRequested');">Go to Changes Requested</button>`;
-    } else {
-      bodyHtml += `<p style="font-size:14px; line-height:1.6; color:var(--ink-soft);">Nothing needs your attention right now.</p>`;
-    }
-    if(upcomingMeetings>0){
-      bodyHtml += `<p style="font-size:13.5px; color:var(--ink-soft);">You have <b>${upcomingMeetings}</b> upcoming meeting${upcomingMeetings===1?'':'s'}.</p>`;
-    }
+    const tiles = [
+      { num: pendingQueue().length, label:'Awaiting approval', color:'var(--warning)', stat:'approvals' },
+      { num: samples.filter(OVERVIEW_PREDICATES.sampleOverdue).length, label:'Overdue results', color:'var(--danger)', stat:'overdueSamples' },
+      { num: dueSoon, label:'Due in 3 days', color:'var(--stat-teal)', stat:'dueSoon' },
+      { num: upcomingMeetings, label:'Upcoming meetings', color:'var(--stat-indigo)', stat:'upcomingMeetings' },
+      { num: activePapers, label:'Papers active', color:'var(--stat-purple)', stat:'papersActive' }
+    ];
+    const people = visibleStudentsForIdentity().length;
+    tiles.push(isTrueSupervisor()
+      ? { num: people, label:'Group members', color:'var(--stat-rose)', stat:'membersList' }
+      : { num: samples.filter(OVERVIEW_PREDICATES.sampleAwaiting).length, label:'Awaiting results', color:'var(--stat-cyan)', stat:'awaitingResults' });
+    return tiles;
   }
+
+  const planLogged = state.weekly.some(w => w.studentId === state.identity.id && w.weekStart === getMondayStr());
+  return [
+    { num: changesRequestedQueue().length, label:'Changes requested', color:'var(--danger)', stat:'changesRequested' },
+    { num: dueSoon, label:'Due in 3 days', color:'var(--stat-teal)', stat:'dueSoon' },
+    { num: upcomingMeetings, label:'Upcoming meetings', color:'var(--stat-indigo)', stat:'upcomingMeetings' },
+    { num: samples.filter(OVERVIEW_PREDICATES.sampleAwaiting).length, label:'Awaiting results', color:'var(--stat-cyan)', stat:'awaitingResults' },
+    { num: activePapers, label:'Papers active', color:'var(--stat-purple)', stat:'papersActive' },
+    { text: planLogged ? 'Logged' : 'Not yet', label:"This week's plan", color: planLogged ? 'var(--success)' : 'var(--warning)', stat:'weeklyPlans' }
+  ];
+}
+
+// What actually wants attention: the approval/changes queue first, then whatever
+// falls due soonest, up to four lines.
+function dayBriefNeeds_(){
+  const out = [];
+  const queue = isSupervisorLike() ? pendingQueue() : changesRequestedQueue();
+  queue.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).forEach(it=>{
+    if(out.length >= 4) return;
+    out.push({ type:it.type, id:it.id, studentId:it.studentId, color:it.color,
+      category:it.category, title:it.title, when:'' });
+  });
+  if(out.length < 4){
+    const limit = shiftDate(todayStr(), 3);
+    upcomingDeadlines_(500).filter(d => d.date <= limit).forEach(d=>{
+      if(out.length >= 4) return;
+      if(out.some(o => o.type === d.type && o.id === d.id)) return;
+      out.push({ type:d.type, id:d.id, studentId:d.studentId, color:'var(--stat-teal)',
+        category:d.category, title:d.title,
+        when: d.date === todayStr() ? 'today' : (d.date === shiftDate(todayStr(),1) ? 'tomorrow' : fmtDate(d.date)) });
+    });
+  }
+  return out;
+}
+
+function showDayBrief_(){
+  if(dayBriefSeenToday_()) return;
+  markDayBriefSeen_();
+
+  const tiles = dayBriefTiles_();
+  const needs = dayBriefNeeds_();
+  const firstName = (state.identity.name || '').trim().split(/\s+/).slice(0, 2).join(' ');
+
+  let primary = '';
+  if(isSupervisorLike() && pendingQueue().length > 0){
+    primary = `<button class="action-btn" onclick="closeModal(); goView('approvals');">Go to Pending Approval</button>`;
+  } else if(!isSupervisorLike() && changesRequestedQueue().length > 0){
+    primary = `<button class="action-btn" onclick="closeModal(); goView('changesRequested');">Go to Changes Requested</button>`;
+  } else if(dueSoonCount_() > 0){
+    primary = `<button class="action-btn" onclick="closeModal(); goView('calendar');">Open Calendar &amp; Planner</button>`;
+  }
+
   document.getElementById('modalRoot').innerHTML = `
     <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
-      <div class="modal-box">
-        <div class="modal-head"><h3>Welcome back, ${escapeHtml(state.identity.name)}</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
-        <div class="modal-body">
-          ${bodyHtml}
+      <div class="modal-box day-brief">
+        <div class="day-brief-head">
+          <button class="modal-close day-brief-close" onclick="closeModal()" aria-label="Close">&times;</button>
+          <div class="day-brief-greeting">${greetingWord_()}, ${escapeHtml(firstName || state.identity.name)}</div>
+          <div class="day-brief-date">${longDateToday_()}</div>
+        </div>
+        <div class="day-brief-body">
+          <div class="day-brief-tiles">
+            ${tiles.map(t=>`
+              <div class="day-brief-tile" style="--tile:${t.color};" role="button" tabindex="0"
+                   onclick="goOverviewStat('${t.stat}')" onkeydown="statBoxKey_(event)" title="Open">
+                <div class="day-brief-tile-num${t.text ? ' is-text' : ''}">${t.text ? escapeHtml(t.text) : t.num}</div>
+                <div class="day-brief-tile-label">${escapeHtml(t.label)}</div>
+              </div>`).join('')}
+          </div>
+          <div class="day-brief-needs-title">Needs you today</div>
+          ${needs.length === 0
+            ? `<div class="day-brief-clear">Nothing is waiting on you today.</div>`
+            : `<div class="day-brief-needs">${needs.map(n=>`
+                <div class="day-brief-need" onclick="closeModal(); goToItem('${n.type}','${n.id}','${n.studentId||''}')">
+                  <span class="day-brief-need-dot" style="background:${n.color};"></span>
+                  <span class="day-brief-need-text"><b>${escapeHtml(n.category)}</b> — ${escapeHtml(n.title)}${n.when ? ` <span class="day-brief-need-when">· due ${escapeHtml(n.when)}</span>` : ''}</span>
+                </div>`).join('')}</div>`}
           <div class="modal-foot">
-            <button class="small-btn" onclick="closeModal()">Dismiss</button>
-            ${primaryAction}
+            <button class="small-btn" onclick="closeModal()">Close</button>
+            ${primary}
           </div>
         </div>
       </div>
@@ -3203,6 +3447,53 @@ function thisWeekItems(){
 
   return items;
 }
+/* ---------- Overview stat boxes: shared definitions ----------
+   Each clickable box on the Overview opens the page it counts from, with a
+   filter applied so the list you land on is exactly the set that was counted.
+   The predicate is defined once here and used BOTH to produce the number and
+   to filter the destination list, so the two can never disagree. */
+const OVERVIEW_PREDICATES = {
+  sampleAwaiting:  s => !s.resultsReceivedDate,
+  sampleOverdue:   s => !s.resultsReceivedDate && s.expectedDate && s.expectedDate < todayStr(),
+  paperActive:     p => p.stage !== 'Published',
+  paperPublished:  p => p.stage === 'Published',
+  meetingUpcoming: m => (m.status === 'proposed' || m.status === 'confirmed') && m.plannedDate >= todayStr()
+};
+// Which filter each box sets on arrival. Kept beside the predicates so adding a
+// box means touching one place.
+const OVERVIEW_STAT_TARGETS = {
+  approvals:        { view:'approvals' },
+  changesRequested: { view:'changesRequested' },
+  awaitingResults:  { view:'samples',  set:{ filterSampleStatus:'results:awaiting' } },
+  overdueSamples:   { view:'samples',  set:{ filterSampleStatus:'results:overdue' } },
+  papersActive:     { view:'papers',   set:{ filterPaperStatus:'stage:active' } },
+  papersPublished:  { view:'papers',   set:{ filterPaperStatus:'stage:published' } },
+  upcomingMeetings: { view:'meetings', set:{ filterMeetingWhen:'upcoming', filterMeetingType:'all' } },
+  // Used by the day-brief tiles, which cover a little more ground than the
+  // Overview's six boxes.
+  dueSoon:          { view:'calendar' },
+  membersList:      { view:'members' },
+  weeklyPlans:      { view:'weekly' }
+};
+function goOverviewStat(which){
+  const t = OVERVIEW_STAT_TARGETS[which];
+  if(!t) return;
+  // These are also used by the day-brief tiles, which sit inside a modal; a
+  // no-op on the Overview, where nothing is open.
+  closeModal();
+  if(t.set) Object.keys(t.set).forEach(k => { state[k] = t.set[k]; });
+  goView(t.view);
+}
+// Opening tag for a clickable stat box. Keyboard-reachable, since these are the
+// quickest route into the app's busiest pages.
+function statBoxOpen_(which, extraClasses){
+  return `<div class="stat-card compact clickable ${extraClasses || ''}" role="button" tabindex="0"`
+    + ` title="Open" onclick="goOverviewStat('${which}')" onkeydown="statBoxKey_(event)">`;
+}
+function statBoxKey_(e){
+  if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); e.currentTarget.click(); }
+}
+
 function viewOverview(){
   const weekly = scopedList(state.weekly);
   const samples = scopedList(state.samples);
@@ -3211,12 +3502,15 @@ function viewOverview(){
 
   const totalPendingApproval = pendingQueue().length;
   const changesRequestedCount = changesRequestedQueue().length;
-  const awaitingSamples = samples.filter(s=>!s.resultsReceivedDate).length;
-  const overdueSamples = samples.filter(s=> !s.resultsReceivedDate && s.expectedDate && s.expectedDate < todayStr()).length;
-  const activePapers = papers.filter(p=>p.stage!=='Published').length;
-  const publishedPapers = papers.filter(p=>p.stage==='Published').length;
+  // Counted with the same predicates the destination filters use, so each
+  // number and the list behind it always match.
+  const awaitingSamples = samples.filter(OVERVIEW_PREDICATES.sampleAwaiting).length;
+  const overdueSamples = samples.filter(OVERVIEW_PREDICATES.sampleOverdue).length;
+  const activePapers = papers.filter(OVERVIEW_PREDICATES.paperActive).length;
+  const publishedPapers = papers.filter(OVERVIEW_PREDICATES.paperPublished).length;
 
-  const upcoming = meetings.filter(m=> (m.status==='proposed'||m.status==='confirmed') && m.plannedDate >= todayStr())
+  const upcomingAll = meetings.filter(OVERVIEW_PREDICATES.meetingUpcoming);
+  const upcoming = upcomingAll.slice()
     .sort((a,b)=> a.plannedDate.localeCompare(b.plannedDate)).slice(0,5);
 
   const roleTitle = { supervisor:'Group Overview', cosupervisor:'My Assigned Students', student:'My Overview' }[state.identity.role];
@@ -3235,13 +3529,13 @@ function viewOverview(){
     ${congratsDashboardHtml_()}
     <div class="stat-grid dash">
       ${isSupervisorLike()
-        ? `<div class="stat-card compact accent-blue ${totalPendingApproval>0?'warn':'ok'}" style="cursor:pointer;" onclick="goView('approvals')"><div class="stat-num">${totalPendingApproval}</div><div class="stat-label"><span class="dot"></span>Awaiting approval</div></div>`
-        : `<div class="stat-card compact ${changesRequestedCount>0?'warn':'ok'}" style="cursor:pointer;" onclick="goView('changesRequested')"><div class="stat-num">${changesRequestedCount}</div><div class="stat-label"><span class="dot" style="background:var(--danger);"></span>Changes requested</div></div>`}
-      <div class="stat-card compact accent-teal ${overdueSamples>0?'warn':'ok'}"><div class="stat-num">${awaitingSamples}</div><div class="stat-label"><span class="dot"></span>Awaiting results</div></div>
-      <div class="stat-card compact ${overdueSamples>0?'warn':''}"><div class="stat-num">${overdueSamples}</div><div class="stat-label"><span class="dot" style="background:var(--danger);"></span>Overdue</div></div>
-      <div class="stat-card compact accent-purple"><div class="stat-num">${activePapers}</div><div class="stat-label"><span class="dot"></span>Papers active</div></div>
-      <div class="stat-card compact ok"><div class="stat-num">${publishedPapers}</div><div class="stat-label"><span class="dot"></span>Published</div></div>
-      <div class="stat-card compact accent-indigo"><div class="stat-num">${upcoming.length}</div><div class="stat-label"><span class="dot"></span>Upcoming meetings</div></div>
+        ? `${statBoxOpen_('approvals', 'accent-blue ' + (totalPendingApproval>0?'warn':'ok'))}<div class="stat-num">${totalPendingApproval}</div><div class="stat-label"><span class="dot"></span>Awaiting approval</div></div>`
+        : `${statBoxOpen_('changesRequested', changesRequestedCount>0?'warn':'ok')}<div class="stat-num">${changesRequestedCount}</div><div class="stat-label"><span class="dot" style="background:var(--danger);"></span>Changes requested</div></div>`}
+      ${statBoxOpen_('awaitingResults', 'accent-teal ' + (overdueSamples>0?'warn':'ok'))}<div class="stat-num">${awaitingSamples}</div><div class="stat-label"><span class="dot"></span>Awaiting results</div></div>
+      ${statBoxOpen_('overdueSamples', overdueSamples>0?'warn':'')}<div class="stat-num">${overdueSamples}</div><div class="stat-label"><span class="dot" style="background:var(--danger);"></span>Overdue</div></div>
+      ${statBoxOpen_('papersActive', 'accent-purple')}<div class="stat-num">${activePapers}</div><div class="stat-label"><span class="dot"></span>Papers active</div></div>
+      ${statBoxOpen_('papersPublished', 'ok')}<div class="stat-num">${publishedPapers}</div><div class="stat-label"><span class="dot"></span>Published</div></div>
+      ${statBoxOpen_('upcomingMeetings', 'accent-indigo')}<div class="stat-num">${upcomingAll.length}</div><div class="stat-label"><span class="dot"></span>Upcoming meetings</div></div>
     </div>
 
     ${isSupervisorLike() ? studentSummaryTable() : ''}
@@ -3276,8 +3570,11 @@ function viewOverview(){
             upcoming.map(m=>`
               <div class="feed-item compact">
                 <div class="feed-idx mono">${fmtDate(m.plannedDate)}</div>
-                <div class="feed-body"><b>${escapeHtml(studentName(m.studentId))}</b> — ${escapeHtml(m.type)}: ${escapeHtml(m.title)} <span class="feed-date">· ${m.status}</span></div>
+                <div class="feed-body"><b>${escapeHtml(studentName(m.studentId))}</b> — ${escapeHtml(m.type)}: <span class="task-link" onclick="goToItem('meeting','${m.id}','${m.studentId||''}')">${escapeHtml(m.title)}</span> <span class="feed-date">· ${m.status}</span></div>
               </div>`).join('')}
+          ${upcomingAll.length > upcoming.length
+            ? `<div class="entry-actions" style="margin-top:8px;"><span class="task-link" style="font-size:12px;" onclick="goOverviewStat('upcomingMeetings')">See all ${upcomingAll.length} →</span></div>`
+            : ''}
         </div>
       </div>
     </div>
@@ -4162,22 +4459,28 @@ function approvalCounts(list, statusField){
   list.forEach(item => { const s = item[statusField]; if(counts[s]!==undefined) counts[s]++; });
   return counts;
 }
-function statusFilterOptions(currentValue, setterFnName){
+// extraOptions is an optional list of {value, label} appended under a separator,
+// for sections that also need to filter on something other than approval status.
+// Sections that don't pass it are unaffected.
+function statusFilterOptions(currentValue, setterFnName, extraOptions){
+  const extra = (extraOptions || []).map(o =>
+    `<option value="${o.value}" ${currentValue===o.value?'selected':''}>${o.label}</option>`).join('');
   return `
     <select onchange="${setterFnName}(this.value)">
       <option value="all" ${currentValue==='all'?'selected':''}>All statuses</option>
       <option value="pending" ${currentValue==='pending'?'selected':''}>Pending Approval</option>
       <option value="approved" ${currentValue==='approved'?'selected':''}>Approved</option>
       <option value="changes_requested" ${currentValue==='changes_requested'?'selected':''}>Changes Requested</option>
+      ${extra ? `<option disabled>──────────</option>${extra}` : ''}
     </select>
   `;
 }
-function sectionPieAndFilter(fullList, statusField, currentFilterValue, setterFnName){
+function sectionPieAndFilter(fullList, statusField, currentFilterValue, setterFnName, extraOptions){
   const counts = approvalCounts(fullList, statusField);
   return `
     <div class="two-col-panels" style="margin-bottom:20px; align-items:center;">
       <div class="entry-card compact-card" style="padding:16px 20px;">${renderStatusPie(counts, 86)}</div>
-      <div class="filter-row" style="margin-bottom:0;">${statusFilterOptions(currentFilterValue, setterFnName)}</div>
+      <div class="filter-row" style="margin-bottom:0;">${statusFilterOptions(currentFilterValue, setterFnName, extraOptions)}</div>
     </div>
   `;
 }
@@ -8094,7 +8397,14 @@ function sampleStatus(s){
 function viewSamples(){
   const fullList = scopedList(state.samples);
   let list = fullList.slice().sort((a,b)=> b.submittedDate.localeCompare(a.submittedDate));
-  if(state.filterSampleStatus && state.filterSampleStatus !== 'all'){
+  // Two kinds of filter share this one control. The "results:" values are about
+  // whether results have come back (what the Overview's "Awaiting results" and
+  // "Overdue" boxes count); everything else is about approval status.
+  if(state.filterSampleStatus === 'results:awaiting'){
+    list = list.filter(OVERVIEW_PREDICATES.sampleAwaiting);
+  } else if(state.filterSampleStatus === 'results:overdue'){
+    list = list.filter(OVERVIEW_PREDICATES.sampleOverdue);
+  } else if(state.filterSampleStatus && state.filterSampleStatus !== 'all'){
     list = list.filter(s => s.approvalStatus === state.filterSampleStatus);
   }
   return `
@@ -8106,8 +8416,15 @@ function viewSamples(){
       <button class="action-btn" onclick="openSampleModal()">+ Log new characterization</button>
     </div>
     ${supervisorFilterBar()}
-    ${sectionPieAndFilter(fullList, 'approvalStatus', state.filterSampleStatus, 'setFilterSampleStatus')}
-    ${list.length===0 ? emptyState('No samples logged yet', 'Log a sample submission to start tracking turnaround time.') : list.map((s,i)=>sampleCard(s,i,list.length)).join('')}
+    ${sectionPieAndFilter(fullList, 'approvalStatus', state.filterSampleStatus, 'setFilterSampleStatus', [
+      { value:'results:awaiting', label:'Awaiting results' },
+      { value:'results:overdue',  label:'Overdue results' }
+    ])}
+    ${list.length===0
+      ? (fullList.length > 0
+          ? emptyState('Nothing matches this filter', 'No characterizations fit the filter above. Choose "All statuses" to see everything.')
+          : emptyState('No samples logged yet', 'Log a sample submission to start tracking turnaround time.'))
+      : list.map((s,i)=>sampleCard(s,i,list.length)).join('')}
   `;
 }
 function setFilterSampleStatus(v){ state.filterSampleStatus = v; renderView(); }
@@ -8652,7 +8969,14 @@ function stageStampClass(stage){
 function viewPapers(){
   const fullList = scopedList(state.papers);
   let list = fullList.slice().sort((a,b)=> (b.lastUpdate||'').localeCompare(a.lastUpdate||''));
-  if(state.filterPaperStatus && state.filterPaperStatus !== 'all'){
+  // The "stage:" values are about where a paper has reached (what the Overview's
+  // "Papers active" and "Published" boxes count); the others are about whether a
+  // stage change is awaiting approval.
+  if(state.filterPaperStatus === 'stage:active'){
+    list = list.filter(OVERVIEW_PREDICATES.paperActive);
+  } else if(state.filterPaperStatus === 'stage:published'){
+    list = list.filter(OVERVIEW_PREDICATES.paperPublished);
+  } else if(state.filterPaperStatus && state.filterPaperStatus !== 'all'){
     list = list.filter(p => (state.filterPaperStatus==='pending' ? !!p.pendingStage : !p.pendingStage));
   }
   const paperCounts = { approved:0, pending:0, changes_requested:0 };
@@ -8673,10 +8997,17 @@ function viewPapers(){
           <option value="all" ${state.filterPaperStatus==='all'?'selected':''}>All papers</option>
           <option value="approved" ${state.filterPaperStatus==='approved'?'selected':''}>Confirmed stage</option>
           <option value="pending" ${state.filterPaperStatus==='pending'?'selected':''}>Stage change pending</option>
+          <option disabled>──────────</option>
+          <option value="stage:active" ${state.filterPaperStatus==='stage:active'?'selected':''}>Active (not yet published)</option>
+          <option value="stage:published" ${state.filterPaperStatus==='stage:published'?'selected':''}>Published</option>
         </select>
       </div>
     </div>
-    ${list.length===0 ? emptyState('No papers tracked yet', 'Add a paper to start tracking its progress toward publication.') : list.map((p,i)=>paperCard(p,i,list.length)).join('')}
+    ${list.length===0
+      ? (fullList.length > 0
+          ? emptyState('Nothing matches this filter', 'No papers fit the filter above. Choose "All papers" to see everything.')
+          : emptyState('No papers tracked yet', 'Add a paper to start tracking its progress toward publication.'))
+      : list.map((p,i)=>paperCard(p,i,list.length)).join('')}
   `;
 }
 function setFilterPaperStatus(v){ state.filterPaperStatus = v; renderView(); }
@@ -9287,13 +9618,21 @@ function meetingTypeFilterBar(){
       <option value="all" ${state.filterMeetingType==='all'?'selected':''}>All types</option>
       ${MEETING_TYPES.map(t=>`<option value="${t}" ${state.filterMeetingType===t?'selected':''}>${t}</option>`).join('')}
     </select>
+    <select onchange="setFilterMeetingWhen(this.value)" style="margin-left:8px;">
+      <option value="all" ${state.filterMeetingWhen==='all'?'selected':''}>All dates</option>
+      <option value="upcoming" ${state.filterMeetingWhen==='upcoming'?'selected':''}>Upcoming only</option>
+    </select>
   `;
 }
 function setFilterMeetingType(v){ state.filterMeetingType = v; renderView(); }
+// Separate from the type filter so the two compose — "Upcoming weekly reviews"
+// is a reasonable thing to want.
+function setFilterMeetingWhen(v){ state.filterMeetingWhen = v; renderView(); }
 
 function viewMeetings(){
   let list = scopedMeetings_();
   if(state.filterMeetingType !== 'all') list = list.filter(m=>m.type===state.filterMeetingType);
+  if(state.filterMeetingWhen === 'upcoming') list = list.filter(OVERVIEW_PREDICATES.meetingUpcoming);
   list = list.slice().sort((a,b)=> b.plannedDate.localeCompare(a.plannedDate));
   return `
     <div class="view-header">
@@ -9304,7 +9643,11 @@ function viewMeetings(){
       <button class="action-btn" onclick="openMeetingModal()">+ Schedule</button>
     </div>
     <div class="filter-row">${supervisorFilterBar()}${meetingTypeFilterBar()}</div>
-    ${list.length===0 ? emptyState('Nothing scheduled yet', 'Schedule a weekly review, monthly presentation, or topic discussion to start tracking it.') : list.map((m,i)=>meetingCard(m,i,list.length)).join('')}
+    ${list.length===0
+      ? ((state.filterMeetingWhen==='upcoming' || state.filterMeetingType!=='all')
+          ? emptyState('Nothing matches these filters', 'No meetings fit the type and date filters above. Set them back to "All" to see everything scheduled.')
+          : emptyState('Nothing scheduled yet', 'Schedule a weekly review, monthly presentation, or topic discussion to start tracking it.'))
+      : list.map((m,i)=>meetingCard(m,i,list.length)).join('')}
   `;
 }
 function meetingCard(m, i, total){
@@ -10400,12 +10743,98 @@ async function runOnce_(opKey, fn){
   }
 }
 
+/* ==================== "A newer version is available" ====================
+   The service worker serves the saved copy of this page straight away, so a
+   freshly published version would otherwise appear silently on someone's NEXT
+   open with no notice and no way to ask for it. This compares the build stamp
+   in the page that's running against the build stamp in the page that's
+   published, and offers an update when they differ.
+
+   Comparing the running page to the published page directly — rather than
+   remembering a stamp in local storage — means the check can't be fooled by
+   whatever happens to be sitting in the cache. */
+const APP_BUILD = (document.querySelector('meta[name="app-build"]') || {}).content || '';
+const UPDATE_CHECK_MIN_GAP_MS = 30 * 60 * 1000;
+let lastUpdateCheckAt = 0;
+let updateDeferredThisSession = false;
+
+async function checkForAppUpdate_(){
+  if(!APP_BUILD) return;                                   // no stamp: stay silent
+  if(updateDeferredThisSession) return;                    // they chose "Later"
+  if(document.getElementById('appUpdateBar').innerHTML.trim()) return;  // already showing
+  const now = Date.now();
+  if(now - lastUpdateCheckAt < UPDATE_CHECK_MIN_GAP_MS) return;
+  lastUpdateCheckAt = now;
+  try{
+    // The query string is what makes this miss the service worker's cache, so
+    // we see what's actually published rather than the copy we're running from.
+    // It's the date rather than a timestamp so a stale service worker from
+    // before this feature existed can cache at most one of these per day
+    // instead of one per check; the current worker skips caching it entirely.
+    const res = await fetch(location.pathname + '?updatecheck=' + todayStr(), { cache:'no-store' });
+    if(!res.ok) return;
+    const text = await res.text();
+    const m = text.match(/<meta\s+name=["']app-build["']\s+content=["']([^"']+)["']/i);
+    if(!m || m[1] === APP_BUILD) return;
+    renderUpdateBar_();
+  }catch(e){
+    /* Offline, or the host is briefly unreachable. Say nothing — an update
+       notice that appears because the network blipped is worse than none. */
+  }
+}
+function renderUpdateBar_(){
+  const bar = document.getElementById('appUpdateBar');
+  if(!bar) return;
+  bar.innerHTML = `
+    <div class="update-bar">
+      <div class="update-bar-text"><b>A newer version of the logbook is available.</b> Updating takes a moment and won't affect any of your saved work.</div>
+      <div class="update-bar-actions">
+        <button class="update-now-btn" onclick="applyAppUpdate_(this)">Update now</button>
+        <button class="update-later-btn" onclick="deferAppUpdate_()">Later</button>
+      </div>
+    </div>`;
+}
+function deferAppUpdate_(){
+  // Session-only: it comes back next time the app is opened, so nobody ends up
+  // sitting on a months-old version because they dismissed this once.
+  updateDeferredThisSession = true;
+  const bar = document.getElementById('appUpdateBar');
+  if(bar) bar.innerHTML = '';
+}
+async function applyAppUpdate_(btn){
+  if(btn){ btn.disabled = true; btn.textContent = 'Updating…'; }
+  // Only the cached copies of the shell are cleared. Saved work lives in the
+  // Google Sheet, and the session and any auto-saved drafts live in local
+  // storage — none of which is touched here.
+  try{
+    if(window.caches){
+      const names = await caches.keys();
+      await Promise.all(names.map(n => caches.delete(n)));
+    }
+  }catch(e){ /* cache API unavailable — the reload below still fetches fresh */ }
+  try{
+    if('serviceWorker' in navigator){
+      const reg = await navigator.serviceWorker.getRegistration();
+      if(reg){
+        if(reg.waiting) reg.waiting.postMessage({ type:'SKIP_WAITING' });
+        await reg.update().catch(()=>{});
+      }
+    }
+  }catch(e){ /* nothing to do — the reload is what actually matters */ }
+  location.reload();
+}
+
 /* ============================ START ============================ */
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(() => { /* offline shell just won't be available — the app still works online */ });
   });
 }
+// A phone or tablet often keeps this open for days, so one check at startup
+// isn't enough — check again whenever the app comes back to the foreground.
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible') checkForAppUpdate_();
+});
 // Android install support. Chrome only fires beforeinstallprompt when the
 // site actually meets its installability criteria (manifest + service
 // worker + HTTPS) — so capturing it and revealing our own button is both
