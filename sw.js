@@ -3,7 +3,11 @@
 // requirement for "Add to Home Screen" on Android/Chrome. It does NOT cache
 // data from the Apps Script backend — that always goes over the network, so
 // you're never looking at stale progress data.
-const CACHE_NAME = 'rgms-shell-v1';
+// Bump this string whenever index.html or manifest.json changes in a way that
+// installed copies must pick up — the activate handler deletes every cache whose
+// name doesn't match, so a new name forces a fresh fetch of the shell files.
+// v2: manifest orientation unlocked (was portrait-primary).
+const CACHE_NAME = 'rgms-shell-v2';
 const SHELL_FILES = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', (event) => {
