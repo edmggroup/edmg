@@ -9,7 +9,7 @@
      decide whether to offer "Update now". Bump it on every deployment; if it's
      ever left unchanged, no banner appears and the app simply updates silently
      on the next open, exactly as it did before this existed. -->
-<meta name="app-build" content="2026-10-01-2">
+<meta name="app-build" content="2026-10-02-5">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1F3A5F">
 <link rel="icon" href="icons/icon-192.png">
@@ -439,7 +439,11 @@
     .cg-flash-from{ margin-bottom:16px; }
   }
   /* ---------- Day brief (once-a-day greeting) ---------- */
-  .modal-box.day-brief{ max-width:620px; overflow:hidden; }
+  /* Wider than an ordinary dialog: this one carries six tiles, a to-do list and
+     a what's-new list, and at 620px the longer discussion titles wrapped onto
+     three lines each. 880px lets most rows sit on one line on a laptop while
+     still leaving a clear margin at 1024px. */
+  .modal-box.day-brief{ max-width:880px; overflow:hidden; }
   .day-brief-head{
     position:relative; padding:26px 30px 22px; color:#fff;
     background-image:
@@ -452,6 +456,18 @@
   .day-brief-greeting{ font-family:'Inter', sans-serif; font-size:25px; font-weight:600; letter-spacing:-0.01em; line-height:1.25; padding-right:30px; }
   .day-brief-date{ font-size:13px; color:rgba(255,255,255,0.68); margin-top:5px; letter-spacing:.01em; }
   .day-brief-body{ padding:22px 30px 24px; }
+  /* Gentle "you haven't logged for a while" band. Amber rather than red: this
+     is a nudge, not an error, and most people will never see it. */
+  .nudge-band{
+    display:flex; gap:13px; align-items:flex-start;
+    background:var(--warning-wash); border:1px solid var(--warning);
+    border-radius:10px; padding:14px 16px; margin-bottom:20px;
+  }
+  .nudge-icon{ font-size:19px; line-height:1.3; flex-shrink:0; }
+  .nudge-body{ flex:1; min-width:0; }
+  .nudge-title{ font-weight:650; color:var(--ink); font-size:14.5px; margin-bottom:3px; }
+  .nudge-text{ font-size:13.5px; line-height:1.6; color:var(--ink-soft); }
+  .nudge-actions{ margin-top:11px; display:flex; gap:9px; flex-wrap:wrap; }
   .day-brief-tiles{ display:grid; grid-template-columns:repeat(3, 1fr); gap:11px; margin-bottom:24px; }
   .day-brief-tile{
     border:1px solid var(--border); border-top:3px solid var(--tile); border-radius:var(--radius);
@@ -556,12 +572,26 @@
   .report-table th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); border-bottom:1.5px solid var(--border-strong); padding:6px 8px; }
   .report-table td{ padding:7px 8px; border-bottom:1px solid var(--border); vertical-align:top; }
 
+  /* The close of every report. Nothing follows it. */
+  .report-end{ margin-top:34px; padding-top:18px; border-top:1px solid var(--border); text-align:center; }
+  .report-end-rule{ font-size:13px; font-weight:600; letter-spacing:.04em; color:var(--ink); }
+  .report-end-note{ font-size:12px; color:var(--ink-soft); margin-top:6px; font-style:italic; }
+
   @media print {
     @page { margin: 0.5in; }
+    /* The page itself must print white. body and html are not covered by the
+       "body *" rule below — they are not descendants of body — so without this
+       the app's grey background paints over whatever is left of the last page
+       once the report has ended. That grey block was the one appearing after
+       the final section. */
+    html, body { background:#fff !important; }
     body * { visibility:hidden; }
     #reportPrintArea, #reportPrintArea * { visibility:visible; }
-    #reportPrintArea{ position:absolute; left:0; top:0; width:100%; margin:0; padding:0; }
+    #reportPrintArea{ position:absolute; left:0; top:0; width:100%; margin:0; padding:0; background:#fff; }
     .report-doc{ box-shadow:none; border:none; padding:0; background:#fff; }
+    /* Keep the closing block with the line above it rather than stranding it
+       alone at the top of a final page. */
+    .report-end{ break-inside:avoid; page-break-inside:avoid; }
   }
 
   .overview-grid{ display:grid; grid-template-columns: 1fr 320px; gap:20px; align-items:start; }
@@ -834,7 +864,7 @@ async function hashPin(pin){
 const DATA_API_URL = 'https://script.google.com/macros/s/AKfycbwb5fe0S1lhAFnh-YTSscn10Sjdrf81asj-AfmLQbS0bLuOqNU9kXie3rpNyWpi4e413A/exec';
 
 // Must exactly match the APP_KEY constant in backend/Code.gs.
-const APP_KEY = 'change-this-to-your-own-random-string-2026';
+const APP_KEY = 'edmg-S88w1RNNfBdUyUGhFlJvlxEHFBLuj4Wk';
 
 // A one-time setup key that must be entered to claim the Supervisor role for
 // the FIRST time (before any passcode exists). Without this, whoever visits
@@ -843,7 +873,7 @@ const APP_KEY = 'change-this-to-your-own-random-string-2026';
 // become the supervisor. Change this to your own value, and only share it
 // with the actual supervisor. Once the passcode is set, this key is no longer
 // needed for logging in — only the passcode is checked from then on.
-const SUPERVISOR_SETUP_KEY = 'change-this-setup-key-too';
+const SUPERVISOR_SETUP_KEY = 'setup-RfHCyfInrncHbRJ3UkC3VnAH';
 
 function backendConfigured(){
   return typeof DATA_API_URL === 'string' && DATA_API_URL.startsWith('http');
@@ -1712,12 +1742,234 @@ function dayBriefNeeds_(){
   return out;
 }
 
+/* ---------------- Gentle reminder to keep logging ----------------
+   Someone who hasn't written a weekly plan or a work diary entry for a while
+   gets a polite note at the top of their day brief. Anyone logging regularly
+   never sees it at all.
+
+   "Activity" here is deliberately narrow — only the weekly plan and the work
+   diary count, because those are the two records the group is expected to keep
+   up. Characterization or lab work entries do NOT count, so someone running
+   experiments all month without writing anything up is still reminded.
+
+   Both thresholds are here so they can be changed in one place. */
+const LOG_NUDGE_AFTER_DAYS = 15;    // badge in the day brief
+const LOG_NUDGE_EMAIL_AFTER_DAYS = 30;  // backend sends an email (see Code.gs)
+
+// The most recent day this person has a weekly plan or diary entry for.
+// Neither record stores when it was written — a weekly plan carries the week it
+// covers and a diary entry the day it describes — so those dates are what we
+// have, and they are the honest measure of "how current is this record".
+function lastLoggedDate_(studentId){
+  let latest = '';
+  (state.weekly || []).forEach(w => {
+    if(w.studentId === studentId && w.weekStart && w.weekStart > latest) latest = w.weekStart;
+  });
+  (state.workDiary || []).forEach(e => {
+    if(e.studentId === studentId && e.date && e.date > latest) latest = e.date;
+  });
+  return latest;
+}
+
+function daysBetween_(fromDate, toDate){
+  if(!fromDate || !toDate) return null;
+  const a = new Date(fromDate + 'T00:00:00'), b = new Date(toDate + 'T00:00:00');
+  if(isNaN(a) || isNaN(b)) return null;
+  return Math.round((b - a) / 86400000);
+}
+
+// null when there is nothing to say: not a scholar, a frozen account, or
+// someone who is up to date.
+function logNudge_(){
+  if(!state.identity || state.identity.role !== 'student') return null;
+  const me = state.students.find(s => s.id === state.identity.id);
+  if(!me || me.frozen) return null;
+
+  const last = lastLoggedDate_(state.identity.id);
+  // Someone who has never logged anything is measured from the day they
+  // joined, so a scholar added this morning is not greeted with a reminder.
+  const from = last || me.joiningDate || '';
+  if(!from) return null;                       // no joining date and nothing logged — say nothing rather than guess
+  const days = daysBetween_(from, todayStr());
+  if(days === null || days < LOG_NUDGE_AFTER_DAYS) return null;
+  return { days, everLogged: !!last };
+}
+
+function logNudgeHtml_(){
+  const n = logNudge_();
+  if(!n) return '';
+  const headline = n.everLogged
+    ? `It’s been ${n.days} days since your last weekly plan or diary entry`
+    : `You haven’t logged a weekly plan or diary entry yet`;
+  return `
+    <div class="nudge-band">
+      <div class="nudge-icon">📝</div>
+      <div class="nudge-body">
+        <div class="nudge-title">${headline}</div>
+        <div class="nudge-text">A short note now and then keeps your record current — and makes your progress report much easier to put together later.</div>
+        <div class="nudge-actions">
+          <button class="action-btn" onclick="closeModal(); goView('weekly'); setTimeout(openWeeklyModal, 120);">Log this week’s plan</button>
+          <button class="small-btn" onclick="closeModal(); goView('workDiary');">Add a diary entry</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ---------------- "New since you last looked" ----------------
+   Things that deliberately send no email — discussion replies, news updates,
+   inventory additions, and discussion topics opened to everyone — would
+   otherwise go unnoticed. They are collected here and shown once a day
+   instead, so a running conversation is read in one place rather than
+   arriving as a string of separate emails.
+
+   What someone may see is decided by the app's existing rule, not by a second
+   one written here: scopedDiscussions_() for discussions, group-wide for news
+   and inventory. */
+
+const DAY_BRIEF_SEEN_IDS_PREFIX = 'rgms-daybrief-items::';
+const DAY_BRIEF_WINDOW_DAYS = 14;   // how far back this ever looks
+const DAY_BRIEF_NEW_MAX = 6;        // rows before the rest become "and N more"
+
+const IST_MONTHS_ = { jan:1, feb:2, mar:3, apr:4, may:5, jun:6, jul:7, aug:8, sep:9, oct:10, nov:11, dec:12 };
+
+// These records are stamped by nowIST(), which produces a display string
+// ("02 Oct 2026, 1:12 PM IST") rather than a sortable date. Only the day
+// matters here, so pull it out as YYYY-MM-DD, which compares correctly as a
+// plain string. Tolerant about a leading zero, which varies between browsers.
+function istStampToDate_(stamp){
+  if(!stamp) return '';
+  const m = String(stamp).match(/(\d{1,2})\s+([A-Za-z]{3})[A-Za-z]*\.?\s+(\d{4})/);
+  if(!m) return '';
+  const mon = IST_MONTHS_[m[2].toLowerCase()];
+  if(!mon) return '';
+  return m[3] + '-' + String(mon).padStart(2,'0') + '-' + String(Number(m[1])).padStart(2,'0');
+}
+
+// Which items this person has already been shown. Tracking ids rather than a
+// cut-off date means nothing appears twice, and nothing posted later on a day
+// they had already opened gets skipped.
+function dayBriefSeenItemIds_(){
+  try{
+    const raw = localStorage.getItem(DAY_BRIEF_SEEN_IDS_PREFIX + dayBriefWho_());
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  }catch(e){ return []; }
+}
+function rememberDayBriefItems_(ids){
+  if(!ids || ids.length === 0) return;
+  try{
+    const merged = dayBriefSeenItemIds_().concat(ids);
+    // Capped so this can't grow without limit on a long-lived device.
+    localStorage.setItem(DAY_BRIEF_SEEN_IDS_PREFIX + dayBriefWho_(), JSON.stringify(merged.slice(-400)));
+  }catch(e){ /* storage unavailable — worst case something is shown twice */ }
+}
+
+function dayBriefNew_(){
+  const me = state.identity.id;
+  const since = shiftDate(todayStr(), -DAY_BRIEF_WINDOW_DAYS);
+  const seen = new Set(dayBriefSeenItemIds_());
+  const fresh = (stamp, id) => {
+    if(seen.has(id)) return false;
+    const d = istStampToDate_(stamp);
+    return !!d && d >= since;
+  };
+  // Never tell someone about their own post. Matched on id OR name, because
+  // the supervisor has no identity.id at all — their records carry only a
+  // name, so an id-only check would show them everything they posted.
+  const mine = (byId, byName) =>
+    (!!byId && !!me && byId === me) || (!!byName && byName === state.identity.name);
+  const out = [];
+  const visible = scopedDiscussions_();
+
+  visible.forEach(d => {
+    const topicIsNew = !mine(d.createdById, d.createdByName) && fresh(d.createdAt, d.id);
+    // Replies grouped per topic, so an active thread is one line, not ten
+    const newReplies = (d.replies || []).filter(r => !mine(r.byId, r.byName) && fresh(r.at, r.id));
+    if(!topicIsNew && newReplies.length === 0) return;
+
+    const names = [...new Set(newReplies.map(r => r.byName).filter(Boolean))];
+    const byNames = names.length === 0 ? ''
+      : names.length === 1 ? names[0]
+      : names.length === 2 ? names[0] + ' and ' + names[1]
+      : names[0] + ' and ' + (names.length - 1) + ' others';
+    const replyNote = newReplies.length === 0 ? ''
+      : newReplies.length === 1 ? '1 reply' + (byNames ? ' from ' + byNames : '')
+      : newReplies.length + ' replies' + (byNames ? ' from ' + byNames : '');
+    const dates = newReplies.map(r => istStampToDate_(r.at));
+    if(topicIsNew) dates.push(istStampToDate_(d.createdAt));
+
+    // A topic that is new AND already has replies is one line, not two —
+    // otherwise the same conversation is listed twice in the same brief.
+    out.push({
+      ids: newReplies.map(r => r.id).concat(topicIsNew ? [d.id] : []),
+      date: dates.sort().pop(),
+      color: 'var(--stat-purple)',
+      kind: topicIsNew ? 'Discussion' : (newReplies.length === 1 ? 'Reply' : newReplies.length + ' replies'),
+      text: d.title,
+      who: topicIsNew
+        ? 'posted by ' + (d.createdByName || 'someone') + (replyNote ? ' · ' + replyNote : '')
+        : (byNames ? 'by ' + byNames : ''),
+      open: `openDiscussionFromBrief_('${d.id}')`
+    });
+  });
+
+  (state.newsUpdates || []).forEach(n => {
+    if(mine(n.postedById, n.postedByName)) return;
+    if(!fresh(n.postedAt, n.id)) return;
+    out.push({ ids:[n.id], date: istStampToDate_(n.postedAt), color:'var(--navy)',
+      kind:'News', text: n.text, who:'posted by ' + (n.postedByName || 'someone'),
+      open:"closeModal(); goView('links')" });
+  });
+
+  // Inventory summarised — a bulk upload must never become forty rows
+  const newCons = (state.consumables || []).filter(c => !mine(c.createdById, c.createdByName) && fresh(c.createdAt, c.id));
+  if(newCons.length > 0){
+    const names = [...new Set(newCons.map(c => c.createdByName).filter(Boolean))];
+    out.push({ ids: newCons.map(c => c.id),
+      date: newCons.map(c => istStampToDate_(c.createdAt)).sort().pop(),
+      color:'var(--stat-cyan)', kind:'Inventory',
+      text: newCons.length === 1 ? newCons[0].itemName + ' added' : newCons.length + ' items added',
+      who: names.length ? 'by ' + names[0] + (names.length > 1 ? ' and others' : '') : '',
+      open:"closeModal(); goView('consumables')" });
+  }
+
+  out.sort((a,b) => (b.date || '').localeCompare(a.date || ''));   // newest first
+  return out;
+}
+
+function openDiscussionFromBrief_(id){
+  closeModal();
+  state.selectedDiscussionId = id;
+  state.replySelectMode = false;
+  state.selectedReplyIds = [];
+  goView('discussions');
+}
+
+function dayBriefNewHtml_(items){
+  if(items.length === 0) return '';
+  const shown = items.slice(0, DAY_BRIEF_NEW_MAX);
+  const hidden = items.length - shown.length;
+  return `
+    <div class="day-brief-needs-title" style="margin-top:22px;">New since you last looked</div>
+    <div class="day-brief-needs">
+      ${shown.map(it=>`
+        <div class="day-brief-need" role="button" tabindex="0" onkeydown="statBoxKey_(event)" onclick="${it.open}">
+          <span class="day-brief-need-dot" style="background:${it.color};"></span>
+          <span class="day-brief-need-text"><b>${escapeHtml(it.kind)}</b> — ${escapeHtml(it.text)}${it.who ? ` <span class="day-brief-need-when">· ${escapeHtml(it.who)}</span>` : ''}</span>
+        </div>`).join('')}
+      ${hidden > 0 ? `<div class="day-brief-need" style="cursor:default;"><span class="day-brief-need-dot" style="background:var(--ink-faint);"></span><span class="day-brief-need-text day-brief-need-when">and ${hidden} more</span></div>` : ''}
+    </div>`;
+}
+
 function showDayBrief_(){
   if(dayBriefSeenToday_()) return;
   markDayBriefSeen_();
 
   const tiles = dayBriefTiles_();
   const needs = dayBriefNeeds_();
+  const newItems = dayBriefNew_();
+  // Recorded as shown now, so the same post never appears in tomorrow's brief.
+  rememberDayBriefItems_([].concat.apply([], newItems.map(i => i.ids)));
   const firstName = (state.identity.name || '').trim().split(/\s+/).slice(0, 2).join(' ');
 
   let primary = '';
@@ -1738,6 +1990,7 @@ function showDayBrief_(){
           <div class="day-brief-date">${longDateToday_()}</div>
         </div>
         <div class="day-brief-body">
+          ${logNudgeHtml_()}
           <div class="day-brief-tiles">
             ${tiles.map(t=>`
               <div class="day-brief-tile" style="--tile:${t.color};" role="button" tabindex="0"
@@ -1754,6 +2007,7 @@ function showDayBrief_(){
                   <span class="day-brief-need-dot" style="background:${n.color};"></span>
                   <span class="day-brief-need-text"><b>${escapeHtml(n.category)}</b> — ${escapeHtml(n.title)}${n.when ? ` <span class="day-brief-need-when">· due ${escapeHtml(n.when)}</span>` : ''}</span>
                 </div>`).join('')}</div>`}
+          ${dayBriefNewHtml_(newItems)}
           <div class="modal-foot">
             <button class="small-btn" onclick="closeModal()">Close</button>
             ${primary}
@@ -2253,18 +2507,11 @@ async function submitDiscussionReply(id){
   // Enter press has something to re-submit.
   document.getElementById('f_replyText-'+id).value = '';
   await saveCollection('discussions', state.discussions);
-  // Notify the original poster and everyone else who's replied so far, so
-  // a conversation doesn't quietly go unnoticed — but never notify anyone
-  // about their own reply. Restricted to participants who are actually
-  // students: the backend resolves an email by looking up a studentId in
-  // the students list specifically, so a supervisor's or mentor's own
-  // identity.id would never resolve there and the notification would
-  // silently go nowhere — exactly the kind of gap worth avoiding here.
-  const notifyIds = new Set();
-  const isStudentId = (sid) => state.students.some(s=>s.id===sid);
-  if(d.createdById && d.createdById !== state.identity.id && isStudentId(d.createdById)) notifyIds.add(d.createdById);
-  d.replies.forEach(r=>{ if(r.byId && r.byId !== state.identity.id && isStudentId(r.byId)) notifyIds.add(r.byId); });
-  notifyIds.forEach(uid_ => apiNotify('discussionReplied', { studentId: uid_, title: d.title, repliedByName: state.identity.name, repliedByRole: replier.roleLabel }));
+  // Replies deliberately send no email. Starting a topic still does (see
+  // submitNewDiscussion), but a running conversation would otherwise put a
+  // message in everyone's inbox for every line — so replies surface in the
+  // day brief instead, under "New since …", where they can be read together
+  // once a day rather than one interruption at a time.
   renderView();
   });
 }
@@ -3805,7 +4052,6 @@ const EMAIL_TASKS = [
   { type:'meetingProposed', section:'Meetings', label:'Meetings — a scholar proposed a meeting', to:'Supervisor and assigned advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}','{plannedDate}','{type}'], draft:'{scholarName} has proposed a meeting, “{title}”, for {plannedDate}.\n\nPlease open the logbook to confirm it or suggest another time.' },
   { type:'meetingConfirmed', section:'Meetings', label:'Meetings — meeting confirmed', to:'The scholar and anyone invited', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}','{date}','{time}'], draft:'The meeting “{title}” is confirmed for {date}{time}.\n\nPlease come prepared with your latest results and any points you would like to discuss.' },
   { type:'meetingRescheduled', section:'Meetings', label:'Meetings — meeting moved to a new time', to:'The scholar and anyone invited', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}','{date}','{time}'], draft:'The meeting “{title}” has been moved to {date}{time}.\n\nPlease update your calendar, and open the logbook if this time does not suit you.' },
-  { type:'discussionReplied', section:'Discussions', label:'Discussions — new reply in a topic', to:'Everyone in that conversation', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}','{repliedByName}','{repliedByRole}'], draft:'{repliedByName} has replied to the discussion “{title}”.\n\nOpen the logbook to follow the conversation.' },
   { type:'discussionShared', section:'Discussions', label:'Discussions — topic shared with specific people', to:'The chosen members', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}','{sharedByName}','{sharedByRole}'], draft:'{sharedByName} has shared a discussion topic with you: “{title}”.\n\nOpen the logbook to read it and add your comments.' },
   { type:'reviewAssigned', section:'Reviews', label:'Reviews — an advisor was assigned to review something', to:'The assigned advisor', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{title}','{studentName}','{category}'], draft:'You have been assigned to review “{title}”, submitted by {studentName}.\n\nPlease open the logbook at your convenience to record your feedback.' },
   { type:'newStudent', section:'Accounts', label:'Accounts — a new member created an account', to:'Supervisor and advisors', vars:['{recipientName}','{scholarName}','{supervisorName}','{itemTitle}','{reviewer}','{note}','{groupName}','{name}','{studentType}'], draft:'{name} has created an account in the group logbook.\n\nOpen the logbook to set their programme details and assign an advisor if required.' },
@@ -3816,6 +4062,7 @@ const EMAIL_TASKS = [
   { type:'birthdayAlert', section:'Daily emails', label:'Birthdays — your morning alert', to:'You', vars:['{recipientName}','{supervisorName}','{names}','{count}','{itemList}','{groupName}'], draft:'It is a birthday in the group today:\n\n{itemList}\n\nYou can send personal wishes from the Birthdays panel on your dashboard.' },
   { type:'deadlineDigestScholar', section:'Daily emails', label:'Deadlines — daily digest to each scholar', to:'Each scholar with something due', vars:['{recipientName}','{scholarName}','{items}','{itemList}','{groupName}'], draft:'You have {items} item(s) due in the next three days:\n\n{itemList}\n\nPlease open the logbook to update their status.' },
   { type:'deadlineDigestSupervisor', section:'Daily emails', label:'Deadlines — daily digest to you', to:'You', vars:['{recipientName}','{supervisorName}','{items}','{itemList}','{groupName}'], draft:'{items} item(s) are due across the group in the next three days:\n\n{itemList}\n\nOpen the logbook for the full picture.' },
+  { type:'logReminder', section:'Daily emails', label:'Logbook — not updated for a month', to:'The scholar who has stopped logging', vars:['{recipientName}','{scholarName}','{days}','{lastLogged}','{groupName}'], draft:'This is a note that your logbook has not been updated for {days} days — the most recent weekly plan or work diary entry on record is {lastLogged}.\n\nKeeping these current is what makes your progress report straightforward to produce later. A short entry is enough.\n\nPlease open the logbook when you have a few minutes and add an entry.' },
 ];
 
 /* ============================ EMAIL TEMPLATES (supervisor only) ============================ */
@@ -4717,7 +4964,7 @@ function viewConsumables(){
   }
   const filter = state.consumableCategoryFilter || 'all';
   const allItems = state.consumables.slice().sort((a,b)=>a.itemName.localeCompare(b.itemName));
-  const lowStock = allItems.filter(i => i.minStock!=='' && Number(i.quantity) <= Number(i.minStock));
+  const lowStock = allItems.filter(i => hasMinStock_(i) && Number(i.quantity) <= Number(i.minStock));
   const categoriesInUse = [...new Set(allItems.map(i=>i.category))].sort();
 
   const groupsToShow = filter==='all' ? categoriesInUse : [filter];
@@ -4762,15 +5009,23 @@ function viewConsumables(){
       }).join('')}
   `;
 }
+// A minimum-stock level counts as set only when it is really a number. Items
+// created before this field existed have it undefined, and `undefined !== ''`
+// is true — which is how "min undefined g" ended up on the card.
+function hasMinStock_(item){
+  if(!item) return false;
+  const v = item.minStock;
+  return v !== '' && v !== null && v !== undefined && !isNaN(Number(v));
+}
 function consumableCardHtml(item){
-  const low = item.minStock!=='' && Number(item.quantity) <= Number(item.minStock);
+  const low = hasMinStock_(item) && Number(item.quantity) <= Number(item.minStock);
   const metaBits = [item.location, item.supplier, item.casNumber ? 'CAS '+item.casNumber : '', item.expiryDate ? 'Exp. '+fmtDate(item.expiryDate) : ''].filter(Boolean);
   return `
     <div class="entry-card ${low?'cat-rose':'cat-teal'}" id="item-consumable-${item.id}">
       <div class="entry-top">
         <div>
           <div class="entry-title">${escapeHtml(item.itemName)} ${low ? `<span class="stamp warn">Low stock</span>` : ''}</div>
-          <div class="entry-meta">${metaBits.length ? metaBits.map(escapeHtml).join(' · ') : ''}${item.minStock!=='' ? `${metaBits.length?' · ':''}min ${escapeHtml(String(item.minStock))} ${escapeHtml(item.unit)}` : ''}</div>
+          <div class="entry-meta">${metaBits.length ? metaBits.map(escapeHtml).join(' · ') : ''}${hasMinStock_(item) ? `${metaBits.length?' · ':''}min ${escapeHtml(String(item.minStock))} ${escapeHtml(item.unit||'')}` : ''}</div>
         </div>
         <div style="text-align:right; flex-shrink:0;">
           <div class="mono" style="font-size:17px; font-weight:700; white-space:nowrap;">${escapeHtml(String(item.quantity))} ${escapeHtml(item.unit)}</div>
@@ -4825,7 +5080,7 @@ function consumableFormFields(item){
     </div>
     <div class="two-col">
       <div><label class="field-label">Minimum stock (optional)</label>
-        <input type="number" step="any" class="text-input" id="f_consMinStock" value="${item&&item.minStock!==''?item.minStock:''}" placeholder="Flags low stock below this">
+        <input type="number" step="any" class="text-input" id="f_consMinStock" value="${hasMinStock_(item)?item.minStock:''}" placeholder="Flags low stock below this">
       </div>
       <div><label class="field-label">Storage location (optional)</label>
         <input class="text-input" id="f_consLocation" value="${item?escapeHtml(item.location||''):''}" placeholder="e.g. Glovebox, Cabinet 2">
@@ -10116,7 +10371,7 @@ function viewReports(){
         </div>
         <div class="entry-actions">
           <button class="action-btn" onclick="generateReport()">Generate report</button>
-          ${state.reportData && state.reportData.kind==='student' ? `<button class="action-btn ghost" onclick="window.print()">Print / Save as PDF</button><button class="action-btn ghost" onclick="downloadReportText()">Download as text</button><button class="action-btn ghost" onclick="downloadReportCsv()">Download as CSV</button>` : ''}
+          ${state.reportData && state.reportData.kind==='student' ? `<button class="action-btn ghost" onclick="printReport()">Print / Save as PDF</button><button class="action-btn ghost" onclick="downloadReportText()">Download as text</button><button class="action-btn ghost" onclick="downloadReportCsv()">Download as CSV</button>` : ''}
         </div>
       </div>
     ` : state.reportType==='paper' ? `
@@ -10129,7 +10384,7 @@ function viewReports(){
         `}
         <div class="entry-actions">
           <button class="action-btn" onclick="generatePaperReport()" ${availablePapers.length===0?'disabled':''}>Generate report</button>
-          ${state.reportData && state.reportData.kind==='paper' ? `<button class="action-btn ghost" onclick="window.print()">Print / Save as PDF</button><button class="action-btn ghost" onclick="downloadReportText()">Download as text</button><button class="action-btn ghost" onclick="downloadReportCsv()">Download as CSV</button>` : ''}
+          ${state.reportData && state.reportData.kind==='paper' ? `<button class="action-btn ghost" onclick="printReport()">Print / Save as PDF</button><button class="action-btn ghost" onclick="downloadReportText()">Download as text</button><button class="action-btn ghost" onclick="downloadReportCsv()">Download as CSV</button>` : ''}
         </div>
       </div>
     ` : `
@@ -10140,7 +10395,7 @@ function viewReports(){
         </select>
         <div class="entry-actions">
           <button class="action-btn" onclick="generateSectionReport()">Generate report</button>
-          ${state.reportData && state.reportData.kind==='section' ? `<button class="action-btn ghost" onclick="window.print()">Print / Save as PDF</button><button class="action-btn ghost" onclick="downloadReportText()">Download as text</button><button class="action-btn ghost" onclick="downloadReportCsv()">Download as CSV</button>` : ''}
+          ${state.reportData && state.reportData.kind==='section' ? `<button class="action-btn ghost" onclick="printReport()">Print / Save as PDF</button><button class="action-btn ghost" onclick="downloadReportText()">Download as text</button><button class="action-btn ghost" onclick="downloadReportCsv()">Download as CSV</button>` : ''}
         </div>
       </div>
     `}
@@ -10198,7 +10453,7 @@ function buildReportForSection(sectionKey){
 }
 function generateSectionReport(){
   if(!state.reportSectionKey) state.reportSectionKey = 'weekly';
-  state.reportData = { kind:'section', generatedAt: todayStr(), ...buildReportForSection(state.reportSectionKey) };
+  state.reportData = { kind:'section', generatedAt: todayStr(), generatedTime: nowIST(), ...buildReportForSection(state.reportSectionKey) };
   renderView();
   setTimeout(()=>{ document.getElementById('reportPrintArea')?.scrollIntoView({behavior:'smooth'}); }, 50);
 }
@@ -10207,7 +10462,7 @@ function renderSectionReportHtml(data){
     <div class="report-doc">
       <div class="report-head">
         <div class="report-eyebrow">Energy Devices and Materials Group — ${escapeHtml(data.sectionLabel)} Report</div>
-        <div class="report-meta">Generated ${fmtDate(data.generatedAt)} · ${data.rows.length} entr${data.rows.length===1?'y':'ies'}</div>
+        <div class="report-meta">Generated ${escapeHtml(data.generatedTime || fmtDate(data.generatedAt))} · ${data.rows.length} entr${data.rows.length===1?'y':'ies'}</div>
       </div>
       <div class="report-student">
         ${data.rows.length===0 ? `<p class="report-empty">Nothing logged in this section yet.</p>` : `
@@ -10217,6 +10472,7 @@ function renderSectionReportHtml(data){
           </table>
         `}
       </div>
+      ${reportEndHtml_()}
     </div>
   `;
 }
@@ -10244,7 +10500,7 @@ function generateReport(){
   if(studentIds.length===0){ alert('No research scholars to report on yet.'); return; }
   state.reportData = {
     kind: 'student',
-    generatedAt: todayStr(), from, to,
+    generatedAt: todayStr(), generatedTime: nowIST(), from, to,
     students: studentIds.map(id=>buildReportForStudent(id, from, to))
   };
   renderView();
@@ -10267,13 +10523,61 @@ function generatePaperReport(){
   if(!state.reportPaperId){ alert('Choose a paper first.'); return; }
   state.reportData = {
     kind: 'paper',
-    generatedAt: todayStr(),
+    generatedAt: todayStr(), generatedTime: nowIST(),
     ...buildReportForPaper(state.reportPaperId)
   };
   renderView();
   setTimeout(()=>{ document.getElementById('reportPrintArea')?.scrollIntoView({behavior:'smooth'}); }, 50);
 }
 
+/* ---------- Report naming ----------
+   One name for every way a report leaves the app — printed to PDF, downloaded
+   as text, downloaded as CSV — so a folder of them sorts and reads sensibly:
+
+       Priya Nair-EDMG-02-Oct-2026-1423
+       All Scholars-EDMG-02-Oct-2026-1423
+
+   The time is included because more than one report a day is normal, and
+   without it the second download silently overwrites the first. */
+function reportSubjectName_(data){
+  if(!data) return 'Report';
+  if(data.kind === 'paper') return (data.paper && data.paper.title) ? data.paper.title : 'Paper';
+  if(data.kind === 'section') return data.sectionLabel || 'Section';
+  if(data.students && data.students.length === 1) return data.students[0].name;
+  return 'All Scholars';
+}
+// "02-Oct-2026-1423" — IST, matching every other time the app displays.
+function reportStamp_(){
+  const now = new Date();
+  const ist = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (5.5 * 60 * 60000));
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return String(ist.getDate()).padStart(2,'0') + '-' + months[ist.getMonth()] + '-' + ist.getFullYear()
+    + '-' + String(ist.getHours()).padStart(2,'0') + String(ist.getMinutes()).padStart(2,'0');
+}
+function reportFileName_(data, ext){
+  // Strip anything a file system would object to, keep it readable.
+  const subject = String(reportSubjectName_(data)).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim() || 'Report';
+  return subject + '-EDMG-' + reportStamp_() + (ext ? '.' + ext : '');
+}
+// The browser takes the suggested PDF filename from the document title, so it
+// is swapped in just for the print and put back immediately afterwards.
+function printReport(){
+  const data = state.reportData;
+  const original = document.title;
+  if(data) document.title = reportFileName_(data, '');
+  window.print();
+  setTimeout(()=>{ document.title = original; }, 1000);
+}
+
+// Every report ends with this and nothing else — no footer, no logo, no
+// coloured block. Whatever is left of the page below it stays plain white.
+function reportEndHtml_(){
+  return `
+    <div class="report-end">
+      <div class="report-end-rule">----- End of Report -----</div>
+      <div class="report-end-note">This is a system-generated report; hence, no signature is required.</div>
+    </div>`;
+}
 function renderReportHtml(data){
   if(data.kind === 'paper') return renderPaperReportHtml(data);
   if(data.kind === 'section') return renderSectionReportHtml(data);
@@ -10285,9 +10589,10 @@ function renderReportHtml(data){
     <div class="report-doc">
       <div class="report-head">
         <div class="report-eyebrow">${reportTitle}</div>
-        <div class="report-meta">Generated ${fmtDate(data.generatedAt)} · Period: ${escapeHtml(periodLabel)}</div>
+        <div class="report-meta">Generated ${escapeHtml(data.generatedTime || fmtDate(data.generatedAt))} · Period: ${escapeHtml(periodLabel)}</div>
       </div>
       ${data.students.map(s=>renderStudentReportSection(s)).join('<div class="report-divider"></div>')}
+      ${reportEndHtml_()}
     </div>
   `;
 }
@@ -10301,7 +10606,7 @@ function renderPaperReportHtml(data){
     <div class="report-doc">
       <div class="report-head">
         <div class="report-eyebrow">Energy Devices and Materials Group — Paper Report</div>
-        <div class="report-meta">Generated ${fmtDate(data.generatedAt)} · Research Scholar: ${escapeHtml(studentName(p.studentId))}</div>
+        <div class="report-meta">Generated ${escapeHtml(data.generatedTime || fmtDate(data.generatedAt))} · Research Scholar: ${escapeHtml(studentName(p.studentId))}</div>
       </div>
       <div class="report-student">
         <h2 class="report-student-name">${escapeHtml(p.title)}</h2>
@@ -10350,6 +10655,7 @@ function renderPaperReportHtml(data){
           </table>
         `}
       </div>
+      ${reportEndHtml_()}
     </div>
   `;
 }
@@ -10419,7 +10725,7 @@ function downloadReportText(){
   if(!data) return;
   if(data.kind === 'paper'){ downloadPaperReportText(data); return; }
   const periodLabel = (data.from || data.to) ? `${data.from ? fmtDate(data.from) : 'Start'} - ${data.to ? fmtDate(data.to) : 'Present'}` : 'All time';
-  let out = `RESEARCH GROUP LOGBOOK — PROGRESS REPORT\nGenerated ${fmtDate(data.generatedAt)}\nPeriod: ${periodLabel}\n`;
+  let out = `RESEARCH GROUP LOGBOOK — PROGRESS REPORT\nGenerated ${data.generatedTime || fmtDate(data.generatedAt)}\nPeriod: ${periodLabel}\n`;
   data.students.forEach(s=>{
     out += `\n${'='.repeat(60)}\n${s.name}\n${'='.repeat(60)}\n`;
     out += `\n-- Supervisor Instructions Log --\n`;
@@ -10453,12 +10759,12 @@ function downloadReportText(){
       if(m.outcomeNotes) out += `  Notes: ${m.outcomeNotes}\n`;
     });
   });
-  downloadTextBlob(out, `progress-report-${todayStr()}.txt`);
+  downloadTextBlob(out, reportFileName_(data, 'txt'));
 }
 function downloadPaperReportText(data){
   const p = data.paper;
   if(!p) return;
-  let out = `RESEARCH GROUP LOGBOOK — PAPER REPORT\nGenerated ${fmtDate(data.generatedAt)}\nResearch Scholar: ${studentName(p.studentId)}\n`;
+  let out = `RESEARCH GROUP LOGBOOK — PAPER REPORT\nGenerated ${data.generatedTime || fmtDate(data.generatedAt)}\nResearch Scholar: ${studentName(p.studentId)}\n`;
   out += `\n${'='.repeat(60)}\n${p.title}\n${'='.repeat(60)}\n`;
   out += `Target journal: ${p.targetJournal||'—'} | Stage: ${p.stage}${p.pendingStage?` (proposed: ${p.pendingStage})`:''}${p.targetDate?` | Target date: ${fmtDate(p.targetDate)}`:''}\n`;
   if(p.manuscriptLink) out += `Manuscript / draft: ${p.manuscriptLink}\n`;
@@ -10486,7 +10792,7 @@ function downloadPaperReportText(data){
   if(data.thesisLinks.length===0) out += `(none linked)\n`;
   data.thesisLinks.forEach(t=>{ out += `${t.thesisTitle} — ${t.chapterTitle} | Status: ${t.status}\n`; });
 
-  downloadTextBlob(out, `paper-report-${todayStr()}.txt`);
+  downloadTextBlob(out, reportFileName_(data, 'txt'));
 }
 function downloadTextBlob(text, filename){
   const blob = new Blob([text], {type:'text/plain'});
@@ -10523,9 +10829,6 @@ function downloadCsvBlob(csvText, filename){
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-function slugify(text){
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-}
 function downloadReportCsv(){
   const data = state.reportData;
   if(!data) return;
@@ -10534,7 +10837,7 @@ function downloadReportCsv(){
   if(data.kind === 'section'){
     headers = ['Research Scholar', 'Title', 'Status', 'Date', 'Detail'];
     rows = data.rows.map(r => [studentName(r.studentId), r.title, r.status||'', r.date?fmtDate(r.date):'', r.detail||'']);
-    filename = `${slugify(data.sectionLabel)}-report-${todayStr()}.csv`;
+    filename = reportFileName_(data, 'csv');
 
   } else if(data.kind === 'paper'){
     headers = ['Section', 'Title', 'Status', 'Date', 'Detail'];
@@ -10545,7 +10848,7 @@ function downloadReportCsv(){
     data.fabrication.forEach(it => rows.push(['Lab Work', fabricationLabel(it), it.approvalStatus, it.startDate?fmtDate(it.startDate):'', (FABRICATION_STAGES[it.stage]||{}).label||'']));
     (data.analysis||[]).forEach(a => rows.push(['Results Analysis', a.title, a.approvalStatus, a.targetDate?fmtDate(a.targetDate):'', (ANALYSIS_STATUSES[a.status]||{}).label||'']));
     data.thesisLinks.forEach(t => rows.push(['Thesis Chapter', `${t.thesisTitle} — ${t.chapterTitle}`, t.status, '', '']));
-    filename = `paper-report-${slugify(p ? p.title : 'unknown')}-${todayStr()}.csv`;
+    filename = reportFileName_(data, 'csv');
 
   } else {
     headers = ['Research Scholar', 'Section', 'Title', 'Status', 'Date', 'Detail'];
@@ -10557,7 +10860,7 @@ function downloadReportCsv(){
       s.papers.forEach(p => rows.push([s.name, 'Paper Pipeline', p.title, p.stage, p.lastUpdate?fmtDate(p.lastUpdate):'', p.targetJournal||'']));
       s.meetings.forEach(m => rows.push([s.name, 'Meeting', m.title, m.status, m.plannedDate?fmtDate(m.plannedDate):'', m.type||'']));
     });
-    filename = `progress-report-${todayStr()}.csv`;
+    filename = reportFileName_(data, 'csv');
   }
 
   downloadCsvBlob(rowsToCsv(headers, rows), filename);

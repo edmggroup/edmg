@@ -9,7 +9,7 @@
 // v2: manifest orientation unlocked (was portrait-primary).
 // v3: query-string requests are no longer cached, so the page's update check
 //     can see what is actually published.
-const CACHE_NAME = 'rgms-shell-v3';
+const CACHE_NAME = 'rgms-shell-v4';
 const SHELL_FILES = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', (event) => {

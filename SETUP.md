@@ -187,7 +187,23 @@ The package includes `manifest.json`, `sw.js` and an `icons/` folder, which toge
 
 The installed app **rotates with the device** — portrait or landscape, on phones and tablets alike — subject to the device's own rotation lock. If you'd rather pin it to one orientation, change `"orientation"` in `manifest.json` from `"any"` to `"portrait-primary"` (or `"landscape-primary"`).
 
-> **If you edit `index.html` or `manifest.json` after people have already installed it:** also bump `CACHE_NAME` in `sw.js` (e.g. `'rgms-shell-v2'` → `'rgms-shell-v3'`). The service worker caches those two files, so installed copies keep serving the old cached version until the cache name changes. Android also re-reads the manifest on its own schedule, so a change to `orientation` in particular may not show up until someone reinstalls the app — new installs pick it up immediately.
+> **If you change `manifest.json` or `sw.js` itself:** also bump `CACHE_NAME` in `sw.js` (e.g. `'rgms-shell-v3'` → `'rgms-shell-v4'`), because the service worker caches the manifest and installed copies keep serving the old one until the cache name changes. Android also re-reads the manifest on its own schedule, so a change to `orientation` in particular may not show up until someone reinstalls the app — new installs pick it up immediately.
+>
+> For an ordinary `index.html` change you do **not** need to touch `CACHE_NAME`. Bumping it would clear the cache and swap the new version in silently, which skips the "newer version available" notice described below. Changing the `app-build` stamp is what you want instead.
+
+### Telling people an update is available
+
+When the app opens, it checks whether the published version differs from the one running, and if so shows a bar under the top bar: *"A newer version of the logbook is available"*, with **Update now** and **Later**. It re-checks whenever the app returns to the foreground, at most once every 30 minutes, and stays silent when offline. **Later** hides it until the app is next opened, so nobody ends up stuck on an old version.
+
+What drives it is one line in the `<head>` of `index.html`:
+
+```html
+<meta name="app-build" content="2026-10-01-2">
+```
+
+**Change this on every deployment** — any value that differs from the last one works; a date plus a counter is easy to read. The app fetches the published page, compares this stamp with its own, and offers the update when they differ.
+
+If you forget to change it, nothing breaks: no banner appears and the new version arrives silently on the next open, which is how the app behaved before this existed.
 
 ---
 
@@ -204,6 +220,7 @@ The installed app **rotates with the device** — portrait or landscape, on phon
 | Changes to `Code.gs` don't take effect | Editing the script alone doesn't update the live URL — go to **Deploy → Manage deployments → edit → Deploy** again to publish a new version |
 | Installed app won't rotate | The device's own rotation lock is on; or an older copy was installed before `manifest.json` was updated — uninstall and reinstall it from the browser |
 | An edit to `index.html` doesn't show up in the installed app | `CACHE_NAME` in `sw.js` wasn't bumped, so the service worker is still serving the cached shell |
+| No "newer version available" bar after a deployment | The `app-build` meta tag in `index.html` wasn't changed, so the published and running stamps still match |
 | Emails aren't arriving | Confirm the recipient has an email saved (Overview → Access & privacy for the supervisor, or Overview → Account for a student); check the Apps Script **Executions** log for a `MailApp` quota error; confirm you're not over ~100 emails/day on a personal Gmail account |
 
 ## Updating the app later
