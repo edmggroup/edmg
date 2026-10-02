@@ -9,7 +9,7 @@
      decide whether to offer "Update now". Bump it on every deployment; if it's
      ever left unchanged, no banner appears and the app simply updates silently
      on the next open, exactly as it did before this existed. -->
-<meta name="app-build" content="2026-10-02-5">
+<meta name="app-build" content="2026-10-02-7">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1F3A5F">
 <link rel="icon" href="icons/icon-192.png">
@@ -765,6 +765,7 @@ const state = {
   reportStudentId: null,
   reportType: 'student',
   reportPaperId: null,
+  reportIncludeEmpty: false,   // print headings for sections with nothing in them
   reportFrom: '',
   reportTo: '',
   reportData: null
@@ -2960,7 +2961,7 @@ function titleForReviewable(type, entry){
     case 'conference': return entry.eventName;
     case 'plagiarism': return entry.documentTitle;
     case 'collaborator': return entry.name;
-    case 'leave': return `${entry.leaveType} — ${fmtDate(entry.fromDate)} to ${fmtDate(entry.toDate)}`;
+    case 'leave': return `${entry.leaveType || 'Leave'} — ${fmtDate(entry.fromDate)} to ${fmtDate(entry.toDate)}`;  // older records may have no type
     default: return entry.title || '';
   }
 }
@@ -6703,6 +6704,9 @@ async function deleteProposalGoal(prId, goalId){
 }
 function openProposalReviewBox(id){
   const pr = state.proposals.find(x=>x.id===id);
+  // The record can be deleted on another device while this page is still
+  // open; without this the dialog threw and simply never appeared.
+  if(!pr){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   document.getElementById('proposalReviewSlot-'+id).innerHTML = `
     <div class="comment-box">
       <span class="lbl">Feedback (required to request changes)</span>
@@ -7033,6 +7037,9 @@ async function submitEditChapterDate(thId, chId){
 }
 function openThesisReviewBox(id){
   const tp = state.thesisPlans.find(x=>x.id===id);
+  // The record can be deleted on another device while this page is still
+  // open; without this the dialog threw and simply never appeared.
+  if(!tp){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   document.getElementById('thesisReviewSlot-'+id).innerHTML = `
     <div class="comment-box">
       <span class="lbl">Feedback (required to request changes)</span>
@@ -7259,6 +7266,9 @@ async function deleteRacActionItem(racId, itemId){
 }
 function openRacReviewBox(id){
   const r = state.racReviews.find(x=>x.id===id);
+  // The record can be deleted on another device while this page is still
+  // open; without this the dialog threw and simply never appeared.
+  if(!r){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   document.getElementById('racReviewSlot-'+id).innerHTML = `
     <div class="comment-box">
       <span class="lbl">Feedback (required to request changes)</span>
@@ -7483,6 +7493,9 @@ async function submitFinancialOutcome(id){
 }
 function openFinancialReviewBox(id){
   const f = state.financialApps.find(x=>x.id===id);
+  // The record can be deleted on another device while this page is still
+  // open; without this the dialog threw and simply never appeared.
+  if(!f){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   document.getElementById('financialReviewSlot-'+id).innerHTML = `
     <div class="comment-box">
       <span class="lbl">Note (required to request changes)</span>
@@ -7678,6 +7691,9 @@ async function submitEditCourse(id){
 }
 function openCourseReviewBox(id){
   const c = state.courses.find(x=>x.id===id);
+  // The record can be deleted on another device while this page is still
+  // open; without this the dialog threw and simply never appeared.
+  if(!c){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   document.getElementById('courseReviewSlot-'+id).innerHTML = `
     <div class="comment-box">
       <span class="lbl">Note (required to request changes)</span>
@@ -7714,7 +7730,10 @@ async function deleteCourse(id){
 /* ============================ LAB WORK ============================ */
 function fabricationLabel(it){
   if(!it) return '';
-  return it.title ? `${it.title} (${it.itemName})` : it.itemName; // older records may not have a name yet, just show the code
+  // Older records may have only one of the two. Showing both was printing
+  // "Title (undefined)" whenever the sample code was missing.
+  if(it.title && it.itemName) return `${it.title} (${it.itemName})`;
+  return it.title || it.itemName || '';
 }
 function fabricationApprovalMap(){
   return {
@@ -7969,6 +7988,9 @@ async function deleteFabricationStep(id, stepId){
 }
 function openFabricationReviewBox(id){
   const it = state.fabricationItems.find(x=>x.id===id);
+  // The record can be deleted on another device while this page is still
+  // open; without this the dialog threw and simply never appeared.
+  if(!it){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   document.getElementById('fabricationReviewSlot-'+id).innerHTML = `
     <div class="comment-box">
       <span class="lbl">Note (required to request changes)</span>
@@ -8530,6 +8552,9 @@ async function submitWeekly(){
 }
 function openReviewBox(id){
   const w = state.weekly.find(x=>x.id===id);
+  // The record can be deleted on another device while this page is still
+  // open; without this the dialog threw and simply never appeared.
+  if(!w){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   document.getElementById('commentSlot-'+id).innerHTML = `
     <div class="comment-box">
       <span class="lbl">Feedback (required to request changes)</span>
@@ -8841,6 +8866,9 @@ async function submitReceive(id){
 }
 function openSampleReviewBox(id){
   const s = state.samples.find(x=>x.id===id);
+  // The record can be deleted on another device while this page is still
+  // open; without this the dialog threw and simply never appeared.
+  if(!s){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   document.getElementById('sampleReviewSlot-'+id).innerHTML = `
     <div class="comment-box">
       <span class="lbl">Note (required to request changes)</span>
@@ -9180,6 +9208,9 @@ async function submitEditAnalysis(id){
 }
 function openAnalysisReviewBox(id){
   const a = state.resultsAnalysis.find(x=>x.id===id);
+  // The record can be deleted on another device while this page is still
+  // open; without this the dialog threw and simply never appeared.
+  if(!a){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   document.getElementById('analysisReviewSlot-'+id).innerHTML = `
     <div class="comment-box">
       <span class="lbl">Note (required to request changes)</span>
@@ -9510,6 +9541,9 @@ async function rejectPendingStage(id){
 }
 function openEditPaperDetails(id){
   const p = state.papers.find(x=>x.id===id);
+  // The record can be deleted on another device while this page is still
+  // open; without this the dialog threw and simply never appeared.
+  if(!p){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   showModal('Paper Pipeline', `
     <label class="field-label">Target journal</label>
     <input class="text-input" id="f_editJournal" value="${escapeHtml(p.targetJournal || '')}">
@@ -9827,6 +9861,9 @@ async function submitEditConference(id){
 }
 function openConferenceReviewBox(id){
   const c = state.conferences.find(x=>x.id===id);
+  // The record can be deleted on another device while this page is still
+  // open; without this the dialog threw and simply never appeared.
+  if(!c){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   document.getElementById('conferenceReviewSlot-'+id).innerHTML = `
     <div class="comment-box">
       <span class="lbl">Note (required to request changes)</span>
@@ -10369,6 +10406,10 @@ function viewReports(){
             <input type="date" class="text-input" id="r_to" value="${state.reportTo}" onchange="state.reportTo=this.value">
           </div>
         </div>
+        <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; color:var(--ink-soft); margin:4px 0 12px; cursor:pointer;">
+          <input type="checkbox" id="r_includeEmpty" ${state.reportIncludeEmpty?'checked':''} onchange="setReportIncludeEmpty(this.checked)">
+          Include sections with no entries
+        </label>
         <div class="entry-actions">
           <button class="action-btn" onclick="generateReport()">Generate report</button>
           ${state.reportData && state.reportData.kind==='student' ? `<button class="action-btn ghost" onclick="printReport()">Print / Save as PDF</button><button class="action-btn ghost" onclick="downloadReportText()">Download as text</button><button class="action-btn ghost" onclick="downloadReportCsv()">Download as CSV</button>` : ''}
@@ -10477,6 +10518,13 @@ function renderSectionReportHtml(data){
   `;
 }
 function setReportType(t){ state.reportType = t; state.reportData = null; renderView(); }
+// Rebuild straight away if a report is already on screen, so the checkbox has a
+// visible effect rather than quietly applying to the next one.
+function setReportIncludeEmpty(on){
+  state.reportIncludeEmpty = !!on;
+  if(state.reportData && state.reportData.kind === 'student') generateReport();
+  else renderView();
+}
 
 function inRange(dateStr, from, to){
   if(!dateStr) return !from && !to ? true : false;
@@ -10485,13 +10533,112 @@ function inRange(dateStr, from, to){
   return true;
 }
 
+/* ---------- Everything a person has recorded ----------
+   The report used to cover five things. The app records far more than that, so
+   every remaining section is collected here too and rendered as a table.
+
+   normalizeReportRow() already knows how to turn any of these record types into
+   a title, status, date and detail — reusing it means adding a section to the
+   app adds it to the report, instead of the two drifting apart. */
+const REPORT_EXTRA_SECTIONS = [
+  { key:'fabrication',     label:'Lab Work' },
+  { key:'resultsAnalysis', label:'Results Analysis' },
+  { key:'proposal',        label:'Work Plan (Proposal)' },
+  { key:'thesis',          label:'Thesis Plan' },
+  { key:'rac',             label:'RAC Reviews' },
+  { key:'conferences',     label:'Conferences & Events' },
+  { key:'financial',       label:'Proposals (Visiting & Financial)' },
+  { key:'learning',        label:'Learning & Courses' },
+  { key:'patent',          label:'Patents' },
+  { key:'plagiarism',      label:'Similarity Reports' },
+  { key:'award',           label:'Awards & Recognitions' },
+  { key:'collaborator',    label:'Collaborators' },
+  { key:'leave',           label:'Leave / OD' }
+];
+
+// Approval trail, where the record has one. Blank for anything never reviewed.
+function reportReviewInfo_(item){
+  const bits = [];
+  if(item.reviewedByName) bits.push('by ' + item.reviewedByName + (item.reviewedByRole ? ' (' + item.reviewedByRole + ')' : ''));
+  if(item.reviewedAt) bits.push('on ' + item.reviewedAt);
+  return bits.join(' ');
+}
+// Every status change this record has been through, oldest first.
+function reportStatusTrail_(item){
+  return (item.statusHistory || []).map(h =>
+    (h.from || '—') + ' → ' + (h.to || '—') + (h.changedByName ? ', ' + h.changedByName : '') + (h.changedAt ? ', ' + h.changedAt : '')
+  );
+}
+
 function buildReportForStudent(studentId, from, to){
   const instructions = state.instructions.filter(x=>x.studentId===studentId && inRange(x.date, from, to)).sort((a,b)=>a.date.localeCompare(b.date));
   const weekly = state.weekly.filter(x=>x.studentId===studentId && inRange(x.weekStart, from, to)).sort((a,b)=>a.weekStart.localeCompare(b.weekStart));
   const samples = state.samples.filter(x=>x.studentId===studentId && inRange(x.submittedDate, from, to)).sort((a,b)=>a.submittedDate.localeCompare(b.submittedDate));
   const papers = state.papers.filter(x=>x.studentId===studentId && inRange(x.lastUpdate, from, to)).sort((a,b)=>(a.lastUpdate||'').localeCompare(b.lastUpdate||''));
   const meetings = state.meetings.filter(x=>x.studentId===studentId && inRange(x.plannedDate, from, to)).sort((a,b)=>(a.plannedDate||'').localeCompare(b.plannedDate||''));
-  return { studentId, name: studentName(studentId), instructions, weekly, samples, papers, meetings };
+
+  // The work diary is a plain dated log, so it has no entry in REPORT_SECTIONS
+  // and is collected directly.
+  const workDiary = (state.workDiary||[]).filter(x=>x.studentId===studentId && inRange(x.date, from, to))
+    .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+
+  // Everything else, through the shared normaliser.
+  const extras = REPORT_EXTRA_SECTIONS.map(sec => {
+    const source = (REPORT_SECTIONS[sec.key] && REPORT_SECTIONS[sec.key].list()) || [];
+    const rows = source
+      .filter(x => x.studentId === studentId)
+      .map(item => Object.assign({}, normalizeReportRow(sec.key, item), {
+        review: reportReviewInfo_(item),
+        trail: reportStatusTrail_(item)
+      }))
+      .filter(r => inRange(r.date, from, to))
+      .sort((a,b) => (a.date||'').localeCompare(b.date||''));
+    return { key: sec.key, label: sec.label, rows };
+  });
+
+  // Events are assigned rather than owned, so they key off a different field.
+  const events = (state.events||[]).filter(e => e.assignedStudentId === studentId && inRange(e.date, from, to))
+    .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+
+  /* Discussions, news and inventory belong to nobody in particular — they are
+     attributed by who wrote them. A person's activity is what they started and
+     what they replied to.
+
+     scopedDiscussions_() is the VIEWER's scope, not the subject's: a report must
+     never show a reader a conversation they could not open in the app itself,
+     even when it is about the scholar the report is for. */
+  const name = studentName(studentId);
+  const isThem = (byId, byName) => (byId ? byId === studentId : byName === name);
+  const discussions = [];
+  scopedDiscussions_().forEach(dsc => {
+    const startedByThem = isThem(dsc.createdById, dsc.createdByName);
+    const theirReplies = (dsc.replies || []).filter(r => isThem(r.byId, r.byName));
+    const topicDate = istStampToDate_(dsc.createdAt);
+    if(startedByThem && inRange(topicDate, from, to)){
+      discussions.push({ topic: dsc.title, part:'Started the topic', date: topicDate,
+        when: dsc.createdAt || '', text: dsc.message || '' });
+    }
+    theirReplies.forEach(r => {
+      const rd = istStampToDate_(r.at);
+      if(!inRange(rd, from, to)) return;
+      discussions.push({ topic: dsc.title, part:'Reply', date: rd, when: r.at || '', text: r.text || '' });
+    });
+  });
+  discussions.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+
+  const newsPosts = (state.newsUpdates||[])
+    .filter(n => isThem(n.postedById, n.postedByName) && inRange(istStampToDate_(n.postedAt), from, to))
+    .map(n => ({ text: n.text || '', when: n.postedAt || '', date: istStampToDate_(n.postedAt), link: n.link || '' }))
+    .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+
+  const inventoryAdded = (state.consumables||[])
+    .filter(c => isThem(c.createdById, c.createdByName) && inRange(istStampToDate_(c.createdAt), from, to))
+    .map(c => ({ itemName: c.itemName || '', quantity: c.quantity, unit: c.unit || '',
+                 when: c.createdAt || '', date: istStampToDate_(c.createdAt) }))
+    .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+
+  return { studentId, name, instructions, weekly, samples, papers, meetings, workDiary, events, extras,
+           discussions, newsPosts, inventoryAdded };
 }
 
 function generateReport(){
@@ -10666,58 +10813,145 @@ function renderStudentReportSection(s){
       <h2 class="report-student-name">${escapeHtml(s.name)}</h2>
       <div class="report-meta" style="margin:-10px 0 14px;">Report of ${escapeHtml(s.name)}</div>
 
-      <h3 class="report-section-title">Supervisor Instructions Log</h3>
-      ${s.instructions.length===0 ? `<p class="report-empty">No instructions logged for this period.</p>` : `
+      ${reportSummaryHtml_(s)}
+
+      ${reportSectionBlock_('Supervisor Instructions Log', s.instructions.length, `
         <table class="report-table">
           <thead><tr><th>Date</th><th>Instruction</th><th>Logged by</th></tr></thead>
           <tbody>
             ${s.instructions.map(ins=>`<tr><td>${fmtDate(ins.date)}</td><td>${nl2br(ins.text)}</td><td>${escapeHtml(ins.addedByName)}</td></tr>`).join('')}
           </tbody>
         </table>
-      `}
+      `, 'No instructions logged for this period.')}
 
-      <h3 class="report-section-title">Weekly Plan Log</h3>
-      ${s.weekly.length===0 ? `<p class="report-empty">No weekly progress logged for this period.</p>` : s.weekly.map(w=>`
+      ${reportSectionBlock_('Weekly Plan Log', s.weekly.length, s.weekly.map(w=>`
         <div class="report-entry">
           <div class="report-entry-head"><b>Week of ${fmtDate(w.weekStart)}</b><span>${weeklyStatusLabel[w.status]||w.status}</span></div>
           <p><b>Work done:</b> ${nl2br(w.workDone) || '—'}</p>
           <p><b>Plan for next week:</b> ${nl2br(w.planNext) || '—'}</p>
           ${w.challenges ? `<p><b>Challenges:</b> ${nl2br(w.challenges)}</p>` : ''}
           ${w.supervisorComment ? `<p><b>Supervisor feedback:</b> ${nl2br(w.supervisorComment)}</p>` : ''}
+          ${reportReviewInfo_(w) ? `<p><b>Reviewed:</b> ${escapeHtml(reportReviewInfo_(w))}</p>` : ''}
+          ${reportStatusTrail_(w).length ? `<p><b>History:</b> ${reportStatusTrail_(w).map(escapeHtml).join('<br>')}</p>` : ''}
         </div>
-      `).join('')}
+      `).join(''), 'No weekly progress logged for this period.')}
 
-      <h3 class="report-section-title">Characterization Samples Log</h3>
-      ${s.samples.length===0 ? `<p class="report-empty">No samples logged for this period.</p>` : `
+      ${reportSectionBlock_('Characterization Samples Log', s.samples.length, `
         <table class="report-table">
           <thead><tr><th>Sample</th><th>Technique</th><th>Submitted</th><th>Results received</th><th>Status</th><th>Supervisor note</th></tr></thead>
           <tbody>
             ${s.samples.map(sm=>`<tr><td>${escapeHtml(sm.sampleName)}</td><td>${escapeHtml(sm.technique)}</td><td>${fmtDate(sm.submittedDate)}</td><td>${sm.resultsReceivedDate?fmtDate(sm.resultsReceivedDate):'—'}</td><td>${sm.approvalStatus==='approved'?'Approved':sm.approvalStatus==='changes_requested'?'Changes Requested':'Pending Approval'}</td><td>${nl2br(sm.supervisorNote)||'—'}</td></tr>`).join('')}
           </tbody>
         </table>
-      `}
+      `, 'No samples logged for this period.')}
 
-      <h3 class="report-section-title">Paper Pipeline Log</h3>
-      ${s.papers.length===0 ? `<p class="report-empty">No papers logged for this period.</p>` : `
+      ${reportSectionBlock_('Paper Pipeline Log', s.papers.length, `
         <table class="report-table">
           <thead><tr><th>Title</th><th>Target journal</th><th>Stage</th><th>Last updated</th><th>Supervisor note</th></tr></thead>
           <tbody>
             ${s.papers.map(p=>`<tr><td>${escapeHtml(p.title)}</td><td>${escapeHtml(p.targetJournal)||'—'}</td><td>${escapeHtml(p.stage)}${p.pendingStage?` (proposed: ${escapeHtml(p.pendingStage)})`:''}</td><td>${fmtDate(p.lastUpdate)}</td><td>${nl2br(p.supervisorNote)||'—'}</td></tr>`).join('')}
           </tbody>
         </table>
-      `}
+      `, 'No papers logged for this period.')}
 
-      <h3 class="report-section-title">Meetings Log</h3>
-      ${s.meetings.length===0 ? `<p class="report-empty">No meetings or presentations logged for this period.</p>` : `
+      ${reportSectionBlock_('Meetings Log', s.meetings.length, `
         <table class="report-table">
           <thead><tr><th>Date</th><th>Type</th><th>Title</th><th>Status</th><th>Notes</th></tr></thead>
           <tbody>
             ${s.meetings.map(m=>`<tr><td>${fmtDate(m.plannedDate)}</td><td>${escapeHtml(m.type)}</td><td>${escapeHtml(m.title)}</td><td>${(MEETING_STATUS[m.status]||{label:m.status}).label}</td><td>${nl2br(m.outcomeNotes || m.agenda)||'—'}</td></tr>`).join('')}
           </tbody>
         </table>
-      `}
+      `, 'No meetings or presentations logged for this period.')}
+
+      ${reportSectionBlock_('Work Diary', s.workDiary.length, `
+        <table class="report-table">
+          <thead><tr><th>Date</th><th>Entry</th></tr></thead>
+          <tbody>${s.workDiary.map(e=>`<tr><td>${fmtDate(e.date)}</td><td>${nl2br(e.entryText)||'—'}</td></tr>`).join('')}</tbody>
+        </table>`, 'No work diary entries for this period.')}
+
+      ${s.extras.map(sec => reportSectionBlock_(sec.label, sec.rows.length, `
+        <table class="report-table">
+          <thead><tr><th>Title</th><th>Status</th><th>Date</th><th>Detail</th><th>Approval / history</th></tr></thead>
+          <tbody>${sec.rows.map(r=>`<tr>
+            <td>${escapeHtml(r.title || '—')}</td>
+            <td>${escapeHtml(reportStatusLabel_(r.status))}</td>
+            <td>${r.date ? fmtDate(r.date) : '—'}</td>
+            <td>${escapeHtml(r.detail || '—')}</td>
+            <td>${[r.review ? escapeHtml(r.review) : '', ...r.trail.map(escapeHtml)].filter(Boolean).join('<br>') || '—'}</td>
+          </tr>`).join('')}</tbody>
+        </table>`, `No ${sec.label.toLowerCase()} logged for this period.`)).join('')}
+
+      ${reportSectionBlock_('Events', s.events.length, `
+        <table class="report-table">
+          <thead><tr><th>Date</th><th>Type</th><th>Title</th><th>Detail</th></tr></thead>
+          <tbody>${s.events.map(e=>`<tr><td>${e.date?fmtDate(e.date):'—'}</td><td>${escapeHtml(e.type||'—')}</td><td>${escapeHtml(e.title||'—')}</td><td>${nl2br(e.notes||e.description||'')||'—'}</td></tr>`).join('')}</tbody>
+        </table>`, 'No events assigned for this period.')}
+
+      ${reportSectionBlock_('Discussions', s.discussions.length, `
+        <table class="report-table">
+          <thead><tr><th>Topic</th><th>Contribution</th><th>When</th><th>Content</th></tr></thead>
+          <tbody>${s.discussions.map(x=>`<tr><td>${escapeHtml(x.topic||'—')}</td><td>${escapeHtml(x.part)}</td><td>${escapeHtml(x.when||'—')}</td><td>${nl2br(x.text)||'—'}</td></tr>`).join('')}</tbody>
+        </table>`, 'No discussion topics started or replied to in this period.')}
+
+      ${reportSectionBlock_('News Updates Posted', s.newsPosts.length, `
+        <table class="report-table">
+          <thead><tr><th>When</th><th>Update</th><th>Link</th></tr></thead>
+          <tbody>${s.newsPosts.map(n=>`<tr><td>${escapeHtml(n.when||'—')}</td><td>${nl2br(n.text)||'—'}</td><td>${escapeHtml(n.link)||'—'}</td></tr>`).join('')}</tbody>
+        </table>`, 'No news updates posted in this period.')}
+
+      ${reportSectionBlock_('Inventory Added', s.inventoryAdded.length, `
+        <table class="report-table">
+          <thead><tr><th>When</th><th>Item</th><th>Quantity</th></tr></thead>
+          <tbody>${s.inventoryAdded.map(c=>`<tr><td>${escapeHtml(c.when||'—')}</td><td>${escapeHtml(c.itemName)||'—'}</td><td>${escapeHtml(String(c.quantity ?? '—'))} ${escapeHtml(c.unit)}</td></tr>`).join('')}</tbody>
+        </table>`, 'No inventory items added in this period.')}
     </div>
   `;
+}
+
+// Approval statuses are stored as keys; show the words people recognise.
+function reportStatusLabel_(status){
+  const map = { pending:'Pending Approval', approved:'Approved', changes_requested:'Changes Requested',
+                not_started:'Not Started', in_progress:'In Progress', completed:'Completed' };
+  return map[status] || status || '—';
+}
+// A section with nothing in it is omitted unless the person asked to see every
+// heading. With twenty sections, printing "none logged" twenty times buries the
+// sections that do have content — the summary table at the top is what shows
+// completeness instead.
+function reportSectionBlock_(label, count, tableHtml, emptyText){
+  if(count === 0 && !state.reportIncludeEmpty) return '';
+  return `
+    <h3 class="report-section-title">${escapeHtml(label)}</h3>
+    ${count === 0 ? `<p class="report-empty">${escapeHtml(emptyText)}</p>` : tableHtml}`;
+}
+// Every section and its count, so nothing is hidden by the rule above.
+function reportSummaryHtml_(s){
+  const rows = [
+    ['Supervisor Instructions', s.instructions.length],
+    ['Weekly Plan', s.weekly.length],
+    ['Characterization', s.samples.length],
+    ['Paper Pipeline', s.papers.length],
+    ['Meetings', s.meetings.length],
+    ['Work Diary', s.workDiary.length],
+    ...s.extras.map(sec => [sec.label, sec.rows.length]),
+    ['Events', s.events.length],
+    ['Discussions', s.discussions.length],
+    ['News Updates Posted', s.newsPosts.length],
+    ['Inventory Added', s.inventoryAdded.length]
+  ];
+  const total = rows.reduce((n, r) => n + r[1], 0);
+  return `
+    <h3 class="report-section-title">Activity Summary</h3>
+    <table class="report-table">
+      <thead><tr><th>Section</th><th>Entries</th><th>Section</th><th>Entries</th></tr></thead>
+      <tbody>
+        ${rows.filter((_,i)=>i%2===0).map((r,i)=>{
+          const right = rows[i*2+1];
+          return `<tr><td>${escapeHtml(r[0])}</td><td>${r[1]}</td><td>${right?escapeHtml(right[0]):''}</td><td>${right?right[1]:''}</td></tr>`;
+        }).join('')}
+        <tr><td><b>Total entries</b></td><td colspan="3"><b>${total}</b></td></tr>
+      </tbody>
+    </table>`;
 }
 
 function downloadReportText(){
@@ -10758,6 +10992,45 @@ function downloadReportText(){
       if(m.agenda) out += `  Agenda: ${m.agenda}\n`;
       if(m.outcomeNotes) out += `  Notes: ${m.outcomeNotes}\n`;
     });
+
+    out += `\n-- Work Diary --\n`;
+    if(s.workDiary.length===0) out += `(none logged for this period)\n`;
+    s.workDiary.forEach(e=>{ out += `[${fmtDate(e.date)}]\n${e.entryText || '—'}\n\n`; });
+
+    // Every remaining section, through the same data the printed report uses.
+    s.extras.forEach(sec=>{
+      if(sec.rows.length === 0 && !state.reportIncludeEmpty) return;
+      out += `\n-- ${sec.label} --\n`;
+      if(sec.rows.length===0){ out += `(none logged for this period)\n`; return; }
+      sec.rows.forEach(r=>{
+        out += `${r.title || '—'} | Status: ${reportStatusLabel_(r.status)} | ${r.date ? fmtDate(r.date) : '—'}\n`;
+        if(r.detail) out += `  Detail: ${r.detail}\n`;
+        if(r.review) out += `  Approved ${r.review}\n`;
+        r.trail.forEach(t=>{ out += `  History: ${t}\n`; });
+      });
+    });
+
+    if(s.events.length > 0 || state.reportIncludeEmpty){
+      out += `\n-- Events --\n`;
+      if(s.events.length===0) out += `(none assigned for this period)\n`;
+      s.events.forEach(e=>{ out += `[${e.date?fmtDate(e.date):'—'}] ${e.type||''}: ${e.title||'—'}\n`; });
+    }
+
+    if(s.discussions.length > 0 || state.reportIncludeEmpty){
+      out += `\n-- Discussions --\n`;
+      if(s.discussions.length===0) out += `(none in this period)\n`;
+      s.discussions.forEach(x=>{ out += `[${x.when||'—'}] ${x.part} — ${x.topic}\n${x.text||''}\n\n`; });
+    }
+    if(s.newsPosts.length > 0 || state.reportIncludeEmpty){
+      out += `\n-- News Updates Posted --\n`;
+      if(s.newsPosts.length===0) out += `(none in this period)\n`;
+      s.newsPosts.forEach(n=>{ out += `[${n.when||'—'}] ${n.text}\n`; });
+    }
+    if(s.inventoryAdded.length > 0 || state.reportIncludeEmpty){
+      out += `\n-- Inventory Added --\n`;
+      if(s.inventoryAdded.length===0) out += `(none in this period)\n`;
+      s.inventoryAdded.forEach(c=>{ out += `[${c.when||'—'}] ${c.itemName} — ${c.quantity} ${c.unit}\n`; });
+    }
   });
   downloadTextBlob(out, reportFileName_(data, 'txt'));
 }
@@ -10859,6 +11132,15 @@ function downloadReportCsv(){
       s.samples.forEach(sm => rows.push([s.name, 'Characterization', sm.sampleName, sm.approvalStatus, sm.submittedDate?fmtDate(sm.submittedDate):'', sm.technique||'']));
       s.papers.forEach(p => rows.push([s.name, 'Paper Pipeline', p.title, p.stage, p.lastUpdate?fmtDate(p.lastUpdate):'', p.targetJournal||'']));
       s.meetings.forEach(m => rows.push([s.name, 'Meeting', m.title, m.status, m.plannedDate?fmtDate(m.plannedDate):'', m.type||'']));
+      s.workDiary.forEach(e => rows.push([s.name, 'Work Diary', `Entry ${fmtDate(e.date)}`, '', e.date?fmtDate(e.date):'', (e.entryText||'').slice(0,300)]));
+      // Every remaining section, so the spreadsheet matches the printed report.
+      s.extras.forEach(sec => sec.rows.forEach(r =>
+        rows.push([s.name, sec.label, r.title||'', reportStatusLabel_(r.status), r.date?fmtDate(r.date):'',
+                   [r.detail||'', r.review ? 'Approved ' + r.review : '', ...r.trail].filter(Boolean).join(' | ').slice(0,300)])));
+      s.events.forEach(e => rows.push([s.name, 'Event', e.title||'', e.type||'', e.date?fmtDate(e.date):'', (e.notes||e.description||'').slice(0,300)]));
+      s.discussions.forEach(x => rows.push([s.name, 'Discussion', x.topic||'', x.part, x.when||'', (x.text||'').slice(0,300)]));
+      s.newsPosts.forEach(n => rows.push([s.name, 'News Update', (n.text||'').slice(0,80), '', n.when||'', (n.text||'').slice(0,300)]));
+      s.inventoryAdded.forEach(c => rows.push([s.name, 'Inventory Added', c.itemName||'', '', c.when||'', `${c.quantity} ${c.unit}`]));
     });
     filename = reportFileName_(data, 'csv');
   }
