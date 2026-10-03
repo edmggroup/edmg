@@ -116,7 +116,9 @@ For this to work, both the supervisor and each student need to enter their email
 - a greeting ("Dear Priya," or "Dear Sir/Madam," depending on the recipient), dates written out in full (e.g. "3 August 2026" rather than the raw stored format), and an italic closing "Regards, Research Group Management System, Energy Devices & Materials Research Group" — every email is signed this way, including approval decisions, so all outgoing mail carries one consistent identity;
 - an italic footer stating the email is automatically generated and the mailbox is not monitored.
 
-Custom wording written on the Email Templates page gets the same treatment automatically — only the words change, never the shape. The layout is built from HTML tables with inline styles and no images, which is what Outlook and Gmail actually render; if any part of the styling ever fails to build, the email still goes out with the wording intact.
+Custom wording written on the Email Templates page gets the same treatment automatically — only the words change, never the shape.
+
+**Blank fields in emails:** every field an email quotes is optional, so any of them can arrive empty. Rather than printing the word "undefined" into a subject line, the wording substitutes a plain stand-in — *"an untitled entry"*, *"an unnamed sample"*, *"a date still to be set"* — so the message still says what happened and the record is one click away. The layout is built from HTML tables with inline styles and no images, which is what Outlook and Gmail actually render; if any part of the styling ever fails to build, the email still goes out with the wording intact.
 
 **Email sending limits:** these emails send from *your* Google account (whoever deployed the Apps Script), using Google's `MailApp` service. A standard Gmail account can send roughly 100 emails/day this way; Google Workspace accounts get a higher limit. This is normally far more than a research group needs in a day. If the limit is ever hit, notifications silently pause until the next day — the app itself keeps working and no data is lost, only the email goes missing.
 
@@ -207,15 +209,55 @@ The installed app **rotates with the device** — portrait or landscape, on phon
 
 When the app opens, it checks whether the published version differs from the one running, and if so shows a bar under the top bar: *"A newer version of the logbook is available"*, with **Update now** and **Later**. It re-checks whenever the app returns to the foreground, at most once every 30 minutes, and stays silent when offline. **Later** hides it until the app is next opened, so nobody ends up stuck on an old version.
 
-What drives it is one line in the `<head>` of `index.html`:
+What drives it is two lines in the `<head>` of `index.html`:
 
 ```html
-<meta name="app-build" content="2026-10-01-2">
+<meta name="app-build" content="2026-10-03-3">
+<meta name="app-version" content="1.3">
 ```
 
-**Change this on every deployment** — any value that differs from the last one works; a date plus a counter is easy to read. The app fetches the published page, compares this stamp with its own, and offers the update when they differ.
+**Change both on every deployment.**
 
-If you forget to change it, nothing breaks: no banner appears and the new version arrives silently on the next open, which is how the app behaved before this existed.
+- `app-build` — any value that differs from the last one; a date plus a counter is easy to read. The app fetches the published page, compares this stamp with its own, and offers the update when they differ. This is what makes the notice appear.
+- `app-version` — the number people see: in the pill beside the group name in the top bar, and on the login screen. These are the **only** two places either value is written anywhere in the app; the screen reads them, so the number on screen can never disagree with the file.
+
+When both change, the notice names the new number: *"Version 1.3 of the logbook is available — you have v1.2."* When only the build stamp changes (a small fix with no new number), it falls back to the plain *"A newer version of the logbook is available."*
+
+The top-bar pill also carries the build date in its tooltip, and the login screen prints it in full — both taken from `app-build`. So even if you forget to raise the version number, the date on screen still moves with every deployment.
+
+If you forget to change `app-build`, nothing breaks: no banner appears and the new version arrives silently on the next open, which is how the app behaved before this existed.
+
+### Program details for each scholar
+
+Five fields are kept against every scholar and project student:
+
+| Field | Notes |
+|---|---|
+| Joining date | |
+| Duration of course | free text, e.g. `5 years (Aug 2024 – Jul 2029)` |
+| Course work completed | |
+| Synopsis eligible from | |
+| Thesis eligible from | |
+
+**None of them is required.** Fill in whatever applies, leave the rest blank, and a blank field reads *Not recorded* rather than nagging. Clearing a field and saving removes it.
+
+They are edited in one place — the **Edit program details** button — and that one button appears everywhere the values are shown:
+
+- the scholar's own **Account** page (they can edit their own);
+- each card on the **Members** page (supervisor);
+- the scholar list on the supervisor's **Account** page.
+
+A scholar can edit their own and nobody else's; the supervisor can edit anyone's. Because there is exactly one editor and one panel, a value entered in any of those places shows immediately in all of them — previously joining date and duration had two separate editors and three separate displays, which is how a value that had been entered could still read "Not set" somewhere else.
+
+### Reminding people to keep their logbook current
+
+Only two records count as "keeping the logbook current": the **weekly plan** and the **work diary**. Characterization entries, lab work and papers do not — someone can run experiments all month and still be reminded, which is the point.
+
+- **After 10 days** with neither, a polite badge appears at the top of that scholar's day brief, naming how many days it has been. Anyone logging regularly never sees it. Supervisors and advisors never see it, and neither do frozen accounts.
+- **After 30 days**, the backend emails them as well, and then at most once a week after that until they log something — so a month of silence produces six emails over ten weeks, not sixty.
+- Someone who has never logged anything is measured from their joining date, so a scholar added this morning is not greeted with a reminder.
+
+Both numbers live in one place each: `LOG_NUDGE_AFTER_DAYS` in `index.html` and `INACTIVITY_DAYS` in `Code.gs`.
 
 ---
 

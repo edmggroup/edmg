@@ -9,7 +9,10 @@
      decide whether to offer "Update now". Bump it on every deployment; if it's
      ever left unchanged, no banner appears and the app simply updates silently
      on the next open, exactly as it did before this existed. -->
-<meta name="app-build" content="2026-10-03-1">
+<meta name="app-build" content="2026-10-03-3">
+<!-- The version people see. This and app-build above are the only two
+     places either value is written; everything on screen reads them. -->
+<meta name="app-version" content="1.3">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1F3A5F">
 <link rel="icon" href="icons/icon-192.png">
@@ -665,7 +668,7 @@
         <div class="brand-name">Energy Devices and Materials Group</div>
         <div class="brand-subtitle">Christ University, Bengaluru</div>
       </div>
-      <span style="font-size:10.5px; color:rgba(255,255,255,0.45); font-weight:600; letter-spacing:.04em; border:1px solid rgba(255,255,255,0.2); border-radius:4px; padding:1px 6px;">v1.1</span>
+      <span id="appVersionPill" style="font-size:10.5px; color:rgba(255,255,255,0.45); font-weight:600; letter-spacing:.04em; border:1px solid rgba(255,255,255,0.2); border-radius:4px; padding:1px 6px;"></span>
     </div>
     <div class="topbar-search">
       <input type="text" id="globalSearchInput" placeholder="Search everything…" autocomplete="off" oninput="handleGlobalSearch(this.value)" onfocus="handleGlobalSearch(this.value)">
@@ -1020,6 +1023,7 @@ async function saveSupervisorProfile(profile){
 const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','deletion-log','news-updates','patents','plagiarism-reports','awards','collaborators','leave-records','activity-log-exclusions','consumables','work-diary','reminders','discussions','congratulations','email-templates','supervisor-pin'];
 
 async function init(){
+  paintVersion_();
   if(!backendConfigured()){
     renderSetupNeeded();
     return;
@@ -1168,7 +1172,7 @@ function loginShell(cardHtml){
         <li>Characterization &amp; battery testing pipeline</li>
         <li>Paper pipeline with reference tracking</li>
       </ul>
-      <div class="login-hero-foot">v1.1 · Internal tool</div>
+      <div class="login-hero-foot">v${APP_VERSION} · ${buildDateLabel_()} · Internal tool</div>
       <div class="login-hero-illustration">
         <svg viewBox="0 0 220 46" width="210" height="44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <polyline points="0,36 20,14 42,36 64,10 86,36 108,8 130,36 152,12 174,36 196,10 220,36"
@@ -1754,7 +1758,7 @@ function dayBriefNeeds_(){
    experiments all month without writing anything up is still reminded.
 
    Both thresholds are here so they can be changed in one place. */
-const LOG_NUDGE_AFTER_DAYS = 15;    // badge in the day brief
+const LOG_NUDGE_AFTER_DAYS = 10;    // badge in the day brief
 const LOG_NUDGE_EMAIL_AFTER_DAYS = 30;  // backend sends an email (see Code.gs)
 
 // The most recent day this person has a weekly plan or diary entry for.
@@ -2359,7 +2363,7 @@ function scopedDiscussions_(){
 }
 function viewDiscussionsPage(){
   if(state.selectedDiscussionId) return discussionDetailHtml(state.selectedDiscussionId);
-  const items = scopedDiscussions_().slice().sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+  const items = scopedDiscussions_().slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
   return `
     <div class="view-header">
       <div>
@@ -2922,7 +2926,7 @@ function scopedMeetings_(){
 
 /* ============================ SUPERVISOR INSTRUCTIONS LOG ============================ */
 function viewInstructions(){
-  let list = scopedList(state.instructions).slice().sort((a,b)=> b.date.localeCompare(a.date));
+  let list = scopedList(state.instructions).slice().sort((a,b)=> (b.date||'').localeCompare(a.date||''));
   return `
     <div class="view-header">
       <div>
@@ -3842,7 +3846,7 @@ function viewOverview(){
 
   const upcomingAll = meetings.filter(OVERVIEW_PREDICATES.meetingUpcoming);
   const upcoming = upcomingAll.slice()
-    .sort((a,b)=> a.plannedDate.localeCompare(b.plannedDate)).slice(0,5);
+    .sort((a,b)=> (a.plannedDate||'').localeCompare(b.plannedDate||'')).slice(0,5);
 
   const roleTitle = { supervisor:'Group Overview', cosupervisor:'My Assigned Students', student:'My Overview' }[state.identity.role];
   const roleSub = { supervisor:'Everything here is final only once you approve it.', cosupervisor:'A view of the students assigned to you — everything here is final only once approved.', student:'A snapshot of your progress, samples, and papers.' }[state.identity.role];
@@ -3969,7 +3973,7 @@ function birthdaysPanelHtml_(){
     ...state.students.filter(s=>!s.frozen && s.dob).map(s=>({ kind:'student', id:s.id, name:s.name, dob:s.dob, email:s.email||'', wishSentOn:s.wishSentOn||'', role: s.studentType==='project' ? 'Project Student' : 'Research Scholar' })),
     ...state.coSupervisors.filter(c=>!c.frozen && c.dob).map(c=>({ kind:'cosupervisor', id:c.id, name:c.name, dob:c.dob, email:c.email||'', wishSentOn:c.wishSentOn||'', role:'Advisor' }))
   ].filter(p => nextBirthday_(p.dob, today) === today)
-   .sort((a,b)=>a.name.localeCompare(b.name));
+   .sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   if(todays.length === 0) return '';
   return `
     <div style="margin-top:14px;">
@@ -4315,7 +4319,7 @@ function allMembers_(){
       type: s.studentType==='project' ? 'project' : 'research',
       role: s.studentType==='project' ? 'Project Student' : 'Research Scholar' })),
     ...state.coSupervisors.map(c=>({ kind:'cosupervisor', id:c.id, rec:c, name:c.name, type:'advisor', role:'Advisor' }))
-  ].sort((a,b)=>a.name.localeCompare(b.name));
+  ].sort((a,b)=>(a.name||'').localeCompare(b.name||''));
 }
 function memberRecord_(kind, id){
   return kind==='cosupervisor' ? state.coSupervisors.find(x=>x.id===id) : state.students.find(x=>x.id===id);
@@ -4370,7 +4374,7 @@ function membersProfilesHtml_(){
         const rows = [
           ['Email', r.email ? escapeHtml(r.email) : '<span style="color:var(--danger);">Not set</span>'],
           ['Date of birth', r.dob ? fmtDate(r.dob) : 'Not set'],
-          ...(m.kind==='student' ? [['Joining date', r.joiningDate ? fmtDate(r.joiningDate) : 'Not set'], ['Duration of course', r.courseDuration ? escapeHtml(r.courseDuration) : 'Not set']] : []),
+          ...(m.kind==='student' ? programDetailsRows_(r) : []),
           ...(m.type==='project' ? [['Advisor (scholar)', advisor ? escapeHtml(advisor.name) : 'Not assigned']] : []),
           ...(m.type==='advisor' ? [['Scholars assigned', String(assigned)]] : []),
           ['Account', r.pinHash ? 'Active' : 'Not signed in yet']
@@ -4387,7 +4391,10 @@ function membersProfilesHtml_(){
             <div class="entry-grid" style="margin-top:8px;">
               ${rows.map(([k,v])=>`<div class="entry-block"><span class="lbl">${k}</span>${v}</div>`).join('')}
             </div>
-            <div class="entry-actions"><button class="small-btn" onclick="openEditMemberModal('${m.kind}','${m.id}')">Edit profile</button></div>
+            <div class="entry-actions">
+              <button class="small-btn" onclick="openEditMemberModal('${m.kind}','${m.id}')">Edit profile</button>
+              ${m.kind==='student' ? `<button class="small-btn" onclick="openProgramDetailsModal('${m.id}')">Edit program details</button>` : ''}
+            </div>
           </div>`;
       }).join('')}</div>`}
   `;
@@ -4406,11 +4413,9 @@ function openEditMemberModal(kind, id){
     <div class="two-col">
       <div><label class="field-label">Date of birth</label>
         <input class="text-input" id="f_mDob" type="date" max="${todayStr()}" value="${r.dob||''}"></div>
-      ${isStudent ? `<div><label class="field-label">Joining date</label>
-        <input class="text-input" id="f_mJoin" type="date" value="${r.joiningDate||''}"></div>` : '<div></div>'}
+      <div></div>
     </div>
-    ${isStudent ? `<label class="field-label">Duration of course</label>
-      <input class="text-input" id="f_mDuration" value="${escapeHtml(r.courseDuration||'')}" placeholder="e.g. 3 years">` : ''}
+    ${isStudent ? `<div class="view-sub" style="margin-top:4px;">Joining date, duration and the course-work, synopsis and thesis dates are all on <b>Edit program details</b>, next to this button.</div>` : ''}
     <div class="view-sub" style="margin-top:10px;">Changing the name updates it everywhere in the app — all their records stay linked. To change a PIN, freeze an account or reassign an advisor, use the Account and Project Students pages.</div>
   `, ()=>submitEditMember(kind, id), false, '680px', null, 'Save profile');
 }
@@ -4430,10 +4435,6 @@ async function submitEditMember(kind, id){
   if(!isValidEmail(email)){ alert('Please enter a valid email address.'); return; }
   if(dob){ const err = dobProblem_(dob); if(err){ alert(err); return; } }
   r.name = name; r.email = email; r.dob = dob;
-  if(kind==='student'){
-    r.joiningDate = document.getElementById('f_mJoin').value;
-    r.courseDuration = document.getElementById('f_mDuration').value.trim();
-  }
   await saveCollection(kind==='cosupervisor' ? 'co-supervisors' : 'students', peers);
   closeModal(); renderView();
   });
@@ -4832,7 +4833,7 @@ function studentSummaryTable(){
             const pending = w.filter(x=>x.status==='pending').length + sm.filter(x=>x.approvalStatus==='pending').length + p.filter(x=>!!x.pendingStage).length + m.filter(x=>x.status==='proposed').length;
             const awaiting = sm.filter(x=>!x.resultsReceivedDate).length;
             const active = p.filter(x=>x.stage!=='Published').length;
-            const next = m.filter(x=>(x.status==='proposed'||x.status==='confirmed') && x.plannedDate>=todayStr()).sort((a,b)=>a.plannedDate.localeCompare(b.plannedDate))[0];
+            const next = m.filter(x=>(x.status==='proposed'||x.status==='confirmed') && x.plannedDate>=todayStr()).sort((a,b)=>(a.plannedDate||'').localeCompare(b.plannedDate||''))[0];
             return `<tr>
               <td style="padding-left:18px; font-weight:600;">${escapeHtml(s.name)}</td>
               <td>${pending>0 ? `<span class="stamp warn" style="padding:3px 9px;">${pending}</span>` : '0'}</td>
@@ -4948,12 +4949,9 @@ function accessSection(){
       </div>
       <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Program details</h3>
       <div class="entry-card">
-        <div class="entry-grid">
-          <div class="entry-block"><span class="lbl">Joining date</span>${me?.joiningDate ? fmtDate(me.joiningDate) : 'Not set'}</div>
-          <div class="entry-block"><span class="lbl">Duration of course</span>${me?.courseDuration ? escapeHtml(me.courseDuration) : 'Not set'}</div>
-        </div>
-        <div class="entry-meta" style="margin-top:8px;">Keep this up to date yourself — your supervisor can see it but this is self-reported.</div>
-        <div class="entry-actions"><button class="small-btn" onclick="openEditProgramDetailsModal()">Edit program details</button></div>
+        ${programDetailsGridHtml_(me)}
+        <div class="entry-meta" style="margin-top:8px;">All optional — fill in whatever applies. Your supervisor can see and edit these too.</div>
+        <div class="entry-actions"><button class="small-btn" onclick="openProgramDetailsModal('${state.identity.id}')">Edit program details</button></div>
       </div>
       <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Personal details</h3>
       <div class="entry-card">
@@ -5015,7 +5013,7 @@ function accessSection(){
                 <button class="small-btn danger" onclick="deleteStudentAccount('${s.id}')">Delete account</button>
               </div>
             </div>
-            <div class="entry-meta" style="margin-top:4px;">Joined: ${s.joiningDate ? fmtDate(s.joiningDate) : 'not set'} · Duration: ${escapeHtml(s.courseDuration || 'not set')}</div>
+            <div class="entry-meta" style="margin-top:4px;">${programDetailsLine_(s)} <span class="task-link" onclick="openProgramDetailsModal('${s.id}')">Edit</span></div>
           </div>
         `;}).join('')}
       <div class="entry-actions">
@@ -5047,9 +5045,9 @@ function viewConsumables(){
     return emptyState('Not available for this role', 'Consumables & Inventory is visible to the supervisor and research scholars only.');
   }
   const filter = state.consumableCategoryFilter || 'all';
-  const allItems = state.consumables.slice().sort((a,b)=>a.itemName.localeCompare(b.itemName));
+  const allItems = state.consumables.slice().sort((a,b)=>(a.itemName||'').localeCompare(b.itemName||''));
   const lowStock = allItems.filter(i => hasMinStock_(i) && Number(i.quantity) <= Number(i.minStock));
-  const categoriesInUse = [...new Set(allItems.map(i=>i.category))].sort();
+  const categoriesInUse = [...new Set(allItems.map(consumableCategory_))].sort();
 
   const groupsToShow = filter==='all' ? categoriesInUse : [filter];
 
@@ -5068,21 +5066,21 @@ function viewConsumables(){
     </div>
     ${lowStock.length>0 ? `
       <div class="comment-box" style="border-color:var(--warning); margin-bottom:16px;">
-        <b>${lowStock.length} item(s) at or below minimum stock:</b> ${lowStock.map(i=>escapeHtml(i.itemName)).join(', ')}
+        <b>${lowStock.length} item(s) at or below minimum stock:</b> ${lowStock.map(i=>escapeHtml(i.itemName || 'Unnamed item')).join(', ')}
       </div>
     ` : ''}
     ${allItems.length>0 ? `
       <div class="filter-row">
         <select onchange="setConsumableCategoryFilter(this.value)">
           <option value="all" ${filter==='all'?'selected':''}>All categories (${allItems.length})</option>
-          ${categoriesInUse.map(c=>`<option value="${escapeHtml(c)}" ${filter===c?'selected':''}>${escapeHtml(c)} (${allItems.filter(i=>i.category===c).length})</option>`).join('')}
+          ${categoriesInUse.map(c=>`<option value="${escapeHtml(c)}" ${filter===c?'selected':''}>${escapeHtml(c)} (${allItems.filter(i=>consumableCategory_(i)===c).length})</option>`).join('')}
         </select>
       </div>
     ` : ''}
     ${allItems.length===0 ? emptyState('Nothing logged yet', 'Add items one at a time, or use "Bulk upload" to add many at once from an Excel sheet.') :
-      groupsToShow.every(cat=>allItems.filter(i=>i.category===cat).length===0) ? emptyState('No items in this category', 'Try a different category, or add a new item.') :
+      groupsToShow.every(cat=>allItems.filter(i=>consumableCategory_(i)===cat).length===0) ? emptyState('No items in this category', 'Try a different category, or add a new item.') :
       groupsToShow.map(cat=>{
-        const catItems = allItems.filter(i=>i.category===cat);
+        const catItems = allItems.filter(i=>consumableCategory_(i)===cat);
         if(catItems.length===0) return '';
         return `
           <h3 class="panel-title" style="margin:${filter==='all'?'18px 0 10px':'0 0 10px'};"><span class="dot" style="background:var(--stat-teal);"></span>${escapeHtml(cat)} <span class="entry-meta" style="text-transform:none; font-weight:400; letter-spacing:0;">(${catItems.length})</span></h3>
@@ -5093,6 +5091,13 @@ function viewConsumables(){
       }).join('')}
   `;
 }
+// An item added before categories existed, or bulk-uploaded with that column
+// blank, has no category. It still has to go somewhere, and "undefined" is not
+// a place — this gives those items one honest heading of their own.
+const CONSUMABLE_NO_CATEGORY = 'Uncategorised';
+function consumableCategory_(item){
+  return (item && item.category) ? item.category : CONSUMABLE_NO_CATEGORY;
+}
 // A minimum-stock level counts as set only when it is really a number. Items
 // created before this field existed have it undefined, and `undefined !== ''`
 // is true — which is how "min undefined g" ended up on the card.
@@ -5101,6 +5106,15 @@ function hasMinStock_(item){
   const v = item.minStock;
   return v !== '' && v !== null && v !== undefined && !isNaN(Number(v));
 }
+// Quantity and unit are both optional. Printed raw they read "undefined
+// undefined", which looks like a broken app rather than an item nobody has
+// counted yet.
+function consumableQty_(item){
+  const q = (item && item.quantity !== undefined && item.quantity !== null && item.quantity !== '')
+    ? String(item.quantity) : '\u2014';
+  const u = (item && item.unit) ? ' ' + item.unit : '';
+  return q + u;
+}
 function consumableCardHtml(item){
   const low = hasMinStock_(item) && Number(item.quantity) <= Number(item.minStock);
   const metaBits = [item.location, item.supplier, item.casNumber ? 'CAS '+item.casNumber : '', item.expiryDate ? 'Exp. '+fmtDate(item.expiryDate) : ''].filter(Boolean);
@@ -5108,11 +5122,11 @@ function consumableCardHtml(item){
     <div class="entry-card ${low?'cat-rose':'cat-teal'}" id="item-consumable-${item.id}">
       <div class="entry-top">
         <div>
-          <div class="entry-title">${escapeHtml(item.itemName)} ${low ? `<span class="stamp warn">Low stock</span>` : ''}</div>
+          <div class="entry-title">${escapeHtml(item.itemName || 'Unnamed item')} ${low ? `<span class="stamp warn">Low stock</span>` : ''}</div>
           <div class="entry-meta">${metaBits.length ? metaBits.map(escapeHtml).join(' · ') : ''}${hasMinStock_(item) ? `${metaBits.length?' · ':''}min ${escapeHtml(String(item.minStock))} ${escapeHtml(item.unit||'')}` : ''}</div>
         </div>
         <div style="text-align:right; flex-shrink:0;">
-          <div class="mono" style="font-size:17px; font-weight:700; white-space:nowrap;">${escapeHtml(String(item.quantity))} ${escapeHtml(item.unit)}</div>
+          <div class="mono" style="font-size:17px; font-weight:700; white-space:nowrap;">${escapeHtml(consumableQty_(item))}</div>
           ${item.cost ? `<div class="entry-meta mono">₹${escapeHtml(String(item.cost))}</div>` : ''}
         </div>
       </div>
@@ -5122,7 +5136,7 @@ function consumableCardHtml(item){
         <div style="margin-top:8px;">
           <span class="task-link" style="font-size:12.5px;" onclick="toggleHistoryPanel('${item.id}')">Show usage &amp; restock history (${item.history.length}) ▾</span>
           <div id="cons-history-${item.id}" style="display:none; margin-top:6px; flex-direction:column; gap:3px;">
-            ${item.history.slice().reverse().map(h=>`<div class="entry-meta">${h.change>0?'+':''}${h.change} ${escapeHtml(item.unit)} (now ${h.newQuantity}) — ${escapeHtml(h.byName)} (${escapeHtml(h.byRole)}) on ${escapeHtml(h.at)}${h.note?' — '+escapeHtml(h.note):''}</div>`).join('')}
+            ${item.history.slice().reverse().map(h=>`<div class="entry-meta">${h.change>0?'+':''}${h.change} ${escapeHtml(item.unit||'')} (now ${h.newQuantity}) — ${escapeHtml(h.byName)} (${escapeHtml(h.byRole)}) on ${escapeHtml(h.at)}${h.note?' — '+escapeHtml(h.note):''}</div>`).join('')}
           </div>
         </div>
       ` : ''}
@@ -5300,7 +5314,7 @@ function downloadConsumableTemplate(){
 // see the button gating in viewConsumables().
 function downloadConsumableExport(){
   const rows = [CONSUMABLE_TEMPLATE_HEADERS];
-  state.consumables.slice().sort((a,b)=>a.itemName.localeCompare(b.itemName)).forEach(item=>{
+  state.consumables.slice().sort((a,b)=>(a.itemName||'').localeCompare(b.itemName||'')).forEach(item=>{
     rows.push([item.itemName, item.category, item.quantity, item.unit, item.cost||'', item.minStock||'', item.location||'', item.supplier||'', item.casNumber||'', item.expiryDate||'', item.safetyNotes||'', item.notes||'']);
   });
   const ws = XLSX.utils.aoa_to_sheet(rows);
@@ -5872,7 +5886,8 @@ function downloadBackup(){
     exportedAt: new Date().toISOString(),
     exportedBy: state.identity.name,
     scope,
-    students: visible.map(s=>({id:s.id, name:s.name, email:s.email||'', studentType:s.studentType||'research', mentorScholarId:s.mentorScholarId||null, frozen:!!s.frozen, notifyPrefs:s.notifyPrefs||{}, joiningDate:s.joiningDate||'', courseDuration:s.courseDuration||'', dob:(isSupervisor || s.id===state.identity.id) ? (s.dob||'') : ''})),
+    students: visible.map(s=>({id:s.id, name:s.name, email:s.email||'', studentType:s.studentType||'research', mentorScholarId:s.mentorScholarId||null, frozen:!!s.frozen, notifyPrefs:s.notifyPrefs||{}, joiningDate:s.joiningDate||'', courseDuration:s.courseDuration||'',
+      courseWorkDate:s.courseWorkDate||'', synopsisEligibleDate:s.synopsisEligibleDate||'', thesisEligibleDate:s.thesisEligibleDate||'', dob:(isSupervisor || s.id===state.identity.id) ? (s.dob||'') : ''})),
     weeklyReports: scopedList(state.weekly),
     samples: scopedList(state.samples),
     papers: scopedList(state.papers),
@@ -6153,22 +6168,84 @@ function nextBirthday_(dob, fromDate){
   const thisYear = onYear(fy);
   return thisYear >= fromDate ? thisYear : onYear(fy+1);
 }
-function openEditProgramDetailsModal(){
-  const me = state.students.find(x=>x.id===state.identity.id);
-  showModal('Program details', `
-    <label class="field-label">Joining date</label>
-    <input type="date" class="text-input" id="f_joiningDate" value="${me?.joiningDate || ''}">
-    <label class="field-label">Duration of course</label>
-    <input class="text-input" id="f_courseDuration" value="${escapeHtml(me?.courseDuration || '')}" placeholder="e.g. 5 years, or Aug 2024 – Jul 2029">
-  `, submitProgramDetails);
+/* ---------- Program details ----------
+   The dates that mark out a research degree. Every one of them is optional:
+   people fill in what they know, when they know it, and the rest stays blank
+   rather than blocking the save. Defined once here so the panel, the form and
+   the save can never drift apart — before this, joining date and duration were
+   edited in two different places and shown in three, which is how a value that
+   WAS entered could still read "Not set" somewhere else.
+
+   `field` is what's stored on the record. `kind` is 'date' or 'text'. */
+const PROGRAM_FIELDS = [
+  { field:'joiningDate',          label:'Joining date',                 kind:'date' },
+  { field:'courseDuration',       label:'Duration of course',           kind:'text',
+    placeholder:'e.g. 5 years, or Aug 2024 – Jul 2029' },
+  { field:'courseWorkDate',       label:'Course work completed',        kind:'date' },
+  { field:'synopsisEligibleDate', label:'Synopsis eligible from',       kind:'date' },
+  { field:'thesisEligibleDate',   label:'Thesis eligible from',         kind:'date' }
+];
+
+function programFieldValue_(rec, f){
+  const raw = rec ? rec[f.field] : '';
+  if(!raw) return '';
+  return f.kind === 'date' ? fmtDate(raw) : String(raw);
 }
-async function submitProgramDetails(){
-  const me = state.students.find(x=>x.id===state.identity.id);
-  if(!me){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
-  me.joiningDate = document.getElementById('f_joiningDate').value;
-  me.courseDuration = document.getElementById('f_courseDuration').value.trim();
-  await saveCollection('students', state.students);
-  closeModal(); renderView();
+// The read-only panel. `Not recorded` rather than `Not set`, because none of
+// these is something the app is waiting for — they are simply blank until
+// somebody has a reason to fill them in.
+function programDetailsRows_(rec){
+  return PROGRAM_FIELDS.map(f => {
+    const v = programFieldValue_(rec, f);
+    return [f.label, v ? escapeHtml(v) : '<span class="entry-meta">Not recorded</span>'];
+  });
+}
+function programDetailsGridHtml_(rec){
+  return `<div class="entry-grid">${programDetailsRows_(rec).map(([k,v]) =>
+    `<div class="entry-block"><span class="lbl">${k}</span>${v}</div>`).join('')}</div>`;
+}
+// A one-line summary for places that only have room for a line.
+function programDetailsLine_(rec){
+  const bits = PROGRAM_FIELDS.map(f => {
+    const v = programFieldValue_(rec, f);
+    return v ? f.label + ': ' + escapeHtml(v) : '';
+  }).filter(Boolean);
+  return bits.length ? bits.join(' · ') : 'No program details recorded yet';
+}
+
+// One editor, used by the scholar for themselves and by the supervisor for
+// anyone. Nothing here is required — an empty form saves cleanly and simply
+// clears whatever was there.
+function openProgramDetailsModal(studentId){
+  const id = studentId || (state.identity && state.identity.id);
+  const rec = state.students.find(x=>x.id===id);
+  if(!rec){ alert('That account no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
+  const mine = id === (state.identity && state.identity.id);
+  if(!mine && !isTrueSupervisor()){ alert('Only the supervisor can edit someone else\u2019s program details.'); return; }
+  showModal('Program details — ' + escapeHtml(rec.name), `
+    ${PROGRAM_FIELDS.map(f => `
+      <label class="field-label">${f.label}</label>
+      ${f.kind === 'date'
+        ? `<input type="date" class="text-input" id="f_prog_${f.field}" value="${rec[f.field] || ''}">`
+        : `<input class="text-input" id="f_prog_${f.field}" value="${escapeHtml(rec[f.field] || '')}" placeholder="${f.placeholder || ''}">`}
+    `).join('')}
+    <div class="view-sub" style="margin-top:10px;">Every field here is optional — fill in whatever applies and leave the rest blank. Clearing a field and saving removes it.</div>
+  `, ()=>submitProgramDetails(id), false, '640px', null, 'Save details');
+}
+async function submitProgramDetails(studentId){
+  return runOnce_('programDetails::'+studentId, async ()=>{
+    const rec = state.students.find(x=>x.id===studentId);
+    if(!rec){ alert('That account no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
+    const mine = studentId === (state.identity && state.identity.id);
+    if(!mine && !isTrueSupervisor()){ alert('Only the supervisor can edit someone else\u2019s program details.'); return; }
+    PROGRAM_FIELDS.forEach(f => {
+      const el = document.getElementById('f_prog_' + f.field);
+      if(!el) return;
+      rec[f.field] = f.kind === 'text' ? el.value.trim() : el.value;
+    });
+    await saveCollection('students', state.students);
+    closeModal(); renderView();
+  });
 }
 // Freezing blocks login without touching a single record — all of a
 // scholar's weekly reports, samples, papers, and everything else stays
@@ -6362,7 +6439,12 @@ function mondayOf(dateStr){
   return localDateStr(new Date(d.setDate(diff)));
 }
 function shiftDate(dateStr, days){
+  // A record with no date at all is normal now that these fields are optional.
+  // Without this guard the arithmetic ran on an Invalid Date and printed
+  // "NaN-NaN-NaN" wherever a week's end or a deadline was shown.
+  if(!dateStr) return '';
   const d = new Date(dateStr+'T00:00:00');
+  if(isNaN(d)) return '';
   d.setDate(d.getDate()+days);
   return localDateStr(d);
 }
@@ -6387,7 +6469,7 @@ function upcomingDeadlines_(limit){
     (tp.chapters||[]).forEach(ch=>{ if(ch.targetDate && ch.targetDate>=today && ch.status!=='done') items.push({ date:ch.targetDate, type:'thesis', id:tp.id, studentId:tp.studentId, title:`Chapter: ${ch.title}`, category:'Thesis Plan' }); });
   });
   visibleEvents().forEach(ev=>{ if(ev.date && ev.date>=today) items.push({ date:ev.date, type:'event', id:ev.id, studentId:ev.assignedStudentId, title:ev.title, category:'Event' }); });
-  return items.sort((a,b)=>a.date.localeCompare(b.date)).slice(0, limit||10);
+  return items.sort((a,b)=>(a.date||'').localeCompare(b.date||'')).slice(0, limit||10);
 }
 function eventsForDate(dateStr){
   const out = [];
@@ -8377,10 +8459,10 @@ async function deleteDiaryEntry(id){
 // notification — quick notes are meant to be friction-free to add and
 // just as easy to clear once done.
 function myReminders_(){
-  return state.reminders.filter(r=>r.ownerId===state.identity.id).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+  return state.reminders.filter(r=>r.ownerId===state.identity.id).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
 }
 function upcomingConferencesWidgetHtml(){
-  const items = scopedList(state.conferences).filter(c=>c.startDate && c.startDate>=todayStr()).sort((a,b)=>a.startDate.localeCompare(b.startDate)).slice(0,5);
+  const items = scopedList(state.conferences).filter(c=>c.startDate && c.startDate>=todayStr()).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||'')).slice(0,5);
   return `
     <h3 class="panel-title"><span class="dot" style="background:var(--stat-purple);"></span>Upcoming conferences &amp; workshops</h3>
     <div class="entry-card compact-card">
@@ -8394,7 +8476,7 @@ function upcomingConferencesWidgetHtml(){
   `;
 }
 function recentWeeklyPlansWidgetHtml(){
-  const items = scopedList(state.weekly).slice().sort((a,b)=>b.weekStart.localeCompare(a.weekStart)).slice(0,5);
+  const items = scopedList(state.weekly).slice().sort((a,b)=>(b.weekStart||'').localeCompare(a.weekStart||'')).slice(0,5);
   return `
     <h3 class="panel-title"><span class="dot" style="background:var(--stat-blue);"></span>Weekly plans</h3>
     <div class="entry-card compact-card">
@@ -8445,7 +8527,7 @@ async function deleteReminder(id){
 }
 function viewWeekly(){
   const fullList = scopedList(state.weekly);
-  let list = fullList.slice().sort((a,b)=> b.weekStart.localeCompare(a.weekStart));
+  let list = fullList.slice().sort((a,b)=> (b.weekStart||'').localeCompare(a.weekStart||''));
   if(state.filterWeeklyStatus && state.filterWeeklyStatus !== 'all'){
     list = list.filter(w => w.status === state.filterWeeklyStatus);
   }
@@ -8564,7 +8646,7 @@ function emptyState(title, sub){
 
 function openWeeklyModal(){
   const monday = getMondayStr();
-  const mine = state.weekly.filter(w=>w.studentId===state.identity.id).sort((a,b)=>b.weekStart.localeCompare(a.weekStart));
+  const mine = state.weekly.filter(w=>w.studentId===state.identity.id).sort((a,b)=>(b.weekStart||'').localeCompare(a.weekStart||''));
   const previous = mine.find(w=>w.weekStart < monday) || mine[0];
   const myPapers = state.papers.filter(p=>p.studentId===state.identity.id);
   const myApprovedProposals = state.proposals.filter(p=>p.studentId===state.identity.id && p.status==='approved');
@@ -8759,7 +8841,7 @@ function sampleStatus(s){
 }
 function viewSamples(){
   const fullList = scopedList(state.samples);
-  let list = fullList.slice().sort((a,b)=> b.submittedDate.localeCompare(a.submittedDate));
+  let list = fullList.slice().sort((a,b)=> (b.submittedDate||'').localeCompare(a.submittedDate||''));
   // Two kinds of filter share this one control. The "results:" values are about
   // whether results have come back (what the Overview's "Awaiting results" and
   // "Overdue" boxes count); everything else is about approval status.
@@ -9493,7 +9575,7 @@ function openConsolidatedWeeklyModal(paperId){
   if(!p){ alert('That item no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
   const linked = scopedList(state.weekly)
     .filter(w => (w.linkedPaperIds||[]).includes(paperId))
-    .sort((a,b)=> a.weekStart.localeCompare(b.weekStart));
+    .sort((a,b)=> (a.weekStart||'').localeCompare(b.weekStart||''));
 
   if(linked.length===0){
     showModal(`Consolidated updates — ${p.title}`, `
@@ -10008,7 +10090,7 @@ function viewMeetings(){
   let list = scopedMeetings_();
   if(state.filterMeetingType !== 'all') list = list.filter(m=>m.type===state.filterMeetingType);
   if(state.filterMeetingWhen === 'upcoming') list = list.filter(OVERVIEW_PREDICATES.meetingUpcoming);
-  list = list.slice().sort((a,b)=> b.plannedDate.localeCompare(a.plannedDate));
+  list = list.slice().sort((a,b)=> (b.plannedDate||'').localeCompare(a.plannedDate||''));
   return `
     <div class="view-header">
       <div>
@@ -10654,9 +10736,9 @@ function reportStatusTrail_(item){
 }
 
 function buildReportForStudent(studentId, from, to){
-  const instructions = state.instructions.filter(x=>x.studentId===studentId && inRange(x.date, from, to)).sort((a,b)=>a.date.localeCompare(b.date));
-  const weekly = state.weekly.filter(x=>x.studentId===studentId && inRange(x.weekStart, from, to)).sort((a,b)=>a.weekStart.localeCompare(b.weekStart));
-  const samples = state.samples.filter(x=>x.studentId===studentId && inRange(x.submittedDate, from, to)).sort((a,b)=>a.submittedDate.localeCompare(b.submittedDate));
+  const instructions = state.instructions.filter(x=>x.studentId===studentId && inRange(x.date, from, to)).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const weekly = state.weekly.filter(x=>x.studentId===studentId && inRange(x.weekStart, from, to)).sort((a,b)=>(a.weekStart||'').localeCompare(b.weekStart||''));
+  const samples = state.samples.filter(x=>x.studentId===studentId && inRange(x.submittedDate, from, to)).sort((a,b)=>(a.submittedDate||'').localeCompare(b.submittedDate||''));
   const papers = state.papers.filter(x=>x.studentId===studentId && inRange(x.lastUpdate, from, to)).sort((a,b)=>(a.lastUpdate||'').localeCompare(b.lastUpdate||''));
   const meetings = state.meetings.filter(x=>x.studentId===studentId && inRange(x.plannedDate, from, to)).sort((a,b)=>(a.plannedDate||'').localeCompare(b.plannedDate||''));
 
@@ -10738,7 +10820,7 @@ function generateReport(){
 }
 function buildReportForPaper(paperId){
   const p = state.papers.find(x=>x.id===paperId);
-  const weekly = state.weekly.filter(w=>(w.linkedPaperIds||[]).includes(paperId)).sort((a,b)=>a.weekStart.localeCompare(b.weekStart));
+  const weekly = state.weekly.filter(w=>(w.linkedPaperIds||[]).includes(paperId)).sort((a,b)=>(a.weekStart||'').localeCompare(b.weekStart||''));
   const fabrication = state.fabricationItems.filter(it=>(it.linkedPaperIds||[]).includes(paperId)).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
   const analysis = state.resultsAnalysis.filter(a=>(a.linkedPaperIds||[]).includes(paperId)).sort((a,b)=>(a.lastUpdate||'').localeCompare(b.lastUpdate||''));
   const thesisLinks = [];
@@ -11422,6 +11504,26 @@ async function runOnce_(opKey, fn){
    remembering a stamp in local storage — means the check can't be fooled by
    whatever happens to be sitting in the cache. */
 const APP_BUILD = (document.querySelector('meta[name="app-build"]') || {}).content || '';
+const APP_VERSION = (document.querySelector('meta[name="app-version"]') || {}).content || '';
+
+/* The build stamp is the one thing that MUST change on every release — the
+   update banner compares it — so showing the date from it means the screen can
+   never claim to be older than it is, even if the version number is forgotten.
+   '2026-10-03-2' -> '3 Oct 2026'. */
+const BUILD_MONTHS_ = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function buildDateLabel_(stamp){
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(stamp || APP_BUILD));
+  if(!m) return '';
+  return Number(m[3]) + ' ' + BUILD_MONTHS_[Number(m[2]) - 1] + ' ' + m[1];
+}
+// Written once, on the shell that is already in the page.
+function paintVersion_(){
+  const el = document.getElementById('appVersionPill');
+  if(!el || !APP_VERSION) return;
+  el.textContent = 'v' + APP_VERSION;
+  const built = buildDateLabel_();
+  el.title = 'Version ' + APP_VERSION + (built ? ' \u00b7 built ' + built : '');
+}
 const UPDATE_CHECK_MIN_GAP_MS = 30 * 60 * 1000;
 let lastUpdateCheckAt = 0;
 let updateDeferredThisSession = false;
@@ -11444,18 +11546,24 @@ async function checkForAppUpdate_(){
     const text = await res.text();
     const m = text.match(/<meta\s+name=["']app-build["']\s+content=["']([^"']+)["']/i);
     if(!m || m[1] === APP_BUILD) return;
-    renderUpdateBar_();
+    // Name the version being offered, so "a newer version" is a fact the
+    // reader can check against the number in the corner of their own screen.
+    const v = text.match(/<meta\s+name=["']app-version["']\s+content=["']([^"']+)["']/i);
+    renderUpdateBar_(v ? v[1] : '');
   }catch(e){
     /* Offline, or the host is briefly unreachable. Say nothing — an update
        notice that appears because the network blipped is worse than none. */
   }
 }
-function renderUpdateBar_(){
+function renderUpdateBar_(newVersion){
   const bar = document.getElementById('appUpdateBar');
   if(!bar) return;
+  const headline = (newVersion && APP_VERSION && newVersion !== APP_VERSION)
+    ? `Version ${escapeHtml(newVersion)} of the logbook is available \u2014 you have v${escapeHtml(APP_VERSION)}.`
+    : 'A newer version of the logbook is available.';
   bar.innerHTML = `
     <div class="update-bar">
-      <div class="update-bar-text"><b>A newer version of the logbook is available.</b> Updating takes a moment and won't affect any of your saved work.</div>
+      <div class="update-bar-text"><b>${headline}</b> Updating takes a moment and won't affect any of your saved work.</div>
       <div class="update-bar-actions">
         <button class="update-now-btn" onclick="applyAppUpdate_(this)">Update now</button>
         <button class="update-later-btn" onclick="deferAppUpdate_()">Later</button>
