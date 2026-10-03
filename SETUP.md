@@ -100,11 +100,23 @@ The app emails people automatically at each approval point:
 
 For this to work, both the supervisor and each student need to enter their email once — the app asks for it automatically the first time they log in (or the next time they log in, if their account already existed before this feature was added).
 
-**Two optional settings in `Code.gs`, near the top:**
+**Three optional settings in `Code.gs`, near the top:**
 - `APP_NAME` — an optional short prefix added to every email's subject line (e.g. set it to `'EDMG'` to get subjects like "EDMG: New weekly report awaiting approval"). Leave it as `''` for no prefix.
 - `SUPERVISOR_EMAIL_OVERRIDE` — if you want supervisor-directed notifications to always go to one fixed address (regardless of what's entered in the app), set it here. Leave it as `''` to use the email the supervisor enters in the app instead.
+- `APP_URL` — the published address of the logbook itself, e.g. `'https://yourname.github.io/logbook/'`. Emails use it for the **Open the logbook** button. Leave it blank and the button is simply left out; nothing else changes.
 
-**Email format:** every email follows the same shape — a greeting ("Dear Scholar," or "Dear Sir/Madam," depending on the recipient), one continuous message (dates are written out in full, e.g. "3 August 2026" rather than the raw stored format), and a closing "Regards, Research Group Management System, Energy Devices and Materials Group" — every email is signed this way, including approval decisions, so all outgoing mail carries one consistent identity.
+**Email format:** every email is sent as HTML, with a plain-text copy attached for any mail client that cannot render it. The HTML version carries:
+- a navy masthead with the group name, the university, and "Research Logbook";
+- a thin gold charge bar beneath it (the one piece of decoration in the whole template);
+- a coloured status chip — amber *Awaiting your approval*, green *Approved*, red *Changes requested*, navy *For your information* — using the same four colours the app uses on screen, so an email and the page it refers to read as one system;
+- a heading repeating the subject line, so the message is still clear when forwarded or printed;
+- the message itself, which fills the width of the reader's window rather than being locked to a narrow column;
+- a grey detail card listing the facts (scholar, section, item, who reviewed it, dates) with a coloured bar down its left edge matching the status;
+- the **Open the logbook** button, if `APP_URL` is set;
+- a greeting ("Dear Priya," or "Dear Sir/Madam," depending on the recipient), dates written out in full (e.g. "3 August 2026" rather than the raw stored format), and an italic closing "Regards, Research Group Management System, Energy Devices & Materials Research Group" — every email is signed this way, including approval decisions, so all outgoing mail carries one consistent identity;
+- an italic footer stating the email is automatically generated and the mailbox is not monitored.
+
+Custom wording written on the Email Templates page gets the same treatment automatically — only the words change, never the shape. The layout is built from HTML tables with inline styles and no images, which is what Outlook and Gmail actually render; if any part of the styling ever fails to build, the email still goes out with the wording intact.
 
 **Email sending limits:** these emails send from *your* Google account (whoever deployed the Apps Script), using Google's `MailApp` service. A standard Gmail account can send roughly 100 emails/day this way; Google Workspace accounts get a higher limit. This is normally far more than a research group needs in a day. If the limit is ever hit, notifications silently pause until the next day — the app itself keeps working and no data is lost, only the email goes missing.
 
