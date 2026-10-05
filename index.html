@@ -9,10 +9,10 @@
      decide whether to offer "Update now". Bump it on every deployment; if it's
      ever left unchanged, no banner appears and the app simply updates silently
      on the next open, exactly as it did before this existed. -->
-<meta name="app-build" content="2026-10-03-3">
+<meta name="app-build" content="2026-10-04-2">
 <!-- The version people see. This and app-build above are the only two
      places either value is written; everything on screen reads them. -->
-<meta name="app-version" content="1.3">
+<meta name="app-version" content="1.5">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1F3A5F">
 <link rel="icon" href="icons/icon-192.png">
@@ -469,6 +469,10 @@
   .nudge-icon{ font-size:19px; line-height:1.3; flex-shrink:0; }
   .nudge-body{ flex:1; min-width:0; }
   .nudge-title{ font-weight:650; color:var(--ink); font-size:14.5px; margin-bottom:3px; }
+  .rem-cell{ display:flex; align-items:center; gap:7px; font-size:13px; white-space:nowrap; }
+  .rem-num{ width:72px; padding:5px 8px; font-size:13px; }
+  .rem-mode{ display:flex; align-items:flex-start; gap:8px; font-size:13.5px; line-height:1.5; }
+  .rem-mode input{ margin-top:3px; flex-shrink:0; }
   .nudge-text{ font-size:13.5px; line-height:1.6; color:var(--ink-soft); }
   .nudge-actions{ margin-top:11px; display:flex; gap:9px; flex-wrap:wrap; }
   .day-brief-tiles{ display:grid; grid-template-columns:repeat(3, 1fr); gap:11px; margin-bottom:24px; }
@@ -727,6 +731,10 @@ const state = {
   discussions: [],
   congratulations: [],
   emailTemplates: [],
+  // One object, not a list: how long before a scholar is reminded, set by the
+  // supervisor on the Account page. null means nothing has been saved yet, and
+  // reminderSettings_() supplies the defaults.
+  reminderSettings: null,
   emailTemplateFilter: 'all',
   membersTab: 'profiles',
   membersFilter: 'all',
@@ -1020,7 +1028,7 @@ async function saveSupervisorProfile(profile){
 
 /* ============================ INIT ============================ */
 // Every collection key the app needs at startup, fetched in one batched request.
-const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','deletion-log','news-updates','patents','plagiarism-reports','awards','collaborators','leave-records','activity-log-exclusions','consumables','work-diary','reminders','discussions','congratulations','email-templates','supervisor-pin'];
+const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','deletion-log','news-updates','patents','plagiarism-reports','awards','collaborators','leave-records','activity-log-exclusions','consumables','work-diary','reminders','discussions','congratulations','email-templates','reminder-settings','supervisor-pin'];
 
 async function init(){
   paintVersion_();
@@ -1095,6 +1103,10 @@ function applyDataValues(values){
   state.discussions = arr('discussions');
   state.congratulations = arr('congratulations');
   state.emailTemplates = arr('email-templates');
+  // Stored as one object, not a list, so it is read on its own rather than
+  // through arr().
+  try { state.reminderSettings = values['reminder-settings'] ? JSON.parse(values['reminder-settings']) : null; }
+  catch(e){ state.reminderSettings = null; }
   let supervisorProfile = {};
   try{ supervisorProfile = values['supervisor-pin'] ? JSON.parse(values['supervisor-pin']) : {}; }catch(e){ supervisorProfile = {}; }
   state.supervisorPinHash = supervisorProfile.hash || null;
@@ -1758,22 +1770,79 @@ function dayBriefNeeds_(){
    experiments all month without writing anything up is still reminded.
 
    Both thresholds are here so they can be changed in one place. */
-const LOG_NUDGE_AFTER_DAYS = 10;    // badge in the day brief
-const LOG_NUDGE_EMAIL_AFTER_DAYS = 30;  // backend sends an email (see Code.gs)
+/* The supervisor sets these on the Account page; these are what applies until
+   they do, and what applies again if the stored settings are ever unreadable.
+   Code.gs carries the same defaults, so the badge and the email agree even
+   when nothing has been saved. */
+const REMINDER_DEFAULTS = {
+  mode: 'together',
+  combined: { badgeOn:true, badgeDays:10, emailOn:true,  emailDays:30, repeatDays:7 },
+  weekly:   { badgeOn:true, badgeDays:10, emailOn:true,  emailDays:30, repeatDays:7 },
+  diary:    { badgeOn:true, badgeDays:15, emailOn:false, emailDays:30, repeatDays:7 }
+};
+const REMINDER_RULE_LABELS = {
+  combined: 'Weekly plan or work diary',
+  weekly:   'Weekly plan',
+  diary:    'Work diary'
+};
+// A number typed into a settings box can be anything. This is the one place
+// that decides what an unusable value falls back to.
+function reminderDays_(value, fallback){
+  const n = Number(value);
+  if(!isFinite(n)) return fallback;
+  return Math.max(1, Math.min(3650, Math.round(n)));
+}
+// Always returns a complete, usable object, whatever is or isn't stored.
+function reminderSettings_(){
+  const raw = state.reminderSettings;
+  const out = { mode: REMINDER_DEFAULTS.mode };
+  if(raw && (raw.mode === 'separate' || raw.mode === 'together')) out.mode = raw.mode;
+  ['combined','weekly','diary'].forEach(key => {
+    const d = REMINDER_DEFAULTS[key];
+    const r = (raw && raw[key]) ? raw[key] : {};
+    out[key] = {
+      badgeOn:   r.badgeOn   === undefined ? d.badgeOn   : !!r.badgeOn,
+      emailOn:   r.emailOn   === undefined ? d.emailOn   : !!r.emailOn,
+      badgeDays: reminderDays_(r.badgeDays, d.badgeDays),
+      emailDays: reminderDays_(r.emailDays, d.emailDays),
+      repeatDays: reminderDays_(r.repeatDays, d.repeatDays)
+    };
+  });
+  return out;
+}
+// Which rules are in play, in the order they are shown.
+function reminderRuleKeys_(settings){
+  return (settings || reminderSettings_()).mode === 'separate' ? ['weekly','diary'] : ['combined'];
+}
 
 // The most recent day this person has a weekly plan or diary entry for.
 // Neither record stores when it was written — a weekly plan carries the week it
 // covers and a diary entry the day it describes — so those dates are what we
 // have, and they are the honest measure of "how current is this record".
-function lastLoggedDate_(studentId){
+function lastWeeklyDate_(studentId){
   let latest = '';
   (state.weekly || []).forEach(w => {
     if(w.studentId === studentId && w.weekStart && w.weekStart > latest) latest = w.weekStart;
   });
+  return latest;
+}
+function lastDiaryDate_(studentId){
+  let latest = '';
   (state.workDiary || []).forEach(e => {
     if(e.studentId === studentId && e.date && e.date > latest) latest = e.date;
   });
   return latest;
+}
+// The later of the two — "this logbook was touched at all".
+function lastLoggedDate_(studentId){
+  const a = lastWeeklyDate_(studentId), b = lastDiaryDate_(studentId);
+  return a > b ? a : b;
+}
+// The date a rule measures from.
+function lastLoggedFor_(ruleKey, studentId){
+  if(ruleKey === 'weekly') return lastWeeklyDate_(studentId);
+  if(ruleKey === 'diary') return lastDiaryDate_(studentId);
+  return lastLoggedDate_(studentId);
 }
 
 function daysBetween_(fromDate, toDate){
@@ -1785,39 +1854,67 @@ function daysBetween_(fromDate, toDate){
 
 // null when there is nothing to say: not a scholar, a frozen account, or
 // someone who is up to date.
-function logNudge_(){
-  if(!state.identity || state.identity.role !== 'student') return null;
+// An array, not a single value: in "separately" mode a scholar can be behind
+// on both the weekly plan and the diary, and should be told about both.
+function logNudges_(){
+  if(!state.identity || state.identity.role !== 'student') return [];
   const me = state.students.find(s => s.id === state.identity.id);
-  if(!me || me.frozen) return null;
+  if(!me || me.frozen) return [];
 
-  const last = lastLoggedDate_(state.identity.id);
-  // Someone who has never logged anything is measured from the day they
-  // joined, so a scholar added this morning is not greeted with a reminder.
-  const from = last || me.joiningDate || '';
-  if(!from) return null;                       // no joining date and nothing logged — say nothing rather than guess
-  const days = daysBetween_(from, todayStr());
-  if(days === null || days < LOG_NUDGE_AFTER_DAYS) return null;
-  return { days, everLogged: !!last };
+  const settings = reminderSettings_();
+  const out = [];
+  reminderRuleKeys_(settings).forEach(key => {
+    const rule = settings[key];
+    if(!rule.badgeOn) return;                  // the supervisor turned this badge off
+    const last = lastLoggedFor_(key, state.identity.id);
+    // Someone who has never logged anything is measured from the day they
+    // joined, so a scholar added this morning is not greeted with a reminder.
+    const from = last || me.joiningDate || '';
+    if(!from) return;                          // no joining date and nothing logged — say nothing rather than guess
+    const days = daysBetween_(from, todayStr());
+    if(days === null || days < rule.badgeDays) return;
+    out.push({ key, days, everLogged: !!last });
+  });
+  return out;
+}
+// Kept for anything that just wants to know whether there is a reminder at all.
+function logNudge_(){
+  const all = logNudges_();
+  return all.length ? all[0] : null;
 }
 
+const NUDGE_WORDING = {
+  combined: { logged: 'your last weekly plan or diary entry', never: 'a weekly plan or diary entry' },
+  weekly:   { logged: 'your last weekly plan',                never: 'a weekly plan' },
+  diary:    { logged: 'your last diary entry',                never: 'a diary entry' }
+};
+
 function logNudgeHtml_(){
-  const n = logNudge_();
-  if(!n) return '';
-  const headline = n.everLogged
-    ? `It’s been ${n.days} days since your last weekly plan or diary entry`
-    : `You haven’t logged a weekly plan or diary entry yet`;
-  return `
-    <div class="nudge-band">
+  const nudges = logNudges_();
+  if(nudges.length === 0) return '';
+  return nudges.map(n => {
+    const w = NUDGE_WORDING[n.key] || NUDGE_WORDING.combined;
+    const headline = n.everLogged
+      ? `It’s been ${n.days} days since ${w.logged}`
+      : `You haven’t logged ${w.never} yet`;
+    // Only offer the action the reminder is actually about, except when the two
+    // are counted together and either one clears it.
+    const actions = n.key === 'diary'
+      ? `<button class="action-btn" onclick="closeModal(); goView('workDiary');">Add a diary entry</button>`
+      : n.key === 'weekly'
+        ? `<button class="action-btn" onclick="closeModal(); goView('weekly'); setTimeout(openWeeklyModal, 120);">Log this week’s plan</button>`
+        : `<button class="action-btn" onclick="closeModal(); goView('weekly'); setTimeout(openWeeklyModal, 120);">Log this week’s plan</button>
+           <button class="small-btn" onclick="closeModal(); goView('workDiary');">Add a diary entry</button>`;
+    return `
+    <div class="nudge-band" data-nudge="${n.key}">
       <div class="nudge-icon">📝</div>
       <div class="nudge-body">
         <div class="nudge-title">${headline}</div>
         <div class="nudge-text">A short note now and then keeps your record current — and makes your progress report much easier to put together later.</div>
-        <div class="nudge-actions">
-          <button class="action-btn" onclick="closeModal(); goView('weekly'); setTimeout(openWeeklyModal, 120);">Log this week’s plan</button>
-          <button class="small-btn" onclick="closeModal(); goView('workDiary');">Add a diary entry</button>
-        </div>
+        <div class="nudge-actions">${actions}</div>
       </div>
     </div>`;
+  }).join('');
 }
 
 /* ---------------- "New since you last looked" ----------------
@@ -3003,11 +3100,13 @@ async function submitInstruction(){
   closeModal(); renderView();
 }
 async function toggleInstructionDone(id){
+  return runOnce_('toggleInstructionDone' + '::' + id, async () => {
   const ins = state.instructions.find(x=>x.id===id);
   if(!ins) return;
   ins.done = !ins.done;
   await saveCollection('instructions', state.instructions);
   renderView();
+});
 }
 async function deleteInstruction(id){
   const ins = state.instructions.find(x=>x.id===id);
@@ -3580,6 +3679,7 @@ function mentorsForStudent_(studentId){
   return state.coSupervisors.filter(c => mentorAssignments_(c).some(a=>a.studentId===studentId));
 }
 async function assignReviewer(type, id, mentorId){
+  return runOnce_('assignReviewer' + '::' + type + '::' + id, async () => {
   const coll = REVIEWABLE_COLLECTIONS[type];
   if(!coll) return;
   const entry = coll.list().find(x=>x.id===id);
@@ -3602,6 +3702,7 @@ async function assignReviewer(type, id, mentorId){
     await saveCollection(coll.key, coll.list());
   }
   renderView();
+});
 }
 function pendingQueue(){
   const items = [];
@@ -4900,12 +5001,14 @@ function notificationPrefsSection(){
   `;
 }
 async function saveNotificationPrefs(){
+  return runOnce_('saveNotificationPrefs', async () => {
   const prefs = { ...(state.supervisorNotifyPrefs || {}),
     submissions: document.getElementById('notifyPref_submissions').checked,
     birthdays: document.getElementById('notifyPref_birthdays').checked };
   state.supervisorNotifyPrefs = prefs;
   await saveSupervisorProfile({ hash: state.supervisorPinHash, email: state.supervisorEmail, name: state.supervisorName, notifyPrefs: prefs });
   renderView();
+});
 }
 // The supervisor-controlled version — opened from a scholar's or mentor's
 // row in the admin list, not from their own account.
@@ -4933,6 +5036,119 @@ async function submitEditNotifyPrefs(targetType, id, keys){
   await saveCollection(targetType==='student' ? 'students' : 'co-supervisors', targetType==='student' ? state.students : state.coSupervisors);
   closeModal(); renderView();
 }
+/* ---------------- Logbook reminders (supervisor only) ----------------
+   The thresholds used to be constants in this file and in Code.gs, which meant
+   changing them took a redeployment. They are now one stored object that both
+   halves read; what is written here is what the daily email job uses too. */
+function reminderSettingsSection(){
+  if(!isTrueSupervisor()) return '';
+  const st = reminderSettings_();
+  const rows = reminderRuleKeys_(st).map(key => {
+    const r = st[key];
+    return `
+      <tr>
+        <td style="font-weight:600; vertical-align:middle;">${escapeHtml(REMINDER_RULE_LABELS[key])}</td>
+        <td><label class="rem-cell"><input type="checkbox" id="rem_${key}_badgeOn" ${r.badgeOn?'checked':''} onchange="refreshReminderSummary_()"> after
+          <input class="text-input rem-num" type="number" min="1" max="3650" id="rem_${key}_badgeDays" value="${r.badgeDays}" oninput="refreshReminderSummary_()"> days</label></td>
+        <td><label class="rem-cell"><input type="checkbox" id="rem_${key}_emailOn" ${r.emailOn?'checked':''} onchange="refreshReminderSummary_()"> after
+          <input class="text-input rem-num" type="number" min="1" max="3650" id="rem_${key}_emailDays" value="${r.emailDays}" oninput="refreshReminderSummary_()"> days</label></td>
+        <td><label class="rem-cell">every
+          <input class="text-input rem-num" type="number" min="1" max="3650" id="rem_${key}_repeatDays" value="${r.repeatDays}" oninput="refreshReminderSummary_()"> days</label></td>
+      </tr>`;
+  }).join('');
+  return `
+    <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Logbook reminders</h3>
+    <div class="entry-card">
+      <div class="entry-block" style="margin-bottom:12px;">Two things count as keeping a logbook current: the <b>weekly plan</b> and the <b>work diary</b>. Choose how they are counted, and after how long a research scholar is reminded. Advisors and supervisors are never reminded, and neither are frozen accounts.</div>
+
+      <label class="field-label">How they are counted</label>
+      <div style="display:flex; flex-direction:column; gap:7px; margin-bottom:16px;">
+        <label class="rem-mode"><input type="radio" name="remMode" value="together" ${st.mode!=='separate'?'checked':''} onchange="setReminderMode_('together')">
+          <span><b>Together</b> — a scholar is reminded only when <i>neither</i> a weekly plan nor a diary entry has been added. One reminder, one threshold.</span></label>
+        <label class="rem-mode"><input type="radio" name="remMode" value="separate" ${st.mode==='separate'?'checked':''} onchange="setReminderMode_('separate')">
+          <span><b>Separately</b> — the weekly plan and the work diary are tracked on their own, each with its own threshold. A scholar writing diary entries but no weekly plans is still reminded about the plan.</span></label>
+      </div>
+
+      <table class="report-table" style="margin:0 0 6px;">
+        <thead><tr><th style="width:32%;">Reminder</th><th>Badge in the app</th><th>Email</th><th>Repeat the email</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+
+      <div class="comment-box" style="margin-top:14px;" id="reminderSummary">${reminderSummaryHtml_(st)}</div>
+      <div class="entry-actions"><button class="small-btn" onclick="saveReminderSettings()">Save reminder settings</button></div>
+    </div>
+  `;
+}
+
+// Changing the mode redraws the table, so the unsaved numbers in the boxes have
+// to be carried over — otherwise switching back and forth silently reverts them.
+function setReminderMode_(mode){
+  const st = readReminderForm_(mode);
+  state.reminderSettings = st;
+  renderView();
+}
+
+// Reads whatever is currently in the form, falling back to the stored value for
+// any rule whose row is not on screen in this mode.
+function readReminderForm_(modeOverride){
+  const current = reminderSettings_();
+  const out = { mode: modeOverride || current.mode };
+  ['combined','weekly','diary'].forEach(key => {
+    const el = id => document.getElementById('rem_' + key + '_' + id);
+    const c = current[key];
+    out[key] = el('badgeOn') ? {
+      badgeOn: el('badgeOn').checked,
+      emailOn: el('emailOn').checked,
+      badgeDays: reminderDays_(el('badgeDays').value, c.badgeDays),
+      emailDays: reminderDays_(el('emailDays').value, c.emailDays),
+      repeatDays: reminderDays_(el('repeatDays').value, c.repeatDays)
+    } : c;
+  });
+  return out;
+}
+
+// What the settings mean, in words, so nobody has to work it out from numbers.
+function reminderSummaryHtml_(st){
+  const lines = reminderRuleKeys_(st).map(key => {
+    const r = st[key];
+    const what = key === 'weekly' ? 'no weekly plan' : key === 'diary' ? 'no diary entry' : 'neither a weekly plan nor a diary entry';
+    if(!r.badgeOn && !r.emailOn) return `<b>${escapeHtml(REMINDER_RULE_LABELS[key])}:</b> no reminder at all.`;
+    const bits = [];
+    if(r.badgeOn) bits.push(`a badge in the day brief after <b>${r.badgeDays} day${r.badgeDays===1?'':'s'}</b>`);
+    if(r.emailOn) bits.push(`an email after <b>${r.emailDays} day${r.emailDays===1?'':'s'}</b>, then one every <b>${r.repeatDays} day${r.repeatDays===1?'':'s'}</b> until they log something`);
+    return `<b>${escapeHtml(REMINDER_RULE_LABELS[key])}:</b> with ${what}, ${bits.join(' and ')}.`;
+  });
+  const warn = reminderWarnings_(st);
+  return '<b>As set:</b> ' + lines.join('<br>')
+    + '<br><span class="entry-meta">Someone who has never logged anything is counted from their joining date.</span>'
+    + (warn.length ? `<div style="margin-top:8px; color:var(--warning);">${warn.map(escapeHtml).join('<br>')}</div>` : '');
+}
+// Not errors — the settings are allowed — but worth saying out loud.
+function reminderWarnings_(st){
+  const out = [];
+  reminderRuleKeys_(st).forEach(key => {
+    const r = st[key];
+    if(r.badgeOn && r.emailOn && r.emailDays < r.badgeDays){
+      out.push(`${REMINDER_RULE_LABELS[key]}: the email goes out before the badge appears (${r.emailDays} days vs ${r.badgeDays}).`);
+    }
+  });
+  return out;
+}
+function refreshReminderSummary_(){
+  const box = document.getElementById('reminderSummary');
+  if(box) box.innerHTML = reminderSummaryHtml_(readReminderForm_());
+}
+
+async function saveReminderSettings(){
+  return runOnce_('saveReminderSettings', async () => {
+  if(!isTrueSupervisor()){ alert('Only the supervisor can change the reminder settings.'); return; }
+  const st = readReminderForm_();
+  state.reminderSettings = st;
+  await apiSetRaw('reminder-settings', JSON.stringify(st));
+  renderView();
+});
+}
+
 function accessSection(){
   if(state.identity.role === 'student'){
     const me = state.students.find(x=>x.id===state.identity.id);
@@ -5024,6 +5240,7 @@ function accessSection(){
       </div>
     </div>
     ${notificationPrefsSection()}
+    ${reminderSettingsSection()}
     ${coSupervisorAdminSection()}
     ${backupSection()}
     ${resetDataSection()}
@@ -6611,11 +6828,13 @@ async function submitAddPlannerTask(dateStr){
   closeModal(); renderView();
 }
 async function togglePlannerTask(id){
+  return runOnce_('togglePlannerTask' + '::' + id, async () => {
   const t = state.plannerTasks.find(x=>x.id===id);
   if(!t) return;
   t.done = !t.done;
   await saveCollection('planner-tasks', state.plannerTasks);
   renderView();
+});
 }
 async function deletePlannerTask(id){
   return runOnce_('deletePlannerTask::'+id, async ()=>{
@@ -6851,12 +7070,14 @@ async function submitAddGoal(prId){
   closeModal(); renderView();
 }
 async function toggleProposalGoal(prId, goalId){
+  return runOnce_('toggleProposalGoal' + '::' + prId + '::' + goalId, async () => {
   const pr = state.proposals.find(x=>x.id===prId);
   const g = (pr.goals||[]).find(x=>x.id===goalId);
   if(!g) return;
   g.done = !g.done;
   await saveCollection('proposals', state.proposals);
   renderView();
+});
 }
 async function deleteProposalGoal(prId, goalId){
   return runOnce_('deleteProposalGoal::'+prId+'::'+goalId, async ()=>{
@@ -7154,6 +7375,7 @@ async function deleteThesisChapter(thId, chId){
   });
 }
 async function setThesisChapterStatus(thId, chId, status){
+  return runOnce_('setThesisChapterStatus' + '::' + thId + '::' + chId, async () => {
   const tp = state.thesisPlans.find(x=>x.id===thId);
   if(!tp){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   const ch = (tp.chapters||[]).find(x=>x.id===chId);
@@ -7163,6 +7385,7 @@ async function setThesisChapterStatus(thId, chId, status){
   tp.lastUpdate = todayStr();
   await saveCollection('thesis-plans', state.thesisPlans);
   renderView();
+});
 }
 function openEditChapterDateModal(thId, chId){
   const tp = state.thesisPlans.find(x=>x.id===thId);
@@ -7413,12 +7636,14 @@ async function submitAddRacItem(racId){
   closeModal(); renderView();
 }
 async function toggleRacActionItem(racId, itemId){
+  return runOnce_('toggleRacActionItem' + '::' + racId + '::' + itemId, async () => {
   const r = state.racReviews.find(x=>x.id===racId);
   const it = (r.actionItems||[]).find(x=>x.id===itemId);
   if(!it) return;
   it.done = !it.done;
   await saveCollection('rac-reviews', state.racReviews);
   renderView();
+});
 }
 async function deleteRacActionItem(racId, itemId){
   return runOnce_('deleteRacActionItem::'+racId+'::'+itemId, async ()=>{
@@ -8135,12 +8360,14 @@ async function submitAddFabricationStep(id){
   closeModal(); renderView();
 }
 async function toggleFabricationStep(id, stepId){
+  return runOnce_('toggleFabricationStep' + '::' + id + '::' + stepId, async () => {
   const it = state.fabricationItems.find(x=>x.id===id);
   const s = (it.roadmap||[]).find(x=>x.id===stepId);
   if(!s) return;
   s.done = !s.done;
   await saveCollection('fabrication-items', state.fabricationItems);
   renderView();
+});
 }
 async function deleteFabricationStep(id, stepId){
   return runOnce_('deleteFabricationStep::'+id+'::'+stepId, async ()=>{
@@ -8301,6 +8528,7 @@ function statusHistoryHtml(entry){
   `;
 }
 async function setFabricationStage(id, stage){
+  return runOnce_('setFabricationStage' + '::' + id + '::' + stage, async () => {
   const it = state.fabricationItems.find(x=>x.id===id);
   if(!it) return;
   pushStatusHistory_(it, it.stage, stage);
@@ -8308,6 +8536,7 @@ async function setFabricationStage(id, stage){
   it.lastUpdate = todayStr();
   await saveCollection('fabrication-items', state.fabricationItems);
   renderView();
+});
 }
 
 /* ============================ WEEKLY PLAN ============================ */
@@ -9251,6 +9480,7 @@ function analysisCard(a, i, total){
   `;
 }
 async function setAnalysisStatus(id, status){
+  return runOnce_('setAnalysisStatus' + '::' + id + '::' + status, async () => {
   const a = state.resultsAnalysis.find(x=>x.id===id);
   if(!a) return;
   pushStatusHistory_(a, a.status, status);
@@ -9258,6 +9488,7 @@ async function setAnalysisStatus(id, status){
   a.lastUpdate = todayStr();
   await saveCollection('results-analysis', state.resultsAnalysis);
   renderView();
+});
 }
 function analysisFormFields(a){
   a = a || {};
@@ -9652,6 +9883,7 @@ async function submitPaper(){
   closeModal(); renderView();
 }
 async function requestStageChange(id, newStage){
+  return runOnce_('requestStageChange' + '::' + id + '::' + newStage, async () => {
   const p = state.papers.find(x=>x.id===id);
   if(!p){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   if(newStage === p.stage) return;
@@ -9671,6 +9903,7 @@ async function requestStageChange(id, newStage){
     apiNotify('paperStageProposed', { studentId: p.studentId, title: p.title, proposedStage: newStage });
   }
   renderView();
+});
 }
 async function approvePendingStage(id){
   const p = state.papers.find(x=>x.id===id);
@@ -10508,12 +10741,14 @@ async function submitEditEvent(id){
   closeModal(); renderView();
 }
 async function setEventStatus(id, status){
+  return runOnce_('setEventStatus' + '::' + id + '::' + status, async () => {
   const ev = state.events.find(x=>x.id===id);
   if(!ev){ alert('That item no longer exists — it may have been deleted. Refreshing.'); closeModal(); renderView(); return; }
   pushStatusHistory_(ev, ev.status, status, ev.assignedStudentId);
   ev.status = status;
   await saveCollection('events', state.events);
   renderView();
+});
 }
 async function deleteEvent(id){
   const ev = state.events.find(x=>x.id===id);

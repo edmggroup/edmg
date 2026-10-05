@@ -212,8 +212,8 @@ When the app opens, it checks whether the published version differs from the one
 What drives it is two lines in the `<head>` of `index.html`:
 
 ```html
-<meta name="app-build" content="2026-10-03-3">
-<meta name="app-version" content="1.3">
+<meta name="app-build" content="2026-10-04-2">
+<meta name="app-version" content="1.5">
 ```
 
 **Change both on every deployment.**
@@ -253,11 +253,26 @@ A scholar can edit their own and nobody else's; the supervisor can edit anyone's
 
 Only two records count as "keeping the logbook current": the **weekly plan** and the **work diary**. Characterization entries, lab work and papers do not — someone can run experiments all month and still be reminded, which is the point.
 
-- **After 10 days** with neither, a polite badge appears at the top of that scholar's day brief, naming how many days it has been. Anyone logging regularly never sees it. Supervisors and advisors never see it, and neither do frozen accounts.
-- **After 30 days**, the backend emails them as well, and then at most once a week after that until they log something — so a month of silence produces six emails over ten weeks, not sixty.
-- Someone who has never logged anything is measured from their joining date, so a scholar added this morning is not greeted with a reminder.
+**The supervisor sets the thresholds in the app**, on the **Account** page under *Logbook reminders*. Nothing has to be edited in a file and nothing has to be redeployed. The card is supervisor-only; scholars and advisors cannot see it, and the save refuses anyone else even if it is called directly.
 
-Both numbers live in one place each: `LOG_NUDGE_AFTER_DAYS` in `index.html` and `INACTIVITY_DAYS` in `Code.gs`.
+**How they are counted** — one choice:
+
+- **Together** (the default): a scholar is reminded only when *neither* a weekly plan nor a diary entry has been added. One reminder, one threshold.
+- **Separately**: the weekly plan and the work diary are tracked on their own, each with its own thresholds. Someone writing diary entries but never a weekly plan is still reminded about the plan, and both reminders can appear at once.
+
+**Per rule, four settings:** the badge on or off and after how many days; the email on or off and after how many days; and how often the email repeats. Turning a checkbox off removes that reminder entirely — the badge without the email, or neither, are both valid. A line under the table restates the settings in plain English, and warns if an email would go out before its badge appears.
+
+**Defaults, used until anything is saved:** together, badge at 10 days, email at 30 days, repeating weekly. If the stored settings are ever missing or unreadable, these same defaults apply again rather than reminders stopping silently — the app and `Code.gs` both carry them.
+
+Someone who has never logged anything is measured from their joining date, so a scholar added this morning is not greeted with a reminder.
+
+The settings are stored under the `reminder-settings` key in the Sheet. The app reads it for the badge and `Code.gs` reads the same key for the email, so the two can never disagree.
+
+---
+
+### Double-clicking a button
+
+Forms in a dialog disable their Save button while the save runs, so a second click does nothing. Buttons drawn on a card — *mark done*, *approve this stage*, a checkbox on a goal — have no such button to disable, so every one of them that writes to the Sheet is wrapped in a guard that ignores a repeat call while the first is still in flight. Without it, a double click on a slow connection wrote twice and, for a couple of them, sent the notification email twice.
 
 ---
 
