@@ -9,10 +9,10 @@
      decide whether to offer "Update now". Bump it on every deployment; if it's
      ever left unchanged, no banner appears and the app simply updates silently
      on the next open, exactly as it did before this existed. -->
-<meta name="app-build" content="2026-10-04-2">
+<meta name="app-build" content="2026-10-21-2">
 <!-- The version people see. This and app-build above are the only two
      places either value is written; everything on screen reads them. -->
-<meta name="app-version" content="1.5">
+<meta name="app-version" content="1.8">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1F3A5F">
 <link rel="icon" href="icons/icon-192.png">
@@ -469,6 +469,18 @@
   .nudge-icon{ font-size:19px; line-height:1.3; flex-shrink:0; }
   .nudge-body{ flex:1; min-width:0; }
   .nudge-title{ font-weight:650; color:var(--ink); font-size:14.5px; margin-bottom:3px; }
+  .nav-group-head{ display:flex; align-items:center; gap:8px; width:100%; background:none; border:none;
+    padding:9px 12px; margin:12px 0 2px; cursor:pointer; text-align:left; font-family:inherit;
+    font-size:11.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--ink-soft); border-radius:7px; }
+  .nav-group-head:hover{ background:rgba(0,0,0,.045); color:var(--ink); }
+  .nav-group-head:focus-visible{ outline:2px solid var(--navy); outline-offset:2px; }
+  .nav-group-head .count{ font-weight:600; font-size:10.5px; opacity:.55; letter-spacing:0; }
+  .nav-group-head .chev{ margin-left:auto; font-size:12px; opacity:.65; transition:transform .15s; }
+  .nav-group-head.open .chev{ transform:rotate(90deg); }
+  @media (prefers-reduced-motion: reduce){ .nav-group-head .chev{ transition:none; } }
+  .nav-group-body{ display:none; }
+  .nav-group-body.open{ display:block; }
   .rem-cell{ display:flex; align-items:center; gap:7px; font-size:13px; white-space:nowrap; }
   .rem-num{ width:72px; padding:5px 8px; font-size:13px; }
   .rem-mode{ display:flex; align-items:flex-start; gap:8px; font-size:13.5px; line-height:1.5; }
@@ -2176,23 +2188,69 @@ const NAV_GROUPS = [
     { key:'account', label:'Account' },
   ]},
 ];
+/* ---------- The menu ----------
+   Thirty-four items listed at once ran past the bottom of a laptop screen, so
+   finding anything meant scrolling the menu itself. The topics are now
+   headings that open and close, and only one is open at a time: the sidebar
+   never gets longer than one topic plus the headings.
+
+   Which topic is open is not remembered between sessions on purpose. It
+   follows the page you are on, so the menu always opens showing where you
+   actually are. */
+let openNavGroup = null;
+
+function navItemsFor_(group){
+  return group.items.filter(item =>
+    (!item.supervisorOnly || isSupervisorLike() || (item.key==='approvals' && myAdvisedProjectStudentIds_().length>0)) &&
+    (!item.trueSupervisorOnly || isTrueSupervisor()) &&
+    (!item.studentOnly || state.identity.role==='student') &&
+    (!item.hideFromMentor || state.identity.role!=='cosupervisor') &&
+    (!item.advisorOnly || myAdvisedProjectStudentIds_().length>0));
+}
+// The topic holding the page you are on. Used when nothing has been opened by
+// hand yet, and again whenever you move to a page in a different topic.
+function navGroupOfView_(viewKey){
+  const g = NAV_GROUPS.find(gr => gr.label && gr.items.some(i => i.key === viewKey));
+  return g ? g.label : null;
+}
+function toggleNavGroup(label){
+  openNavGroup = (openNavGroup === label) ? null : label;   // one at a time
+  renderSidebar();
+}
+
 function renderSidebar(){
   const roleLabel = state.identity.role==='supervisor' ? 'Research Supervisor' : state.identity.role==='cosupervisor' ? 'Advisor / Co-Supervisor' : (myAdvisedProjectStudentIds_().length>0 ? 'Research Scholar · Advisor' : 'Research Scholar');
+  const navItemHtml = item => `
+      <button class="nav-item ${state.view===item.key?'active':''}" onclick="goView('${item.key}')">
+        <span class="dot" style="background:${NAV_ITEM_COLORS[item.key] || 'var(--border-strong)'};"></span>${item.label}
+      </button>`;
   document.getElementById('sidebar').innerHTML = `
     <div class="sidebar-identity">
       <div class="sidebar-identity-name">${escapeHtml(state.identity.name || '')}</div>
       <div class="sidebar-identity-role">${escapeHtml(roleLabel)}</div>
     </div>
-  ` + NAV_GROUPS.map(group => `
-    ${group.label ? `<div class="nav-group-label">${group.label}</div>` : ''}
-    ${group.items.filter(item => (!item.supervisorOnly || isSupervisorLike() || (item.key==='approvals' && myAdvisedProjectStudentIds_().length>0)) && (!item.trueSupervisorOnly || isTrueSupervisor()) && (!item.studentOnly || state.identity.role==='student') && (!item.hideFromMentor || state.identity.role!=='cosupervisor') && (!item.advisorOnly || myAdvisedProjectStudentIds_().length>0)).map(item => `
-      <button class="nav-item ${state.view===item.key?'active':''}" onclick="goView('${item.key}')">
-        <span class="dot" style="background:${NAV_ITEM_COLORS[item.key] || 'var(--border-strong)'};"></span>${item.label}
+  ` + NAV_GROUPS.map(group => {
+    const items = navItemsFor_(group);
+    if(items.length === 0) return '';
+    // The first block has no heading — Overview and the like stay in view.
+    if(!group.label) return items.map(navItemHtml).join('');
+    const open = openNavGroup === group.label;
+    return `
+      <button class="nav-group-head ${open?'open':''}" aria-expanded="${open?'true':'false'}"
+        onclick="toggleNavGroup('${group.label.replace(/'/g, "\\'")}')">
+        ${group.label}<span class="count">${items.length}</span><span class="chev">\u203a</span>
       </button>
-    `).join('')}
-  `).join('');
+      <div class="nav-group-body ${open?'open':''}">${items.map(navItemHtml).join('')}</div>`;
+  }).join('');
 }
-function goView(key){ state.view = key; renderSidebar(); renderView(); document.body.classList.remove('sidebar-open'); }
+function goView(key){
+  state.view = key;
+  // Moving to a page in another topic opens that topic, so the menu always
+  // shows where you are rather than where you were.
+  const g = navGroupOfView_(key);
+  if(g) openNavGroup = g;
+  renderSidebar(); renderView(); document.body.classList.remove('sidebar-open');
+}
 function toggleMobileSidebar(forceState){
   const show = forceState !== undefined ? forceState : !document.body.classList.contains('sidebar-open');
   document.body.classList.toggle('sidebar-open', show);
@@ -2618,6 +2676,13 @@ async function submitEditDiscussion(id){
 
     closeModal();
     await saveCollection('discussions', state.discussions);
+    // Narrowing a topic, or renaming it, emails nobody new. Opening a topic that
+    // was limited to named people out to the whole group does — the people who
+    // could not see it before can now, and that is worth knowing.
+    if(chosen.length === 0 && before.length > 0){
+      apiNotify('discussionSharedAll', { title: d.title, sharedByName: state.identity.name,
+        sharedByRole: reviewerIdentity(null).roleLabel, sharedById: state.identity.id || '' });
+    }
     newlyAdded.forEach(sid => apiNotify('discussionShared', {
       studentId: sid, title: d.title,
       sharedByName: state.identity.name, sharedByRole: reviewerIdentity(null).roleLabel
@@ -2676,6 +2741,11 @@ async function submitNewDiscussion(){
   await saveCollection('discussions', state.discussions);
   if(targetStudentIds.length>0){
     targetStudentIds.forEach(sid => apiNotify('discussionShared', { studentId: sid, title, sharedByName: state.identity.name, sharedByRole: poster.roleLabel }));
+  } else {
+    // Opened to everyone. The request says only THAT it happened and who did
+    // it; the backend works out who to write to, from the sheet.
+    apiNotify('discussionSharedAll', { title, sharedByName: state.identity.name,
+      sharedByRole: poster.roleLabel, sharedById: state.identity.id || '' });
   }
   closeModal(); renderView();
 }
@@ -10422,7 +10492,27 @@ async function deleteMeetingMinute(id, minuteId){
   });
 }
 function openMeetingModal(){
+  // Staff can call a meeting for the whole group, for a few people, or for one
+  // scholar. A scholar proposing their own meeting sees none of this — it is
+  // still their meeting with the supervisor, as before.
+  const canPickOthers = isSupervisorLike();
+  const everyone = canPickOthers ? visibleStudentsForIdentity().filter(x=>!x.frozen) : [];
   showModal('Meetings', `
+    ${canPickOthers && everyone.length>0 ? `
+      <label class="field-label">Who is this meeting for?</label>
+      <div style="display:flex; flex-direction:column; gap:7px; margin-bottom:6px;">
+        <label class="rem-mode"><input type="radio" name="meetWho" value="all" checked onchange="toggleMeetWhoPicker_()">
+          <span><b>Everyone</b> — all ${everyone.length} active member${everyone.length===1?'':'s'} of the group. Each one gets the invitation and sees it on their own calendar.</span></label>
+        <label class="rem-mode"><input type="radio" name="meetWho" value="some" onchange="toggleMeetWhoPicker_()">
+          <span><b>Selected people</b> — choose who should be in it.</span></label>
+      </div>
+      <div id="meetWhoPicker" style="display:none; flex-direction:column; gap:6px; max-height:190px; overflow-y:auto; border:1px solid var(--border-strong); border-radius:7px; padding:10px 12px; margin-bottom:6px;">
+        ${everyone.map(x=>`
+          <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:400; text-transform:none; letter-spacing:0; cursor:pointer;">
+            <input type="checkbox" class="f_meetWho" value="${x.id}"> ${escapeHtml(x.name)}${x.studentType==='project'?' (Project Student)':''}
+          </label>`).join('')}
+      </div>
+    ` : ''}
     <label class="field-label">Type</label>
     <select class="text-input" id="f_meetType">${MEETING_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('')}</select>
     <label class="field-label">Title / topic</label>
@@ -10441,6 +10531,13 @@ function openMeetingModal(){
     <textarea class="text-input" id="f_meetAgenda" rows="4" placeholder="What do you want to cover or discuss?"></textarea>
   `, submitMeeting);
 }
+function toggleMeetWhoPicker_(){
+  const el = document.getElementById('meetWhoPicker');
+  if(!el) return;
+  const some = (document.querySelector('input[name="meetWho"]:checked')||{}).value === 'some';
+  el.style.display = some ? 'flex' : 'none';
+  if(!some) document.querySelectorAll('.f_meetWho').forEach(c => { c.checked = false; });
+}
 async function submitMeeting(){
   const type = document.getElementById('f_meetType').value;
   const title = document.getElementById('f_meetTitle').value.trim();
@@ -10450,18 +10547,47 @@ async function submitMeeting(){
   const agenda = document.getElementById('f_meetAgenda').value.trim();
   if(!title || !plannedDate){ alert('Please add a title and planned date.'); return; }
   if(startTime && endTime && endTime <= startTime){ alert('The "To" time must be after the "From" time.'); return; }
-  const studentId = resolveCreateStudentId_();
+  // Who is in it. The meeting still belongs to one person (the record needs an
+  // owner for scoping and the calendar), and everyone else is an invitee.
+  const whoEl = document.querySelector('input[name="meetWho"]:checked');
+  let attendees = [];
+  if(whoEl && isSupervisorLike()){
+    attendees = whoEl.value === 'all'
+      ? visibleStudentsForIdentity().filter(x=>!x.frozen).map(x=>x.id)
+      : Array.from(document.querySelectorAll('.f_meetWho:checked')).map(el=>el.value);
+    if(attendees.length === 0){ alert('Please choose at least one person, or pick "Everyone".'); return; }
+  }
+  const studentId = attendees.length ? attendees[0] : resolveCreateStudentId_();
   if(!studentId){ alert('Add a research scholar first.'); return; }
+  const invitedStudentIds = attendees.filter(id => id !== studentId);
+  const caller = reviewerIdentity(null);
   state.meetings.push({
-    id: uid('mtg'), studentId, type, title, plannedDate, startTime, endTime, agenda, outcomeNotes:'', minutes:[],
+    id: uid('mtg'), studentId, invitedStudentIds, type, title, plannedDate, startTime, endTime, agenda, outcomeNotes:'', minutes:[],
     status: isSupervisorLike() ? 'confirmed' : 'proposed',
+    // Who called it. Invitees need to know this, and until now nothing recorded it.
+    calledByName: state.identity.name, calledByRole: caller.roleLabel, calledById: state.identity.id || '',
     lastUpdate: todayStr()
   });
   await saveCollection('meetings', state.meetings);
+  const detail = { title, type, date: plannedDate, time: fmtTimeRange(startTime, endTime), agenda,
+    calledByName: state.identity.name, calledByRole: caller.roleLabel };
   if(!isSupervisorLike()){
-    apiNotify('meetingProposed', { studentId, title, plannedDate: fmtDate(plannedDate), type });
+    apiNotify('meetingProposed', { studentId, plannedDate, ...detail });
+  } else {
+    // Staff created it already confirmed, so everyone in it is told now.
+    [studentId, ...invitedStudentIds].forEach(sid =>
+      apiNotify('meetingConfirmed', { studentId: sid, ...detail,
+        reviewedByName: state.identity.name, reviewedByRole: caller.roleLabel,
+        attendees: attendeeNames_([studentId, ...invitedStudentIds]) }));
   }
   closeModal(); renderView();
+}
+// A readable list of who is in a meeting, for the email.
+function attendeeNames_(ids){
+  const names = (ids||[]).map(id => studentName(id)).filter(Boolean);
+  if(names.length === 0) return '';
+  if(names.length <= 6) return names.join(', ');
+  return names.slice(0,6).join(', ') + ' and ' + (names.length-6) + ' more';
 }
 // Confirming a request isn't just a one-click approval — the supervisor may
 // only be free at a different time than what the scholar first proposed, so
@@ -10538,7 +10664,15 @@ async function submitConfirmMeeting(id){
   if(!newDate){ alert('Please set a date.'); return; }
   if(newStartTime && newEndTime && newEndTime <= newStartTime){ alert('The "To" time must be after the "From" time.'); return; }
   const reviewer = reviewerIdentity(m.studentId);
-  const rescheduled = newDate !== m.plannedDate || newStartTime !== (m.startTime||'') || newEndTime !== (m.endTime||'');
+  // "Rescheduled" has to mean the meeting MOVED. Filling in a time that was
+  // never set is not a move — the scholar proposed a day and left the time
+  // open, and this is the first time anyone has fixed one. Saying "rescheduled
+  // and confirmed" there reads as though a time they had been given was
+  // changed, which never happened.
+  const hadTime = !!(m.startTime || m.endTime);
+  const dateMoved = newDate !== m.plannedDate;
+  const timeChanged = hadTime && (newStartTime !== (m.startTime||'') || newEndTime !== (m.endTime||''));
+  const rescheduled = dateMoved || timeChanged;
   const wasAlreadyConfirmed = m.status === 'confirmed';
   const oldInvited = m.invitedStudentIds || [];
   const newInvited = Array.from(document.querySelectorAll('.f_meetInvitee:checked')).map(el=>el.value);
@@ -10554,7 +10688,17 @@ async function submitConfirmMeeting(id){
   m.confirmedAt = nowIST();
   m.lastUpdate = todayStr();
   await saveCollection('meetings', state.meetings);
-  const invitePayload = (sid) => ({ studentId: sid, title: m.title, date: fmtDate(newDate), time: fmtTimeRange(newStartTime, newEndTime), reviewedByName: reviewer.name, reviewedByRole: reviewer.roleLabel });
+  const everyoneInIt = [m.studentId, ...newInvited];
+  const invitePayload = (sid) => ({
+    studentId: sid, title: m.title, type: m.type,
+    date: newDate, time: fmtTimeRange(newStartTime, newEndTime),
+    agenda: m.agenda || '',
+    // Who called the meeting, so an invitee is not left guessing. Older records
+    // have no caller on them; the owner is the next best answer.
+    calledByName: m.calledByName || studentName(m.studentId),
+    calledByRole: m.calledByRole || 'Research Scholar',
+    attendees: attendeeNames_(everyoneInIt),
+    reviewedByName: reviewer.name, reviewedByRole: reviewer.roleLabel });
   if(rescheduled){
     apiNotify('meetingRescheduled', invitePayload(m.studentId));
     newInvited.forEach(sid => apiNotify('meetingRescheduled', invitePayload(sid)));

@@ -212,8 +212,8 @@ When the app opens, it checks whether the published version differs from the one
 What drives it is two lines in the `<head>` of `index.html`:
 
 ```html
-<meta name="app-build" content="2026-10-04-2">
-<meta name="app-version" content="1.5">
+<meta name="app-build" content="2026-10-21-2">
+<meta name="app-version" content="1.8">
 ```
 
 **Change both on every deployment.**
@@ -267,6 +267,35 @@ Only two records count as "keeping the logbook current": the **weekly plan** and
 Someone who has never logged anything is measured from their joining date, so a scholar added this morning is not greeted with a reminder.
 
 The settings are stored under the `reminder-settings` key in the Sheet. The app reads it for the badge and `Code.gs` reads the same key for the email, so the two can never disagree.
+
+---
+
+### The menu
+
+The sidebar groups its pages under topic headings — Planning, Progress, Academic Activities, Admin — and those headings open and close. **One is open at a time**, so the menu never runs past the bottom of the screen: 34 pages listed at once came to about 1,070px, and the same menu now sits at roughly 300px with a topic closed.
+
+Overview, Pending Approval and Calendar & Planner have no heading and are always in view.
+
+The open topic follows the page you are on rather than being remembered between sessions, so the menu always opens showing where you actually are. Clicking a heading opens that topic and closes whichever was open; clicking it again closes it.
+
+---
+
+### Meetings
+
+- **Staff can call a meeting for the whole group**, for a few named people, or for one scholar — the choice is at the top of the meeting form. A scholar proposing their own meeting still proposes it to the supervisor, as before.
+- **"Rescheduled" means the meeting moved.** Filling in a time on a meeting that never had one is announced as *confirmed*, not *rescheduled and confirmed* — nothing was taken away.
+- **The email says what the meeting is about.** It names who called it, what kind of meeting it is, the date and time written out in full, everyone who is in it, and the agenda exactly as it was typed into the app.
+
+---
+
+### Discussion topics and emails
+
+- **A topic shared with named people** emails each of them once.
+- **A topic opened to "Anyone"** emails everyone active — scholars, project students, advisors and the supervisor — once each. The person who opened it is not emailed, nor are frozen accounts, nor anyone whose work-item notifications you have switched off.
+- **Replies never email.** They appear in the day brief instead, so a running conversation is read in one place rather than arriving as a string of separate messages.
+- **Editing a topic** emails only people who were not on it before. Renaming it, or narrowing it to fewer people, emails nobody. Opening a topic that was limited to named people out to the whole group emails everyone.
+
+Who receives a group topic is worked out in `Code.gs` from the Sheet, never taken from the request — the app key is visible in the page source, so a request can say only *that* a topic was created and who created it, never who to write to.
 
 ---
 
