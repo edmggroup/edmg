@@ -9,10 +9,10 @@
      decide whether to offer "Update now". Bump it on every deployment; if it's
      ever left unchanged, no banner appears and the app simply updates silently
      on the next open, exactly as it did before this existed. -->
-<meta name="app-build" content="2026-11-23-6">
+<meta name="app-build" content="2026-11-23-8">
 <!-- The version people see. This and app-build above are the only two
      places either value is written; everything on screen reads them. -->
-<meta name="app-version" content="1.9.4">
+<meta name="app-version" content="1.10">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1F3A5F">
 <link rel="icon" href="icons/icon-192.png">
@@ -219,6 +219,19 @@
     transition:background .12s, color .12s;
   }
   .nav-item .dot{ width:6px; height:6px; border-radius:50%; background:var(--border-strong); flex-shrink:0; }
+  /* The label takes the slack so the badge sits hard against the right edge
+     and the numbers line up down the menu instead of wandering. */
+  .nav-item .nav-label{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .nav-item .nav-cnt{ flex-shrink:0; min-width:17px; height:17px; padding:0 5px; border-radius:9px;
+    background:var(--danger); color:#fff; font-size:10.5px; font-weight:700; line-height:17px; text-align:center; }
+  /* A dot, not a number: the diary reminder is "this wants you", and a 1
+     beside it would read as one entry. */
+  .nav-item .nav-attn{ flex-shrink:0; width:7px; height:7px; border-radius:50%; background:var(--warning); }
+  /* The bell sits in the 6px the dot would have taken, so the labels down the
+     menu stay on one vertical line. */
+  .nav-item .nav-bell{ flex-shrink:0; margin:0 -3.5px; color:var(--ink-faint); }
+  .nav-item.active .nav-bell, .nav-item.has-badge .nav-bell{ color:var(--danger); }
+  .nav-item.has-badge{ color:var(--ink); font-weight:600; }
   .nav-item.active{ background:var(--navy-wash); color:var(--navy-dark); font-weight:600; }
   .nav-item:hover:not(.active){ background:var(--neutral-wash); }
 
@@ -338,6 +351,7 @@
   /* The agenda list — shared by the calendar's day panel and the alerts page. */
   .ag-list{ display:flex; flex-direction:column; }
   .ag-row{ display:flex; gap:11px; align-items:baseline; padding:9px 4px; border-top:1px solid var(--border); cursor:pointer; }
+  .ag-row.no-go{ cursor:default; }
   .ag-row:first-child{ border-top:none; }
   .ag-row:hover .ag-title{ text-decoration:underline; }
   .ag-when{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--ink-soft); width:74px; flex-shrink:0; }
@@ -347,6 +361,7 @@
   .ag-cat{ font-size:11px; font-weight:600; flex-shrink:0; }
   .ag-row.overdue .ag-when{ color:var(--danger); font-weight:600; }
   .ag-day{ font-size:11.5px; font-weight:700; color:var(--ink-soft); padding:12px 4px 3px; }
+  .entry-card.needs-attention{ border-left:3px solid var(--danger); }
 
   /* On a phone a day cell is about 45px wide, so a chip's title truncates to
      "Pre…" — which tells you less than a coloured bar does and costs more
@@ -521,11 +536,84 @@
   .nav-group-head:hover{ background:rgba(0,0,0,.045); color:var(--ink); }
   .nav-group-head:focus-visible{ outline:2px solid var(--navy); outline-offset:2px; }
   .nav-group-head .count{ font-weight:600; font-size:10.5px; opacity:.55; letter-spacing:0; }
-  .nav-group-head .chev{ margin-left:auto; font-size:12px; opacity:.65; transition:transform .15s; }
-  .nav-group-head.open .chev{ transform:rotate(90deg); }
+  .nav-group-head .chev{ margin-left:auto; opacity:.6; transition:transform .18s; }
+  .nav-group-head.open .chev{ transform:rotate(180deg); }
   @media (prefers-reduced-motion: reduce){ .nav-group-head .chev{ transition:none; } }
+  /* The bell in the top bar. It sits beside Help because that is where the eye
+     already goes for "something I might need", and it carries the one number
+     worth seeing from any page: what is overdue or due today. */
+  .tb-bell{
+    position:relative; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.16);
+    color:#fff; border-radius:8px; padding:7px 10px; display:inline-flex; align-items:center;
+    cursor:pointer; font-family:inherit; line-height:0;
+  }
+  .tb-bell:hover{ background:rgba(255,255,255,0.18); }
+  .tb-bell:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
+  .tb-badge{
+    position:absolute; top:-6px; right:-6px; min-width:18px; height:18px; border-radius:9px;
+    background:var(--danger); color:#fff; font-size:11px; font-weight:700; line-height:18px;
+    text-align:center; padding:0 5px;
+  }
+  .alert-drawer-backdrop{ position:fixed; inset:0; z-index:420; background:rgba(15,20,32,0.35); }
+  .alert-drawer{
+    position:fixed; top:0; right:0; z-index:421; height:100vh; width:420px; max-width:92vw;
+    background:var(--surface); border-left:1px solid var(--border); box-shadow:-8px 0 28px rgba(0,0,0,.16);
+    display:flex; flex-direction:column; animation:drawerIn .18s ease;
+  }
+  @keyframes drawerIn{ from{ transform:translateX(16px); opacity:.6; } to{ transform:none; opacity:1; } }
+  @media (prefers-reduced-motion: reduce){ .alert-drawer{ animation:none; } }
+  .alert-drawer-head{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:15px 18px; border-bottom:1px solid var(--border); flex-shrink:0;
+  }
+  .alert-drawer-head b{ font-size:15px; }
+  .alert-drawer-body{ flex:1; overflow-y:auto; padding:14px 18px 22px; }
+  .alert-drawer-body .panel-title{ margin:16px 0 7px; }
+  .alert-drawer-body .panel-title:first-child{ margin-top:0; }
+  .alert-drawer-foot{ padding:14px 0 0; border-top:1px solid var(--border); margin-top:18px; }
+  /* The preview band. Amber and striped rather than red: it is a mode, not a
+     fault, and it has to be impossible to miss above every page. */
+  .preview-bar{
+    display:flex; align-items:center; gap:12px; padding:9px 18px;
+    background:repeating-linear-gradient(135deg, var(--warning-wash) 0 14px, rgba(0,0,0,.022) 14px 28px);
+    border-bottom:2px solid var(--warning); color:var(--ink); font-size:13px;
+  }
+  .preview-eye{ color:var(--warning); font-size:15px; flex-shrink:0; }
+  .preview-text{ flex:1; min-width:0; line-height:1.45; }
+  .preview-sub{ color:var(--ink-soft); }
+  .preview-blocked{
+    flex-shrink:0; font-size:11.5px; font-weight:700; color:var(--danger);
+    opacity:0; transition:opacity .2s;
+  }
+  .preview-blocked.show{ opacity:1; }
+  .preview-exit{
+    flex-shrink:0; border:1px solid var(--ink-soft); background:var(--surface); color:var(--ink);
+    border-radius:6px; padding:5px 13px; font-size:12.5px; font-weight:600; cursor:pointer;
+    font-family:inherit;
+  }
+  .preview-exit:hover{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .preview-exit:focus-visible{ outline:2px solid var(--navy); outline-offset:2px; }
+  .identity-preview{
+    background:var(--warning); color:#2a1d00; border-radius:4px; padding:1px 6px;
+    font-size:10px; font-weight:800; letter-spacing:.04em; text-transform:uppercase;
+  }
+  @media (prefers-reduced-motion: reduce){ .preview-blocked{ transition:none; } }
+  @media (max-width: 620px){
+    .preview-bar{ padding:8px 12px; gap:8px; font-size:12.5px; }
+    .preview-sub{ display:block; }
+  }
   .nav-group-body{ display:none; }
-  .nav-group-body.open{ display:block; }
+  .nav-group-body.open{ display:block; padding-bottom:4px; }
+  /* A hairline spine down the open group's items, so at a glance you can see
+     where a topic starts and ends. bottom:-1px bridges the 1px row gap so the
+     line reads as one stroke rather than a dotted column. The active page
+     thickens its own segment of it in navy. */
+  .nav-group-body .nav-item{ position:relative; padding-left:23px; }
+  .nav-group-body .nav-item:before{
+    content:""; position:absolute; left:11px; top:0; bottom:-1px;
+    border-left:1px solid var(--border);
+  }
+  .nav-group-body .nav-item.active:before{ border-left:2px solid var(--navy); }
   .rem-cell{ display:flex; align-items:center; gap:7px; font-size:13px; white-space:nowrap; }
   .rem-num{ width:72px; padding:5px 8px; font-size:13px; }
   .rem-mode{ display:flex; align-items:flex-start; gap:8px; font-size:13.5px; line-height:1.5; }
@@ -737,11 +825,19 @@
     </div>
     <div class="identity-pill">
       <button class="switch-link" id="installAppBtn" onclick="installApp()" style="display:none;">⬇ Install App</button>
+      <button class="tb-bell" id="alertsBellBtn" onclick="toggleAlertsDrawer()"
+        aria-label="Reminders and alerts" title="Reminders &amp; alerts">
+        <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+          ><path d="M5 13V9a5 5 0 0110 0v4l1.5 1.5h-13L5 13z"/><path d="M8 17a2 2 0 004 0"/></svg>
+        <span class="tb-badge" id="alertsBellBadge" style="display:none;"></span>
+      </button>
       <button class="switch-link" onclick="openHelpModal()">? Help</button>
       <span class="identity-badge" id="identityBadge"></span>
       <button class="switch-link" onclick="switchUser()">Sign out</button>
     </div>
   </div>
+  <div id="previewBar"></div>
   <div id="appUpdateBar"></div>
   <div class="layout">
     <div class="sidebar-backdrop" onclick="toggleMobileSidebar(false)"></div>
@@ -788,6 +884,14 @@ const state = {
   discussions: [],
   congratulations: [],
   emailTemplates: [],
+  // Set only while the supervisor is looking at the app as someone else.
+  // previewAs is the person being looked at, previewSnapshot the untouched
+  // copy of the data to put back afterwards, and previewReturn where the
+  // supervisor was standing before they stepped in. All three are cleared on
+  // the way out, and none of them is ever written to the server.
+  previewAs: null,
+  previewSnapshot: null,
+  previewReturn: null,
   // One object, not a list: how long before a scholar is reminded, set by the
   // supervisor on the Account page. null means nothing has been saved yet, and
   // reminderSettings_() supplies the defaults.
@@ -959,6 +1063,13 @@ async function apiGetAll(keys){
   return json.values || {};
 }
 async function apiSetRaw(key, value){
+  // A preview is a looking glass, not a login. Every save in the app funnels
+  // through here, so one check closes all of them at once — no page needs to
+  // remember it is being previewed.
+  if(inPreview_()){
+    previewBlockedNotice_();
+    const err = new Error('preview-mode-no-writes'); err.previewBlocked = true; throw err;
+  }
   const res = await fetch(DATA_API_URL, {
     method: 'POST',
     body: JSON.stringify({ key, value, appKey: APP_KEY }) // no custom Content-Type — keeps this a "simple" request, avoiding CORS preflight issues with Apps Script
@@ -973,6 +1084,9 @@ async function apiSetRaw(key, value){
   return true;
 }
 async function apiNotify(type, payload){
+  // Same reason as apiSetRaw: nobody gets an email because the supervisor was
+  // looking at the app through someone else's eyes.
+  if(inPreview_()){ previewBlockedNotice_(); return false; }
   try{
     const res = await fetch(DATA_API_URL, {
       method: 'POST',
@@ -1052,6 +1166,9 @@ async function saveCollection(key, arr){
     await apiSetRaw(key, JSON.stringify(arr));
     clearUnsavedWarning_(key);
   }catch(e){
+    // Refused because we are in a preview, not because the network failed —
+    // no scary banner, nothing was meant to be saved.
+    if(e && e.previewBlocked) return;
     console.error('Storage save failed', key, e);
     // The local copy already changed, so the screen is now showing an edit
     // that never reached the server. A one-off alert is too easy to dismiss
@@ -1082,6 +1199,126 @@ function renderUnsavedBanner_(){
 }
 async function saveSupervisorProfile(profile){
   try{ await apiSetRaw('supervisor-pin', JSON.stringify(profile)); }catch(e){ console.error('Save supervisor profile failed', e); }
+}
+
+/* ====================== PREVIEW ("VIEW AS") ======================
+   The supervisor can look at the app exactly as one of their people sees it:
+   the same menu, the same pages, the same empty states, their data and nobody
+   else's. It answers "what does Priya actually see?" without asking Priya for
+   her PIN.
+
+   Three things keep it safe:
+     1. Nothing can be written. apiSetRaw and apiNotify are the only two routes
+        to the server and both refuse while a preview is on, so no record, no
+        log line and no email can come out of one.
+     2. Nothing can be written LATER either. The in-memory copy of every
+        collection is snapshotted on the way in and put back on the way out, so
+        even a change that only reached the screen cannot ride along on some
+        unrelated save afterwards.
+     3. It cannot turn into a session. saveSession() refuses while previewing,
+        so a refresh always comes back as the supervisor.
+   It is deliberately a one-way mirror: look, don't touch. */
+
+// Every field applyDataValues() fills. preview.js checks this list against that
+// function, so a new collection cannot quietly fall outside the snapshot.
+const PREVIEW_DATA_FIELDS = ['students','weekly','samples','papers','instructions','meetings',
+  'coSupervisors','proposals','conferences','plannerTasks','thesisPlans','racReviews',
+  'financialApps','courses','fabricationItems','events','resultsAnalysis','deletionLog',
+  'newsUpdates','patents','plagiarismReports','awards','collaborators','leaveRecords',
+  'activityLogExclusions','consumables','workDiary','reminders','discussions','congratulations',
+  'emailTemplates','reminderSettings','supervisorPinHash','supervisorEmail','supervisorName',
+  'supervisorNotifyPrefs'];
+
+function inPreview_(){ return !!(state && state.previewAs); }
+function previewDataSnapshot_(){
+  const snap = {};
+  PREVIEW_DATA_FIELDS.forEach(f => { try{ snap[f] = JSON.stringify(state[f] === undefined ? null : state[f]); }catch(e){} });
+  return snap;
+}
+function previewRestoreData_(snap){
+  if(!snap) return;
+  PREVIEW_DATA_FIELDS.forEach(f => {
+    if(snap[f] === undefined) return;
+    try{ state[f] = JSON.parse(snap[f]); }catch(e){ /* leave the field as it is rather than wipe it */ }
+  });
+}
+function startPreviewAs(kind, id){
+  // Supervisor only, checked here rather than trusting the button that called
+  // it — this is the one place that matters.
+  if(!isTrueSupervisor() || inPreview_()) return;
+  const r = memberRecord_(kind, id);
+  if(!r){ alert('That account no longer exists — it may have been deleted. Refreshing.'); renderView(); return; }
+  if(kind === 'student' && r.frozen){ alert(r.name + '\u2019s account is frozen, so there is nothing to preview.'); return; }
+  state.previewSnapshot = previewDataSnapshot_();
+  state.previewReturn = { identity: state.identity, view: state.view, group: openNavGroup,
+                          filterStudentId: state.filterStudentId };
+  state.previewAs = { kind, id, name: r.name };
+  state.identity = kind === 'cosupervisor'
+    ? { role:'cosupervisor', id, name: r.name }
+    : { role:'student', id, name: r.name };
+  state.view = 'overview';
+  state.filterStudentId = 'all';
+  openNavGroup = null;
+  paintPreview_();
+  paintIdentityBadge_();
+  renderSidebar();
+  renderView();
+  window.scrollTo(0, 0);
+}
+function exitPreview(){
+  if(!inPreview_()) return;
+  const back = state.previewReturn || {};
+  clearPreviewState_();
+  state.identity = back.identity;
+  state.view = back.view || 'members';
+  state.filterStudentId = back.filterStudentId || 'all';
+  openNavGroup = back.group || null;
+  paintIdentityBadge_();
+  renderSidebar();
+  renderView();
+  window.scrollTo(0, 0);
+}
+// Puts the data back and takes the preview down, without deciding where the
+// person goes next. Signing out mid-preview has to come through here too:
+// leaving state.previewAs set would carry the no-writes rule into whoever
+// signs in next, and every save they made would be refused in silence.
+function clearPreviewState_(){
+  if(!inPreview_()) return;
+  previewRestoreData_(state.previewSnapshot);
+  state.previewAs = null;
+  state.previewSnapshot = null;
+  state.previewReturn = null;
+  paintPreview_();
+}
+function paintPreview_(){
+  const bar = document.getElementById('previewBar');
+  if(!bar) return;
+  document.body.classList.toggle('previewing', inPreview_());
+  if(!inPreview_()){ bar.innerHTML = ''; return; }
+  const p = state.previewAs;
+  const what = p.kind === 'cosupervisor' ? 'advisor' : 'student';
+  bar.innerHTML = `
+    <div class="preview-bar" role="region" aria-label="Preview mode">
+      <span class="preview-eye" aria-hidden="true">\u25C9</span>
+      <div class="preview-text">
+        Seeing the app as <b>${escapeHtml(p.name)}</b> sees it.
+        <span class="preview-sub">Looking only \u2014 nothing can be changed or saved from this ${what} view.</span>
+      </div>
+      <span class="preview-blocked" id="previewBlockedNote" role="status" aria-live="polite"></span>
+      <button class="preview-exit" onclick="exitPreview()">Leave preview</button>
+    </div>`;
+}
+// If something does try to save while previewing, say so where the person is
+// already looking instead of throwing up an alert — this can fire during a
+// render, and a modal dialog there would be worse than the thing it reports.
+let previewNoteTimer_ = null;
+function previewBlockedNotice_(){
+  const el = document.getElementById('previewBlockedNote');
+  if(!el) return;
+  el.textContent = 'Not saved \u2014 preview';
+  el.classList.add('show');
+  clearTimeout(previewNoteTimer_);
+  previewNoteTimer_ = setTimeout(() => { el.classList.remove('show'); }, 4000);
 }
 
 /* ============================ INIT ============================ */
@@ -1193,6 +1430,9 @@ const SESSION_MAX_AGE_MS = 3 * 60 * 60 * 1000;
 function saveSession(){
   try{
     if(!state.identity) return;
+    // Previewing swaps state.identity. Writing that to storage would leave the
+    // browser holding a signed-in session for someone who never entered a PIN.
+    if(inPreview_()) return;
     localStorage.setItem(SESSION_KEY, JSON.stringify({ identity: state.identity, at: Date.now() }));
   }catch(e){ /* storage unavailable — session just won't persist, login still works */ }
 }
@@ -1671,6 +1911,7 @@ function openHelpModal(){
   showModal('How this works', body, null, true);
 }
 function switchUser(){
+  clearPreviewState_();
   clearSession();
   const flash = document.getElementById('congratsFlash'); if(flash) flash.remove();
   state.identity = null;
@@ -1681,16 +1922,26 @@ function switchUser(){
 }
 
 /* ============================ APP SHELL ============================ */
-function showApp(){
-  saveSession();
-  document.getElementById('loginScreen').style.display='none';
-  document.getElementById('appShell').style.display='block';
-  let roleLabel = state.identity.role === 'supervisor' ? 'Supervisor' : state.identity.role === 'cosupervisor' ? 'Advisor / Co-Supervisor' : 'Research Scholar';
+// Who the top-right pill says you are. Sign-in sets it, and so does entering
+// or leaving a preview, so it lives on its own rather than inside showApp().
+function paintIdentityBadge_(){
+  const el = document.getElementById('identityBadge');
+  if(!el || !state.identity) return;
+  let roleLabel = state.identity.role === 'supervisor' ? 'Supervisor'
+                : state.identity.role === 'cosupervisor' ? 'Advisor / Co-Supervisor'
+                : 'Research Scholar';
   if(state.identity.role === 'student'){
     const me = state.students.find(x=>x.id===state.identity.id);
     if(me && me.studentType==='project') roleLabel = 'Project Student';
   }
-  document.getElementById('identityBadge').innerHTML = `<b>${escapeHtml(state.identity.name)}</b> · ${roleLabel}`;
+  const tail = inPreview_() ? ' <span class="identity-preview">preview</span>' : '';
+  el.innerHTML = `<b>${escapeHtml(state.identity.name)}</b> · ${roleLabel}${tail}`;
+}
+function showApp(){
+  saveSession();
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appShell').style.display='block';
+  paintIdentityBadge_();
   renderSidebar();
   renderView();
   showDayBrief_();
@@ -2206,57 +2457,80 @@ const NAV_ITEM_COLORS = {
   meetings:'var(--stat-indigo)', events:'var(--stat-purple)', consumables:'var(--stat-cyan)', leave:'var(--warning)', instructions:'var(--navy)', links:'var(--stat-teal)', discussions:'var(--stat-purple)', analytics:'var(--stat-blue)', activityLog:'var(--ink-faint)', deletionLog:'var(--danger)', projectStudentsAdmin:'var(--stat-indigo)', members:'var(--stat-rose)', emailTemplates:'var(--stat-teal)', reports:'var(--navy)', account:'var(--ink-faint)'
 };
 const NAV_GROUPS = [
+  /* Three bands, the shape the Faculty Work Desk uses.
+
+     The TOP band is what a person opens the app to do, so none of it is
+     behind a heading: the overview, whatever is waiting on them, the
+     calendar, the alerts, and the two pages a scholar touches most — the
+     work diary and the weekly plan. Those two used to sit two clicks inside
+     "Progress", which is the wrong place for the most-used page in the app.
+
+     The MIDDLE bands are named for what you are doing, not for what stage
+     the work is at. "Planning / Progress / Academic Activities" asked a
+     person to decide which stage a record belonged to before they could find
+     it, and the answer was not always the same one twice: a paper sat under
+     Progress while patents, conferences and similarity reports — the things
+     that happen to a paper — sat under Academic Activities.
+
+     The BOTTOM band is the look-it-up tools, together and in a fixed place.
+     They used to live inside "Admin", which reads as the supervisor's
+     territory although every role has them. */
   { items: [
-    { key:'overview', label:'Overview' },
+    { key:'overview', label:'Dashboard' },
     { key:'approvals', label:'Pending Approval', supervisorOnly:true },
     { key:'changesRequested', label:'Changes Requested', studentOnly:true },
     { key:'calendar', label:'Calendar & Planner' },
     { key:'alerts', label:'Alerts' },
-  ]},
-  { label:'Planning', items: [
-    { key:'proposal', label:'Work Plan (Proposal)' },
-    { key:'thesis', label:'Thesis Plan' },
-  ]},
-  { label:'Progress', items: [
-    { key:'weekly', label:'Weekly Plan' },
     { key:'workDiary', label:'Work Diary' },
-    { key:'myProjectStudents', label:'My Project Student(s)', advisorOnly:true },
+    { key:'weekly', label:'Weekly Plan' },
+  ]},
+  { label:'Research', items: [
+    { key:'proposal', label:'Work Plan (Proposal)' },
     { key:'fabrication', label:'Lab Work' },
     { key:'samples', label:'Characterization' },
     { key:'resultsAnalysis', label:'Results Analysis' },
-    { key:'papers', label:'Paper Pipeline' },
+    // "Proposals" and "Work Plan (Proposal)" were two unrelated things
+    // sharing a word, in two different groups.
+    { key:'financial', label:'Funding Proposals' },
+    { key:'collaborators', label:'Collaborators' },
   ]},
-  { label:'Academic Activities', items: [
-    { key:'rac', label:'RAC Reviews' },
-    { key:'learning', label:'Learning & Courses' },
-    { key:'financial', label:'Proposals' },
+  { label:'Publishing', items: [
+    { key:'papers', label:'Paper Pipeline' },
     { key:'conferences', label:'Conferences' },
     { key:'patents', label:'Patents' },
     { key:'plagiarism', label:'Similarity Reports' },
-    { key:'awards', label:'Awards & Recognitions' },
-    { key:'collaborators', label:'Collaborators' },
   ]},
-  // Admin used to hold all fifteen of these. Meetings, discussions and the
-  // news board are things the whole group uses every week; members, logs and
-  // templates are the supervisor's record-keeping. Mixing them meant opening
-  // "Admin" to do something entirely ordinary.
-  { label:'Activities', items: [
+  { label:'Doctoral', items: [
+    { key:'thesis', label:'Thesis Plan' },
+    { key:'rac', label:'RAC Reviews' },
+    { key:'learning', label:'Learning & Courses' },
+    { key:'awards', label:'Awards & Recognitions' },
+  ]},
+  { label:'Group', items: [
     { key:'meetings', label:'Meetings' },
-    { key:'events', label:'Events' },
     { key:'discussions', label:'Discussions' },
+    { key:'events', label:'Events' },
     { key:'links', label:'News Update' },
     { key:'instructions', label:'Information' },
     { key:'leave', label:'Leave / OD' },
     { key:'consumables', label:'Consumables', hideFromMentor:true },
+    // A people-facing page, so it belongs with the other people-facing ones
+    // rather than among a scholar's own bench work.
+    { key:'myProjectStudents', label:'My Project Student(s)', advisorOnly:true },
   ]},
+  // Supervisor record-keeping only. For everyone else this group has no
+  // items at all, so it does not appear — better than a heading that opens
+  // onto someone else's business.
   { label:'Admin', items: [
-    { key:'reports', label:'Reports' },
-    { key:'analytics', label:'Analytics' },
     { key:'members', label:'Members', trueSupervisorOnly:true },
     { key:'projectStudentsAdmin', label:'Project Students', trueSupervisorOnly:true },
     { key:'emailTemplates', label:'Email Templates', trueSupervisorOnly:true },
-    { key:'activityLog', label:'Activity Log' },
     { key:'deletionLog', label:'Deletion Log', trueSupervisorOnly:true },
+  ]},
+  { items: [
+    { key:'reports', label:'Reports' },
+    { key:'analytics', label:'Analytics' },
+    { key:'activityLog', label:'Activity Log' },
     { key:'account', label:'Account' },
   ]},
 ];
@@ -2290,12 +2564,73 @@ function toggleNavGroup(label){
   renderSidebar();
 }
 
+/* What needs this person, per menu item.
+
+   The group headings have always carried a count, but that count is just how
+   many pages are in the group — it says nothing about whether any of them
+   wants you. So a scholar had to open "Progress" to discover the diary had
+   gone quiet, which is the one thing a badge is for.
+
+   Two kinds of marker, deliberately different shapes, because they mean
+   different things: a NUMBER is a count of things waiting, and a DOT means
+   "this needs attention" where there is no sensible number to show. Giving
+   the diary a number would invite reading it as a count of entries. */
+function navBadges_(){
+  const out = {};
+  const num = (key, n, title) => { if(n > 0) out[key] = { n, title }; };
+  try {
+    // The same test the menu itself uses to show this item: a scholar who
+    // mentors a project student has approvals to make too, and badging only
+    // supervisors left them with the page but no sign it wanted them.
+    if(isSupervisorLike() || myAdvisedProjectStudentIds_().length > 0){
+      const q = pendingQueue().length;
+      num('approvals', q, q + ' submission' + (q===1?'':'s') + ' waiting for you');
+    }
+    if(state.identity.role === 'student'){
+      const c = changesRequestedQueue().length;
+      num('changesRequested', c, c + ' item' + (c===1?'':'s') + ' sent back to you');
+    }
+    // Overdue only — the alerts page shows plenty that is merely upcoming,
+    // and a badge that is never zero is a badge nobody reads.
+    const overdue = buildAgenda_({ to: todayStr(), includeOverdue:true }).filter(i => i.overdue).length;
+    num('alerts', overdue, overdue + ' overdue item' + (overdue===1?'':'s'));
+    // A meeting nobody has confirmed is waiting on whoever can confirm it.
+    const toConfirm = scopedMeetings_().filter(m => m.status === 'proposed').length;
+    num('meetings', toConfirm, toConfirm + ' meeting' + (toConfirm===1?'':'s') + ' still to confirm');
+    // The diary and weekly-plan reminders already exist; this is the same
+    // rule, shown where the page is rather than only on the overview.
+    logNudges_().forEach(n => {
+      const key = n.key === 'weekly' ? 'weekly' : n.key === 'diary' ? 'workDiary' : null;
+      const title = n.everLogged ? n.days + ' days since your last entry'
+                                 : 'nothing logged here yet';
+      if(key) out[key] = { dot:true, title };
+      else { // the combined rule covers both pages
+        out.workDiary = { dot:true, title }; out.weekly = { dot:true, title };
+      }
+    });
+  } catch(e){ /* a badge is never worth taking the menu down for */ }
+  return out;
+}
 function renderSidebar(){
   const roleLabel = state.identity.role==='supervisor' ? 'Research Supervisor' : state.identity.role==='cosupervisor' ? 'Advisor / Co-Supervisor' : (myAdvisedProjectStudentIds_().length>0 ? 'Research Scholar · Advisor' : 'Research Scholar');
-  const navItemHtml = item => `
-      <button class="nav-item ${state.view===item.key?'active':''}" onclick="goView('${item.key}')">
-        <span class="dot" style="background:${NAV_ITEM_COLORS[item.key] || 'var(--border-strong)'};"></span>${item.label}
+  const badges = navBadges_();
+  // Alerts is the one item whose job is to tell you something, so it gets a
+  // bell instead of a colour dot. Everything else keeps the dot: thirty-seven
+  // icons would be noise, and the group headings already do the sorting.
+  const NAV_BELL = `<svg class="nav-bell" viewBox="0 0 20 20" width="13" height="13" fill="none"
+    stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+    ><path d="M5 13V9a5 5 0 0110 0v4l1.5 1.5h-13L5 13z"/><path d="M8 17a2 2 0 004 0"/></svg>`;
+  const navItemHtml = item => {
+    const b = badges[item.key];
+    const mark = !b ? ''
+      : b.dot ? `<span class="nav-attn" title="${escapeHtml(b.title)}" aria-label="${escapeHtml(b.title)}"></span>`
+              : `<span class="nav-cnt" title="${escapeHtml(b.title)}">${b.n}</span>`;
+    return `
+      <button class="nav-item ${state.view===item.key?'active':''} ${b?'has-badge':''}" onclick="goView('${item.key}')">
+        ${item.key === 'alerts' ? NAV_BELL
+          : `<span class="dot" style="background:${NAV_ITEM_COLORS[item.key] || 'var(--border-strong)'};"></span>`}<span class="nav-label">${item.label}</span>${mark}
       </button>`;
+  };
   document.getElementById('sidebar').innerHTML = `
     <div class="sidebar-identity">
       <div class="sidebar-identity-name">${escapeHtml(state.identity.name || '')}</div>
@@ -2310,7 +2645,9 @@ function renderSidebar(){
     return `
       <button class="nav-group-head ${open?'open':''}" aria-expanded="${open?'true':'false'}"
         onclick="toggleNavGroup('${group.label.replace(/'/g, "\\'")}')">
-        ${group.label}<span class="count">${items.length}</span><span class="chev">\u203a</span>
+        ${group.label}<span class="count">${items.length}</span><svg class="chev" viewBox="0 0 12 12" width="12" height="12"
+          fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+          aria-hidden="true"><path d="M3 4.5l3 3 3-3"/></svg>
       </button>
       <div class="nav-group-body ${open?'open':''}">${items.map(navItemHtml).join('')}</div>`;
   }).join('');
@@ -2368,6 +2705,9 @@ function renderView(){
   else if(state.view==='reports') main.innerHTML = viewReports();
   else if(state.view==='account') main.innerHTML = viewAccount();
   paintConnections_();
+  // The bell's number is read from the same data the page just drew, so it
+  // cannot fall behind after an edit.
+  paintAlertsBell_();
 }
 
 const ITEM_TYPE_VIEW = {
@@ -2377,14 +2717,45 @@ const ITEM_TYPE_VIEW = {
   patent:'patents', plagiarism:'plagiarism', award:'awards', collaborator:'collaborators', leave:'leave', consumable:'consumables',
   // A programme milestone is a date recorded against a person, so it opens
   // the Members page rather than a record of its own.
-  milestone:'members'
+  milestone:'members',
+  // A planner task lives on a day of the planner, and a reminder in the
+  // Reminders box on the dashboard. Both used to be filed under another
+  // type's page, so clicking one in the alerts took you somewhere that did
+  // not contain it and nothing was highlighted.
+  task:'calendar', reminder:'overview'
 };
+// A programme date is held on the person, not on a record of its own, so it
+// lives in two different places depending on whose it is: your own are on your
+// Account page, everyone else's are on the supervisor's Members page.
+function itemTargetView_(type, id){
+  if(type === 'milestone') return id === state.identity.id ? 'account' : 'members';
+  return ITEM_TYPE_VIEW[type] || '';
+}
+// Is this page in this person's own menu? Sending someone to a page they are
+// not allowed on lands them on "Not available", which is worse than not
+// moving them at all.
+function canSeeView_(key){
+  if(!key) return false;
+  return NAV_GROUPS.some(g => navItemsFor_(g).some(it => it.key === key));
+}
 function goToItem(type, id, studentId){
-  const view = ITEM_TYPE_VIEW[type];
-  if(!view) return;
+  const view = itemTargetView_(type, id);
+  if(!view || !canSeeView_(view)) return;
+  // Opened from the bell, the page would otherwise appear behind the drawer.
+  if(typeof closeAlertsDrawer === 'function') closeAlertsDrawer();
   state.view = view;
   if(studentId && isSupervisorLike()){
     state.filterStudentId = studentId;
+  }
+  // A planner task sits on one day of one week. Without moving the planner to
+  // that week first, the page opens on this week and the task is not on it.
+  if(type === 'task'){
+    const t = (state.plannerTasks || []).find(x => x.id === id);
+    if(t && t.date){
+      state.plannerWeekStart = mondayOf(t.date);
+      state.calendarMonth = t.date.slice(0, 7);
+      state.calendarSel = t.date;
+    }
   }
   renderSidebar();
   renderView();
@@ -2401,7 +2772,8 @@ function goToItem(type, id, studentId){
 document.addEventListener('keydown', function(e){
   if(e.key === 'Escape'){
     const root = document.getElementById('modalRoot');
-    if(root && root.innerHTML.trim()) closeModal();
+    if(root && root.innerHTML.trim()){ closeModal(); return; }
+    if(document.getElementById('alertsDrawer')) closeAlertsDrawer();
   }
 });
 
@@ -2954,7 +3326,7 @@ function viewLinks(){
     <div class="view-header">
       <div>
         <div class="view-title">News Update</div>
-        <div class="view-sub">Shared news items, magazine articles, and links for the whole group — anyone can post one, everyone sees it here and as a scrolling box on the Overview dashboard. The supervisor can freeze an item to pull it out of the dashboard scroll without deleting it — frozen items still show here.</div>
+        <div class="view-sub">Shared news items, magazine articles, and links for the whole group — anyone can post one, everyone sees it here and as a scrolling box on the dashboard. The supervisor can freeze an item to pull it out of the dashboard scroll without deleting it — frozen items still show here.</div>
       </div>
       <button class="action-btn" onclick="openAddNewsModal()">+ Add link</button>
     </div>
@@ -4084,6 +4456,55 @@ function statBoxKey_(e){
   if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); e.currentTarget.click(); }
 }
 
+/* The two cards the overview was missing, both views of the agenda engine.
+
+   "Needs attention" is the one that earns its place: overdue dates from every
+   section, plus the diary and weekly-plan reminders, in one red-edged card at
+   the very top. Before this, an overdue sample sat on the Characterization
+   page and an overdue chapter on the Thesis page, and nothing put them in
+   front of a person who had opened the app to see where they stood.
+
+   Both are empty most days, and an empty card is noise, so neither renders
+   when it has nothing to say. */
+// The "you have not logged anything for a while" rows, rendered the same way
+// wherever they appear — the dashboard panel and the bell drawer both use this.
+function nudgeRowsHtml_(nudges){
+  return (nudges || []).map(n => {
+    const w = NUDGE_WORDING[n.key] || NUDGE_WORDING.combined;
+    const key = n.key === 'weekly' ? 'weekly' : 'workDiary';
+    return `<div class="ag-row overdue" onclick="closeAlertsDrawer(); goView('${key}')">
+      <div class="ag-when">${n.everLogged ? escapeHtml(String(n.days)) + 'd' : '—'}</div>
+      <div class="ag-bd"><div class="ag-title">${n.everLogged
+        ? 'It has been ' + n.days + ' days since ' + escapeHtml(w.logged)
+        : 'You have not added ' + escapeHtml(w.never) + ' yet'}</div></div>
+      <div class="ag-cat" style="color:var(--warning);">Reminder</div>
+    </div>`;
+  }).join('');
+}
+function needsAttentionHtml_(){
+  const items = buildAgenda_({ to: todayStr(), includeOverdue:true }).filter(i => i.overdue);
+  const nudges = (typeof logNudges_ === 'function') ? logNudges_() : [];
+  const total = items.length + nudges.length;
+  if(total === 0) return '';
+  const nudgeRows = nudgeRowsHtml_(nudges);
+  return `
+    <h3 class="panel-title"><span class="dot" style="background:var(--danger);"></span>Needs attention <span style="opacity:.6; font-weight:500;">${total}</span></h3>
+    <div class="entry-card compact-card needs-attention" style="margin-bottom:18px;">
+      ${nudgeRows}
+      ${items.slice(0,12).map(i => agendaRowHtml_(i, true)).join('')}
+      ${items.length > 12 ? `<div class="entry-actions" style="margin-top:8px;"><span class="task-link" style="font-size:12px;" onclick="goView('alerts')">See all ${items.length} →</span></div>` : ''}
+    </div>`;
+}
+function todayPanelHtml_(){
+  const t = todayStr();
+  const items = buildAgenda_({ from:t, to:t, ignoreLead:true, allCats:true, spans:true, includeOverdue:false });
+  if(items.length === 0) return '';
+  return `
+    <h3 class="panel-title"><span class="dot" style="background:var(--navy);"></span>Today <span style="opacity:.6; font-weight:500;">${items.length}</span></h3>
+    <div class="entry-card compact-card" style="margin-bottom:18px;">
+      ${items.map(i => agendaRowHtml_(i, false)).join('')}
+    </div>`;
+}
 function viewOverview(){
   const weekly = scopedList(state.weekly);
   const samples = scopedList(state.samples);
@@ -4103,7 +4524,7 @@ function viewOverview(){
   const upcoming = upcomingAll.slice()
     .sort((a,b)=> (a.plannedDate||'').localeCompare(b.plannedDate||'')).slice(0,5);
 
-  const roleTitle = { supervisor:'Group Overview', cosupervisor:'My Assigned Students', student:'My Overview' }[state.identity.role];
+  const roleTitle = { supervisor:'Group Dashboard', cosupervisor:'My Assigned Students', student:'My Dashboard' }[state.identity.role];
   const roleSub = { supervisor:'Everything here is final only once you approve it.', cosupervisor:'A view of the students assigned to you — everything here is final only once approved.', student:'A snapshot of your progress, samples, and papers.' }[state.identity.role];
 
   return `
@@ -4117,6 +4538,7 @@ function viewOverview(){
       </div>
     </div>
     ${congratsDashboardHtml_()}
+
     <div class="stat-grid dash">
       ${isSupervisorLike()
         ? `${statBoxOpen_('approvals', 'accent-blue ' + (totalPendingApproval>0?'warn':'ok'))}<div class="stat-num">${totalPendingApproval}</div><div class="stat-label"><span class="dot"></span>Awaiting approval</div></div>`
@@ -4127,6 +4549,9 @@ function viewOverview(){
       ${statBoxOpen_('papersPublished', 'ok')}<div class="stat-num">${publishedPapers}</div><div class="stat-label"><span class="dot"></span>Published</div></div>
       ${statBoxOpen_('upcomingMeetings', 'accent-indigo')}<div class="stat-num">${upcomingAll.length}</div><div class="stat-label"><span class="dot"></span>Upcoming meetings</div></div>
     </div>
+
+    ${needsAttentionHtml_()}
+    ${todayPanelHtml_()}
 
     ${isSupervisorLike() ? studentSummaryTable() : ''}
 
@@ -4595,7 +5020,7 @@ function viewMembers(){
     <div class="view-header">
       <div>
         <div class="view-title">Members</div>
-        <div class="view-sub">Profiles of every scholar, project student and advisor, and congratulation messages for their dashboards. Only you can see this page.</div>
+        <div class="view-sub">Profiles of every scholar, project student and advisor, and congratulation messages for their dashboards. <b>View as</b> on a card opens the app as that person sees it — looking only, nothing is saved. Only you can see this page.</div>
       </div>
       ${tab==='congrats' ? `<button class="action-btn" onclick="openCongratsModal()">+ New congratulations</button>` : ''}
     </div>
@@ -4635,7 +5060,8 @@ function membersProfilesHtml_(){
           ['Account', r.pinHash ? 'Active' : 'Not signed in yet']
         ];
         return `
-          <div class="entry-card member-card ${m.type==='advisor'?'cat-indigo':m.type==='project'?'cat-teal':'cat-navy'}" data-search="${escapeHtml((m.name+' '+(r.email||'')).toLowerCase())}">
+          <div class="entry-card member-card ${m.type==='advisor'?'cat-indigo':m.type==='project'?'cat-teal':'cat-navy'}"
+            ${m.kind==='student' ? `id="item-milestone-${m.id}"` : ''} data-search="${escapeHtml((m.name+' '+(r.email||'')).toLowerCase())}">
             <div class="entry-top">
               <div>
                 <div class="entry-title">${escapeHtml(m.name)}</div>
@@ -4649,6 +5075,8 @@ function membersProfilesHtml_(){
             <div class="entry-actions">
               <button class="small-btn" onclick="openEditMemberModal('${m.kind}','${m.id}')">Edit profile</button>
               ${m.kind==='student' ? `<button class="small-btn" onclick="openProgramDetailsModal('${m.id}')">Edit program details</button>` : ''}
+              ${r.frozen ? '' : `<button class="small-btn" onclick="startPreviewAs('${m.kind}','${m.id}')"
+                title="Open the app as ${escapeHtml(m.name)} sees it — looking only, nothing is saved">View as</button>`}
             </div>
           </div>`;
       }).join('')}</div>`}
@@ -5398,7 +5826,7 @@ function accessSection(){
         </div>
       </div>
       <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Program details</h3>
-      <div class="entry-card">
+      <div class="entry-card" id="item-milestone-${state.identity.id}">
         ${programDetailsGridHtml_(me)}
         <div class="entry-meta" style="margin-top:8px;">All optional — fill in whatever applies. Your supervisor can see and edit these too.</div>
         <div class="entry-actions"><button class="small-btn" onclick="openProgramDetailsModal('${state.identity.id}')">Edit program details</button></div>
@@ -7279,7 +7707,7 @@ function buildAgenda_(opts){
   });
   scopedList(state.plannerTasks).forEach(t => {
     if(t.done) return;
-    push('task', t.date, t.text || 'Task', who(t.studentId), 'weekly', t.id, t.studentId, true);
+    push('task', t.date, t.text || 'Task', who(t.studentId), 'task', t.id, t.studentId, true);
   });
   // ---- Courses, proposals awaiting a result, events, leave.
   scopedList(state.courses).forEach(c => {
@@ -7321,7 +7749,7 @@ function buildAgenda_(opts){
   // ---- Supervisor reminders.
   state.reminders.filter(r => r.ownerId === state.identity.id).forEach(r => {
     if(r.done) return;
-    push('reminder', r.date, r.text || 'Reminder', '', 'instruction', r.id, '', true);
+    push('reminder', r.date, r.text || 'Reminder', '', 'reminder', r.id, '', true);
   });
 
   return items.sort((a,b) => (a.date||'').localeCompare(b.date||'') ||
@@ -7360,7 +7788,12 @@ function eventsForDate(dateStr){
 function agendaRowHtml_(i, showDate){
   const cat = AGENDA_CATS[i.cat] || { label:i.cat, dot:'blue' };
   const when = showDate ? fmtDate(i.date) : (i.spanDays > 1 ? 'day ' + i.spanDay : '');
-  return `<div class="ag-row ${i.overdue?'overdue':''}" onclick="goToItem('${i.type}','${i.id}','${i.studentId||''}')">
+  // Not every row has somewhere to go for every reader. One that does not is
+  // still shown — it is a real date — but it does not pretend to be a link.
+  const goes = canSeeView_(itemTargetView_(i.type, i.id));
+  return `<div class="ag-row ${i.overdue?'overdue':''} ${goes?'':'no-go'}"
+    data-type="${escapeHtml(i.type||'')}" data-id="${escapeHtml(String(i.id||''))}"
+    ${goes ? `onclick="goToItem('${i.type}','${i.id}','${i.studentId||''}')"` : ''}>
     <div class="ag-when">${escapeHtml(when || '')}</div>
     <div class="ag-bd">
       <div class="ag-title">${escapeHtml(i.title)}</div>
@@ -7460,6 +7893,84 @@ function viewCalendar(){
    worth mentioning — a conference deadline two weeks out is worth knowing,
    a planner task two weeks out is not — and the supervisor can change every
    one of those in Account → Reminder settings. */
+/* ================== THE BELL AND ITS DRAWER ==================
+   The same question as the Alerts page — what is overdue, what is today, what
+   is coming — answered without leaving the page you are on. It reads from the
+   one agenda engine, so the bell, the dashboard panels, the Alerts page, the
+   calendar and the daily email can never disagree with each other. */
+function alertsBellData_(){
+  const t = todayStr();
+  const items = buildAgenda_({ to: shiftDate(t, 400), includeOverdue:true });
+  return {
+    overdue: items.filter(i => i.overdue),
+    today:   items.filter(i => !i.overdue && i.date === t),
+    soon:    items.filter(i => !i.overdue && i.date > t),
+    nudges:  (typeof logNudges_ === 'function') ? logNudges_() : []
+  };
+}
+// The number on the bell counts what wants you now — overdue, today, and any
+// logging nudge. Things merely coming up are in the drawer but not the count,
+// or the badge would never be clear and would stop meaning anything.
+function paintAlertsBell_(){
+  const btn = document.getElementById('alertsBellBtn');
+  const badge = document.getElementById('alertsBellBadge');
+  if(!btn || !badge) return;
+  let n = 0;
+  try{
+    const a = alertsBellData_();
+    n = a.overdue.length + a.today.length + a.nudges.length;
+  }catch(e){ n = 0; } // a count is never worth taking the top bar down for
+  badge.textContent = n > 99 ? '99+' : String(n);
+  badge.style.display = n ? 'block' : 'none';
+  btn.setAttribute('aria-label', n ? n + ' reminders and alerts' : 'Reminders and alerts');
+}
+function toggleAlertsDrawer(){
+  if(document.getElementById('alertsDrawer')) closeAlertsDrawer();
+  else openAlertsDrawer();
+}
+function closeAlertsDrawer(){
+  const d = document.getElementById('alertsDrawer');
+  if(d) d.remove();
+}
+function openAlertsDrawer(){
+  closeAlertsDrawer();
+  const a = alertsBellData_();
+  const sec = (title, body, count, danger) => !count ? '' : `
+    <h3 class="panel-title"><span class="dot" style="background:${danger ? 'var(--danger)' : 'var(--navy)'};"></span>${title} <span style="opacity:.6; font-weight:500;">${count}</span></h3>
+    <div class="entry-card compact-card">${body}</div>`;
+  let lastDay = '', soonHtml = '';
+  a.soon.slice(0, 30).forEach(i => {
+    if(i.date !== lastDay){ soonHtml += `<div class="ag-day">${escapeHtml(fmtDate(i.date))}</div>`; lastDay = i.date; }
+    soonHtml += agendaRowHtml_(i, false);
+  });
+  const nudgeRows = nudgeRowsHtml_(a.nudges);
+  const anything = a.overdue.length + a.today.length + a.nudges.length + a.soon.length;
+  const body = anything === 0
+    ? `<div class="entry-card compact-card"><div class="entry-meta">Nothing overdue, nothing due today, and nothing coming up inside the alert window.</div></div>`
+    : sec('Overdue', nudgeRows + a.overdue.map(i => agendaRowHtml_(i, true)).join(''),
+          a.overdue.length + a.nudges.length, true)
+      + sec('Today', a.today.map(i => agendaRowHtml_(i, false)).join(''), a.today.length)
+      + sec('Coming up', soonHtml + (a.soon.length > 30 ? `<div class="entry-meta" style="margin-top:8px;">… and ${a.soon.length - 30} more.</div>` : ''), a.soon.length);
+  const wrap = document.createElement('div');
+  wrap.id = 'alertsDrawer';
+  wrap.innerHTML = `
+    <div class="alert-drawer-backdrop" onclick="closeAlertsDrawer()"></div>
+    <aside class="alert-drawer" role="dialog" aria-modal="true" aria-label="Reminders and alerts">
+      <div class="alert-drawer-head">
+        <b>Reminders &amp; alerts</b>
+        <button class="small-btn" onclick="closeAlertsDrawer()" aria-label="Close">&times;</button>
+      </div>
+      <div class="alert-drawer-body">
+        ${body}
+        <div class="alert-drawer-foot">
+          <span class="task-link" style="font-size:12.5px;" onclick="closeAlertsDrawer(); goView('alerts')">Open the Alerts page →</span>
+        </div>
+      </div>
+    </aside>`;
+  document.body.appendChild(wrap);
+  const close = wrap.querySelector('.alert-drawer-head .small-btn');
+  if(close) close.focus();
+}
 function viewAlerts(){
   const today = todayStr();
   const items = buildAgenda_({ to: shiftDate(today, 400), includeOverdue:true });
@@ -7530,7 +8041,7 @@ function plannerDayCard(dateStr, canAdd){
       <div class="planner-day-head">${dayName} <span class="mono">${dayNum}</span></div>
       ${evts.map(e=>`<div class="planner-evt ${e.cls}">${escapeHtml(e.label)}</div>`).join('')}
       ${tasks.map(t=>`
-        <label class="planner-task">
+        <label class="planner-task" id="item-task-${t.id}">
           <input type="checkbox" ${t.done?'checked':''} onchange="togglePlannerTask('${t.id}')">
           <span style="${t.done?'text-decoration:line-through; color:var(--ink-faint);':''}">${escapeHtml(t.text)}</span>
           <button class="planner-task-del" onclick="deletePlannerTask('${t.id}')">&times;</button>
@@ -9452,7 +9963,7 @@ function remindersWidgetHtml(){
       <div class="entry-actions" style="margin-bottom:8px;"><button class="small-btn" onclick="openAddReminderModal()">+ Add reminder</button></div>
       ${items.length===0 ? `<div class="empty-state"><div class="em-title">Nothing jotted down</div><div class="em-sub">Quick personal notes — just for you.</div></div>` :
         items.map((r,idx)=>`
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 2px; ${idx>0?'border-top:1px solid var(--border);':''}">
+          <div id="item-reminder-${r.id}" style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 2px; ${idx>0?'border-top:1px solid var(--border);':''}">
             <span style="font-size:13.5px;">${escapeHtml(r.text)}</span>
             <button class="small-btn" style="flex-shrink:0; padding:10px 14px; font-size:13px;" onclick="deleteReminder('${r.id}')">✕</button>
           </div>
