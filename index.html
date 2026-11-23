@@ -9,10 +9,10 @@
      decide whether to offer "Update now". Bump it on every deployment; if it's
      ever left unchanged, no banner appears and the app simply updates silently
      on the next open, exactly as it did before this existed. -->
-<meta name="app-build" content="2026-10-21-2">
+<meta name="app-build" content="2026-11-23-6">
 <!-- The version people see. This and app-build above are the only two
      places either value is written; everything on screen reads them. -->
-<meta name="app-version" content="1.8">
+<meta name="app-version" content="1.9.4">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1F3A5F">
 <link rel="icon" href="icons/icon-192.png">
@@ -23,7 +23,7 @@
 <meta name="apple-mobile-web-app-title" content="RG Logbook">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=optional" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
@@ -68,15 +68,15 @@
   *::-webkit-scrollbar-thumb:hover{ background:var(--ink-faint); background-clip:padding-box; }
   html,body{margin:0;padding:0;}
   body{
-    font-family:'Inter', sans-serif;
+    font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     font-size:15.5px;
     color:var(--ink);
     background:var(--bg);
     min-height:100vh;
     -webkit-font-smoothing:antialiased;
   }
-  h1,h2,h3{ font-family:'Inter', sans-serif; letter-spacing:-0.005em; }
-  .heading{ font-family:'Inter', sans-serif; letter-spacing:-0.005em; }
+  h1,h2,h3{ font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; letter-spacing:-0.005em; }
+  .heading{ font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; letter-spacing:-0.005em; }
   .mono{ font-family:'IBM Plex Mono', monospace; }
   /* Vertical scrolling box, sized so roughly 10 items are visible at once
      (10 rows × ~34px) before the box itself takes over scrolling for the
@@ -95,8 +95,8 @@
     width:100%; box-sizing:border-box; overflow:hidden;
   }
   .watch-clock #rightColClock{ font-size:15px; font-weight:600; letter-spacing:.005em; white-space:nowrap; }
-  button{ font-family:'Inter', sans-serif; cursor:pointer; }
-  input,select,textarea{ font-family:'Inter', sans-serif; }
+  button{ font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; cursor:pointer; }
+  input,select,textarea{ font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
   ::selection{ background:var(--navy-wash); }
   a{ color:var(--navy); }
 
@@ -120,7 +120,7 @@
   .login-hero:after{ content:""; position:absolute; width:220px; height:220px; border-radius:50%; background:rgba(255,255,255,0.04); bottom:-90px; left:-70px; }
   .login-hero-illustration{ position:absolute; right:-6px; bottom:14px; display:flex; flex-direction:column; align-items:flex-end; gap:8px; opacity:0.55; pointer-events:none; }
   .login-hero-mark{ width:44px; height:44px; border-radius:10px; background:#fff; color:var(--navy-dark); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; margin-bottom:24px; position:relative; z-index:1; }
-  .login-hero-title{ font-family:'Inter', sans-serif; font-size:31px; font-weight:600; line-height:1.25; letter-spacing:-0.01em; margin-bottom:0; position:relative; z-index:1; }
+  .login-hero-title{ font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size:31px; font-weight:600; line-height:1.25; letter-spacing:-0.01em; margin-bottom:0; position:relative; z-index:1; }
   .login-hero-groupname{ font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,0.6); margin-bottom:22px; position:relative; z-index:1; }
   .login-hero-tag{ font-size:14px; line-height:1.65; color:rgba(255,255,255,0.72); max-width:360px; margin-bottom:28px; position:relative; z-index:1; }
   .login-hero-list{ list-style:none; padding:0; margin:0 0 32px; display:flex; flex-direction:column; gap:11px; position:relative; z-index:1; }
@@ -145,7 +145,7 @@
   }
   .login-mark{ width:38px; height:38px; border-radius:8px; background:var(--navy); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; letter-spacing:0.02em; margin-bottom:18px; }
   .login-eyebrow{ font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; }
-  .login-title{ font-family:'Inter', sans-serif; font-size:27px; font-weight:600; margin:6px 0 6px; letter-spacing:-0.01em; }
+  .login-title{ font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size:27px; font-weight:600; margin:6px 0 6px; letter-spacing:-0.01em; }
   .login-sub{ color:var(--ink-soft); font-size:15px; margin-bottom:28px; line-height:1.6; }
   .role-row{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
   .role-row .role-btn{ flex:1 1 140px; }
@@ -180,7 +180,7 @@
   }
   .brand{ display:flex; align-items:center; gap:11px; }
   .brand-mark{ width:30px; height:30px; border-radius:7px; background:#fff; color:var(--navy-dark); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; }
-  .brand-name{ font-family:'Inter', sans-serif; font-weight:600; font-size:17px; letter-spacing:-0.005em; color:#fff; line-height:1.2; }
+  .brand-name{ font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight:600; font-size:17px; letter-spacing:-0.005em; color:#fff; line-height:1.2; }
   .brand-subtitle{ font-size:11px; font-weight:500; letter-spacing:.03em; color:rgba(255,255,255,0.55); margin-top:1px; }
   .identity-pill{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:flex-end; }
   .topbar-search{ position:relative; flex:1; max-width:340px; margin:0 20px; }
@@ -210,7 +210,7 @@
   .mobile-menu-btn{ display:none; }
   .sidebar-backdrop{ display:none; }
   .sidebar-close-btn{ display:none; }
-  .nav-group-label{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin:10px 8px 3px; }
+  .nav-group-label{ font-size:11px; font-weight:700; text-transform:none; letter-spacing:.01em; color:var(--ink-faint); margin:10px 8px 3px; }
   .sidebar-identity{ display:none; }
   .nav-group-label:first-child{ margin-top:0; }
   .nav-item{
@@ -224,7 +224,7 @@
 
   main#main{ flex:1; padding:28px 34px 64px; min-width:0; }
   .view-header{ display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:22px; padding-bottom:18px; border-bottom:1px solid var(--border); }
-  .view-title{ font-family:'Inter', sans-serif; font-size:24px; font-weight:600; letter-spacing:-0.01em; }
+  .view-title{ font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size:24px; font-weight:600; letter-spacing:-0.01em; }
   .view-sub{ color:var(--ink-soft); font-size:14.5px; margin-top:4px; }
   .action-btn{
     padding:10px 17px; background:var(--navy); color:#fff; border:none; border-radius:7px; font-weight:600; font-size:14px;
@@ -298,10 +298,14 @@
 
   /* ---------- Calendar & Planner ---------- */
   .cal-header{ display:flex; align-items:center; justify-content:space-between; margin:18px 0 10px; }
-  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:6px; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; margin-bottom:6px; }
   .cal-grid-labels{ margin-bottom:4px; }
   .cal-day-label{ text-align:center; font-size:11px; font-weight:600; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.04em; }
-  .cal-day{ min-height:70px; border:1px solid var(--border); border-radius:7px; padding:6px 7px; background:var(--surface); cursor:pointer; transition:box-shadow .12s, border-color .12s; }
+  /* min-width:0 is load-bearing. A grid item defaults to min-width:auto, so
+     it refuses to shrink below its content — and a day chip is nowrap, so
+     one long title widened its column and pushed the whole seven-column
+     calendar past the screen. */
+  .cal-day{ min-height:70px; min-width:0; overflow:hidden; border:1px solid var(--border); border-radius:7px; padding:6px 7px; background:var(--surface); cursor:pointer; transition:box-shadow .12s, border-color .12s; }
   .cal-day:hover{ box-shadow:var(--shadow-sm); border-color:var(--border-strong); }
   .cal-day.other-month{ visibility:hidden; }
   .cal-day.today{ border-color:var(--navy); box-shadow:inset 0 0 0 1px var(--navy); }
@@ -313,8 +317,49 @@
   .cal-dot.teal{ background:var(--stat-teal); }
   .cal-dot.blue{ background:var(--stat-blue); }
   .cal-dot.rose{ background:var(--stat-rose); } /* Results Analysis due dates — was missing, so their dots were invisible */
+  .cal-dot.cyan{ background:var(--stat-cyan); }
   .cal-legend{ display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--ink-soft); margin:10px 0 24px; }
   .cal-legend span{ display:flex; align-items:center; gap:6px; }
+
+  /* A day cell now names what is on it instead of showing an anonymous dot,
+     because a dot tells you something is happening without telling you what,
+     which means opening the day to find out every single time. */
+  .cal-day.sel{ border-color:var(--navy); background:var(--navy-wash, rgba(27,42,74,.05)); }
+  .cal-day.has-overdue{ border-color:var(--danger); }
+  .cal-chips{ display:flex; flex-direction:column; gap:2px; margin-top:4px; min-width:0; }
+  .cal-chip{ font-size:10.5px; line-height:1.3; padding:1px 4px; border-radius:3px; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis; border-left:2.5px solid currentColor; background:rgba(0,0,0,.035); }
+  .cal-chip.indigo{ color:var(--stat-indigo); } .cal-chip.purple{ color:var(--stat-purple); }
+  .cal-chip.teal{ color:var(--stat-teal); }     .cal-chip.blue{ color:var(--stat-blue); }
+  .cal-chip.rose{ color:var(--stat-rose); }     .cal-chip.cyan{ color:var(--stat-cyan); }
+  .cal-chip.cont{ opacity:.72; }
+  .cal-more{ font-size:10px; color:var(--ink-faint); padding-left:3px; }
+
+  /* The agenda list — shared by the calendar's day panel and the alerts page. */
+  .ag-list{ display:flex; flex-direction:column; }
+  .ag-row{ display:flex; gap:11px; align-items:baseline; padding:9px 4px; border-top:1px solid var(--border); cursor:pointer; }
+  .ag-row:first-child{ border-top:none; }
+  .ag-row:hover .ag-title{ text-decoration:underline; }
+  .ag-when{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--ink-soft); width:74px; flex-shrink:0; }
+  .ag-bd{ flex:1; min-width:0; }
+  .ag-title{ font-size:13.5px; font-weight:600; color:var(--ink); }
+  .ag-detail{ font-size:12px; color:var(--ink-faint); margin-top:1px; }
+  .ag-cat{ font-size:11px; font-weight:600; flex-shrink:0; }
+  .ag-row.overdue .ag-when{ color:var(--danger); font-weight:600; }
+  .ag-day{ font-size:11.5px; font-weight:700; color:var(--ink-soft); padding:12px 4px 3px; }
+
+  /* On a phone a day cell is about 45px wide, so a chip's title truncates to
+     "Pre…" — which tells you less than a coloured bar does and costs more
+     room. Below 620px the chips keep their colour and lose their text, and
+     the day panel underneath carries the names. */
+  @media (max-width: 620px){
+    .cal-chip{ font-size:0; line-height:0; height:5px; border-radius:2px; border-left:none;
+      background:currentColor; margin-top:1px; padding:0; }
+    .cal-more{ font-size:9px; }
+    .cal-day{ min-height:58px; padding:4px 4px; }
+    .ag-when{ width:56px; font-size:11px; }
+    .ag-cat{ display:none; }
+  }
 
   .planner-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:10px; margin-bottom:30px; }
   .planner-day{ background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px; min-height:130px; display:flex; flex-direction:column; gap:6px; }
@@ -373,7 +418,7 @@
   .entry-card.cat-neutral{ border-left-color:var(--ink-faint); }
   .entry-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--border); }
   .entry-idx{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-faint); letter-spacing:.03em; text-transform:uppercase; }
-  .entry-title{ font-family:'Inter', sans-serif; font-size:17px; font-weight:600; margin-top:3px; color:var(--ink); }
+  .entry-title{ font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size:17px; font-weight:600; margin-top:3px; color:var(--ink); }
   .entry-title.linkable, .task-link{ cursor:pointer; }
   .task-link{ display:inline-block; padding:6px 3px; margin:-6px -3px; }
   .entry-title.linkable:hover, .task-link:hover{ color:var(--navy); text-decoration:underline; }
@@ -456,7 +501,7 @@
   }
   .day-brief-close{ position:absolute; top:12px; right:14px; color:rgba(255,255,255,0.75); }
   .day-brief-close:hover{ color:#fff; }
-  .day-brief-greeting{ font-family:'Inter', sans-serif; font-size:25px; font-weight:600; letter-spacing:-0.01em; line-height:1.25; padding-right:30px; }
+  .day-brief-greeting{ font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size:25px; font-weight:600; letter-spacing:-0.01em; line-height:1.25; padding-right:30px; }
   .day-brief-date{ font-size:13px; color:rgba(255,255,255,0.68); margin-top:5px; letter-spacing:.01em; }
   .day-brief-body{ padding:22px 30px 24px; }
   /* Gentle "you haven't logged for a while" band. Amber rather than red: this
@@ -471,7 +516,7 @@
   .nudge-title{ font-weight:650; color:var(--ink); font-size:14.5px; margin-bottom:3px; }
   .nav-group-head{ display:flex; align-items:center; gap:8px; width:100%; background:none; border:none;
     padding:9px 12px; margin:12px 0 2px; cursor:pointer; text-align:left; font-family:inherit;
-    font-size:11.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+    font-size:12.5px; font-weight:700; letter-spacing:.01em; text-transform:none;
     color:var(--ink-soft); border-radius:7px; }
   .nav-group-head:hover{ background:rgba(0,0,0,.045); color:var(--ink); }
   .nav-group-head:focus-visible{ outline:2px solid var(--navy); outline-offset:2px; }
@@ -495,7 +540,7 @@
   }
   .day-brief-tile:hover{ box-shadow:var(--shadow-md); transform:translateY(-2px); }
   .day-brief-tile:focus-visible{ outline:2px solid var(--navy); outline-offset:2px; }
-  .day-brief-tile-num{ font-family:'Inter', sans-serif; font-size:26px; font-weight:700; line-height:1.1; color:var(--tile); }
+  .day-brief-tile-num{ font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size:26px; font-weight:700; line-height:1.1; color:var(--tile); }
   .day-brief-tile-num.is-text{ font-size:17px; font-weight:600; padding-top:5px; padding-bottom:4px; }
   .day-brief-tile-label{ font-size:11.5px; color:var(--ink-soft); margin-top:3px; line-height:1.35; }
   .day-brief-needs-title{
@@ -576,7 +621,7 @@
   /* ---------- Report document ---------- */
   .report-doc{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:32px 36px; }
   .report-head{ border-bottom:2px solid var(--ink); padding-bottom:14px; margin-bottom:24px; }
-  .report-eyebrow{ font-family:'Inter', sans-serif; font-size:19px; font-weight:600; letter-spacing:-0.01em; }
+  .report-eyebrow{ font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size:19px; font-weight:600; letter-spacing:-0.01em; }
   .report-meta{ font-size:12.5px; color:var(--ink-soft); margin-top:4px; }
   .report-divider{ border-top:1px dashed var(--border-strong); margin:30px 0; }
   .report-student-name{ font-size:19px; font-weight:700; margin:0 0 14px; }
@@ -763,6 +808,7 @@ const state = {
   supervisorNotifyPrefs: {},
   recentNotificationFailures: [],
   calendarMonth: null,
+  calendarSel: null,   // which day the calendar's day panel is showing
   plannerWeekStart: null,
   view: 'overview',
   filterStudentId: 'all',
@@ -1799,10 +1845,18 @@ const REMINDER_RULE_LABELS = {
 };
 // A number typed into a settings box can be anything. This is the one place
 // that decides what an unusable value falls back to.
-function reminderDays_(value, fallback){
+function reminderDays_(value, fallback, min){
+  // Blank means "unset", not zero: Number('') is 0, so an empty box used to
+  // read as "alert me on the day only" and quietly switched off every warning
+  // for that category.
+  if(value === '' || value === null || value === undefined) return fallback;
   const n = Number(value);
   if(!isFinite(n)) return fallback;
-  return Math.max(1, Math.min(3650, Math.round(n)));
+  // The diary rules count days of silence, so zero is meaningless there and
+  // the floor is 1. An alert lead is different: zero means "only on the day",
+  // which is a sensible thing to ask for.
+  const floor = (min === undefined) ? 1 : min;
+  return Math.max(floor, Math.min(3650, Math.round(n)));
 }
 // Always returns a complete, usable object, whatever is or isn't stored.
 function reminderSettings_(){
@@ -1820,7 +1874,18 @@ function reminderSettings_(){
       repeatDays: reminderDays_(r.repeatDays, d.repeatDays)
     };
   });
+  // Per-category alert switches for the agenda engine. Passed straight
+  // through: agendaCatSettings_() merges them over its own defaults, so a
+  // settings record saved before these existed still reads correctly.
+  out.cats = (raw && raw.cats && typeof raw.cats === 'object') ? raw.cats : {};
+  out.alertEmailOn = !(raw && raw.alertEmailOn === false);
   return out;
+}
+// A co-supervisor or advisor sees their scholars' work but not the group's
+// shared stock. The menu already hides Consumables from them; the agenda has
+// to make the same decision for itself rather than leak an expiry date.
+function isMentorOnly_(){
+  return state.identity.role === 'cosupervisor';
 }
 // Which rules are in play, in the order they are shown.
 function reminderRuleKeys_(settings){
@@ -2146,6 +2211,7 @@ const NAV_GROUPS = [
     { key:'approvals', label:'Pending Approval', supervisorOnly:true },
     { key:'changesRequested', label:'Changes Requested', studentOnly:true },
     { key:'calendar', label:'Calendar & Planner' },
+    { key:'alerts', label:'Alerts' },
   ]},
   { label:'Planning', items: [
     { key:'proposal', label:'Work Plan (Proposal)' },
@@ -2170,21 +2236,27 @@ const NAV_GROUPS = [
     { key:'awards', label:'Awards & Recognitions' },
     { key:'collaborators', label:'Collaborators' },
   ]},
-  { label:'Admin', items: [
+  // Admin used to hold all fifteen of these. Meetings, discussions and the
+  // news board are things the whole group uses every week; members, logs and
+  // templates are the supervisor's record-keeping. Mixing them meant opening
+  // "Admin" to do something entirely ordinary.
+  { label:'Activities', items: [
     { key:'meetings', label:'Meetings' },
     { key:'events', label:'Events' },
-    { key:'consumables', label:'Consumables', hideFromMentor:true },
-    { key:'leave', label:'Leave / OD' },
-    { key:'instructions', label:'Information' },
     { key:'discussions', label:'Discussions' },
     { key:'links', label:'News Update' },
+    { key:'instructions', label:'Information' },
+    { key:'leave', label:'Leave / OD' },
+    { key:'consumables', label:'Consumables', hideFromMentor:true },
+  ]},
+  { label:'Admin', items: [
+    { key:'reports', label:'Reports' },
     { key:'analytics', label:'Analytics' },
+    { key:'members', label:'Members', trueSupervisorOnly:true },
+    { key:'projectStudentsAdmin', label:'Project Students', trueSupervisorOnly:true },
+    { key:'emailTemplates', label:'Email Templates', trueSupervisorOnly:true },
     { key:'activityLog', label:'Activity Log' },
     { key:'deletionLog', label:'Deletion Log', trueSupervisorOnly:true },
-    { key:'projectStudentsAdmin', label:'Project Students', trueSupervisorOnly:true },
-    { key:'members', label:'Members', trueSupervisorOnly:true },
-    { key:'emailTemplates', label:'Email Templates', trueSupervisorOnly:true },
-    { key:'reports', label:'Reports' },
     { key:'account', label:'Account' },
   ]},
 ];
@@ -2276,6 +2348,7 @@ function renderView(){
   else if(state.view==='approvals') main.innerHTML = viewApprovals();
   else if(state.view==='changesRequested') main.innerHTML = viewChangesRequested();
   else if(state.view==='calendar') main.innerHTML = viewCalendar();
+  else if(state.view==='alerts') main.innerHTML = viewAlerts();
   else if(state.view==='proposal') main.innerHTML = viewProposal();
   else if(state.view==='thesis') main.innerHTML = viewThesis();
   else if(state.view==='rac') main.innerHTML = viewRac();
@@ -2294,13 +2367,17 @@ function renderView(){
   else if(state.view==='instructions') main.innerHTML = viewInstructions();
   else if(state.view==='reports') main.innerHTML = viewReports();
   else if(state.view==='account') main.innerHTML = viewAccount();
+  paintConnections_();
 }
 
 const ITEM_TYPE_VIEW = {
   instruction:'instructions', proposal:'proposal', thesis:'thesis', rac:'rac',
   financial:'financial', course:'learning', weekly:'weekly', sample:'samples',
   paper:'papers', conference:'conferences', meeting:'meetings', fabrication:'fabrication', event:'events', analysis:'resultsAnalysis',
-  patent:'patents', plagiarism:'plagiarism', award:'awards', collaborator:'collaborators', leave:'leave', consumable:'consumables'
+  patent:'patents', plagiarism:'plagiarism', award:'awards', collaborator:'collaborators', leave:'leave', consumable:'consumables',
+  // A programme milestone is a date recorded against a person, so it opens
+  // the Members page rather than a record of its own.
+  milestone:'members'
 };
 function goToItem(type, id, studentId){
   const view = ITEM_TYPE_VIEW[type];
@@ -2641,6 +2718,7 @@ function openEditDiscussionModal(id){
     <input type="url" class="text-input" id="f_edLink" value="${escapeHtml(d.link||'')}" placeholder="https://doi.org/... or any URL">
     <label class="field-label">Message</label>
     <textarea class="text-input" id="f_edMessage" rows="4">${escapeHtml(d.message||'')}</textarea>
+    ${linkPickerHtml_(d.linkedTo||'', 'What is this discussion about? (optional)')}
   `, ()=>submitEditDiscussion(id));
 }
 function toggleEdTargetPicker(show){
@@ -2670,6 +2748,7 @@ async function submitEditDiscussion(id){
     d.title = title;
     d.targetStudentIds = chosen;
     d.link = document.getElementById('f_edLink').value.trim();
+    d.linkedTo = readLinkField_();
     d.message = document.getElementById('f_edMessage').value;
     d.editedByName = state.identity.name;
     d.editedAt = nowIST();
@@ -2720,6 +2799,7 @@ function openNewDiscussionModal(){
     <input type="url" class="text-input" id="f_discLink" placeholder="https://doi.org/... or any URL">
     <label class="field-label">Message</label>
     <textarea class="text-input" id="f_discMessage" rows="4" placeholder="What would you like to share or discuss?"></textarea>
+    ${linkPickerHtml_('', 'What is this discussion about? (optional)')}
   `, submitNewDiscussion);
 }
 function toggleDiscTargetPicker(show){
@@ -2736,7 +2816,7 @@ async function submitNewDiscussion(){
   const targetStudentIds = isSpecific ? Array.from(document.querySelectorAll('.f_discTarget:checked')).map(el=>el.value) : [];
   if(isSpecific && targetStudentIds.length===0){ alert('Please select at least one scholar, or choose "Anyone" instead.'); return; }
   const poster = reviewerIdentity(null);
-  const newDiscussion = { id: uid('disc'), title, link, message, targetStudentIds, createdByName: state.identity.name, createdByRole: poster.roleLabel, createdById: state.identity.id, createdAt: nowIST(), replies: [] };
+  const newDiscussion = { id: uid('disc'), title, link, linkedTo: readLinkField_(), message, targetStudentIds, createdByName: state.identity.name, createdByRole: poster.roleLabel, createdById: state.identity.id, createdAt: nowIST(), replies: [] };
   state.discussions.push(newDiscussion);
   await saveCollection('discussions', state.discussions);
   if(targetStudentIds.length>0){
@@ -3386,6 +3466,10 @@ const GENERIC_SECTION_CONFIG = {
 };
 function viewGenericSection(type){
   const cfg = GENERIC_SECTION_CONFIG[type];
+  // A section key that does not exist should show an empty page, not a blank
+  // one: this used to throw on REVIEWABLE_COLLECTIONS[type].list(), which
+  // takes the whole view down rather than the one section.
+  if(!cfg || !REVIEWABLE_COLLECTIONS[type]) return emptyState('Section not available', 'That section does not exist in this version of the app.');
   const list = scopedList(REVIEWABLE_COLLECTIONS[type].list()).sort((a,b)=>(b.lastUpdate||'').localeCompare(a.lastUpdate||''));
   const approvalMap = { pending:{label:'Pending Approval',cls:'warn'}, approved:{label:'Approved',cls:'good'}, changes_requested:{label:'Changes Requested',cls:'bad'} };
   return `
@@ -5036,18 +5120,36 @@ function viewAccount(){
   `;
 }
 
-// Everything here defaults to on — nobody's email changes until they come
-// here and explicitly turn something off, matching the backend's
-// prefsAllow_() behavior (undefined always means allowed).
+
+// Everything here defaults to on — nobody's email changes until something is
+// explicitly turned off, matching the backend's prefsAllow_() behaviour
+// (undefined always means allowed). The one exception is listed below.
 const NOTIFY_PREF_LABELS = {
-  reviews: 'When my work is reviewed, approved, or commented on',
-  workItems: 'When staff create or edit an entry on my behalf',
-  deletions: 'When one of my entries is deleted',
-  meetings: 'When a meeting is confirmed at a different time than I requested',
-  assignments: 'When I\'m assigned to review something',
+  // The first five are only ever shown on the supervisor's form for SOMEBODY
+  // ELSE, so they are written in the third person. They used to read "when my
+  // work is reviewed" on a form headed "Email notifications for Priya Nair",
+  // which invited the supervisor to read them as their own.
+  reviews: 'When their work is reviewed, approved, or commented on',
+  workItems: 'When staff create or edit an entry on their behalf',
+  deletions: 'When one of their entries is deleted',
+  meetings: 'When a meeting is confirmed at a different time than they requested',
+  assignments: 'When they are assigned to review something',
   submissions: 'When a scholar submits something new for approval',
   birthdays: 'A morning alert when it\'s a group member\'s birthday',
+  // This one is shown in both places — the supervisor's own card and the form
+  // for another person — so it names nobody.
+  calendarAlerts: 'A daily email of upcoming deadlines and alerts',
 };
+/* The daily alert email is the one opt-IN category: an unset preference means
+   do not send, where every other category reads unset as send. One shared
+   rule, because getting it wrong in either direction shows: a box that reads
+   ticked while no email is going out, or a whole group mailed because nobody
+   had set a value yet. The backend's alertEmailAllowed_() is its other half. */
+const NOTIFY_PREF_OPT_IN = ['calendarAlerts'];
+function notifyPrefOn_(prefs, key){
+  prefs = prefs || {};
+  return NOTIFY_PREF_OPT_IN.indexOf(key) !== -1 ? prefs[key] === true : prefs[key] !== false;
+}
 // The supervisor's own preference — this is fine to be self-serve, since
 // it's the supervisor's own inbox and no one else's oversight depends on
 // them seeing it. Scholar and mentor preferences, by contrast, are
@@ -5066,6 +5168,9 @@ function notificationPrefsSection(){
       <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; margin-top:6px;">
         <input type="checkbox" id="notifyPref_birthdays" ${prefs.birthdays===false?'':'checked'}> ${escapeHtml(NOTIFY_PREF_LABELS.birthdays)}
       </label>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; margin-top:6px;">
+        <input type="checkbox" id="notifyPref_calendarAlerts" ${notifyPrefOn_(prefs,'calendarAlerts')?'checked':''}> ${escapeHtml(NOTIFY_PREF_LABELS.calendarAlerts)}
+      </label>
       <div class="entry-actions"><button class="small-btn" onclick="saveNotificationPrefs()">Save preference</button></div>
     </div>
   `;
@@ -5074,7 +5179,8 @@ async function saveNotificationPrefs(){
   return runOnce_('saveNotificationPrefs', async () => {
   const prefs = { ...(state.supervisorNotifyPrefs || {}),
     submissions: document.getElementById('notifyPref_submissions').checked,
-    birthdays: document.getElementById('notifyPref_birthdays').checked };
+    birthdays: document.getElementById('notifyPref_birthdays').checked,
+    calendarAlerts: document.getElementById('notifyPref_calendarAlerts').checked };
   state.supervisorNotifyPrefs = prefs;
   await saveSupervisorProfile({ hash: state.supervisorPinHash, email: state.supervisorEmail, name: state.supervisorName, notifyPrefs: prefs });
   renderView();
@@ -5085,23 +5191,35 @@ async function saveNotificationPrefs(){
 function openEditNotifyPrefsModal(targetType, id){
   const record = targetType==='student' ? state.students.find(x=>x.id===id) : state.coSupervisors.find(x=>x.id===id);
   if(!record) return;
-  const keys = targetType==='student' ? ['reviews','workItems','deletions','meetings'] : ['assignments'];
+  const keys = targetType==='student'
+    ? ['reviews','workItems','deletions','meetings','calendarAlerts']
+    : ['assignments','calendarAlerts'];
   const prefs = record.notifyPrefs || {};
   showModal(`Email notifications for ${record.name}`, `
     <div style="display:flex; flex-direction:column; gap:8px;">
       ${keys.map(k=>`
         <label style="display:flex; align-items:center; gap:8px; font-size:13.5px;">
-          <input type="checkbox" id="notifyPrefAdmin_${k}" ${prefs[k]===false?'':'checked'}> ${escapeHtml(NOTIFY_PREF_LABELS[k])}
+          <input type="checkbox" id="notifyPrefAdmin_${k}" ${notifyPrefOn_(prefs, k)?'checked':''}> ${escapeHtml(NOTIFY_PREF_LABELS[k])}
         </label>
       `).join('')}
     </div>
-    <div class="view-sub" style="margin-top:8px;">All on by default. Turning something off means ${escapeHtml(record.name)} won't get that type of email — they can't change this themselves.</div>
+    <div class="view-sub" style="margin-top:8px;">Everything here is on by default except the daily alert email, which is off until you switch it on. ${escapeHtml(record.name)} cannot change any of these — you set them.</div>
   `, ()=>submitEditNotifyPrefs(targetType, id, keys));
 }
 async function submitEditNotifyPrefs(targetType, id, keys){
   const record = targetType==='student' ? state.students.find(x=>x.id===id) : state.coSupervisors.find(x=>x.id===id);
-  const prefs = {};
-  keys.forEach(k => { prefs[k] = document.getElementById('notifyPrefAdmin_'+k).checked; });
+  // Merge, never replace. This built a fresh object from the listed keys, so
+  // any preference not on this particular form was wiped on save.
+  // Merge, never replace. This built a fresh object from the listed keys, so
+  // any preference not on this particular form was wiped on save.
+  const prefs = Object.assign({}, record.notifyPrefs || {});
+  keys.forEach(k => {
+    // A key with no box on the form leaves its stored value alone rather than
+    // throwing. Reading .checked off a missing element took the whole save
+    // down, which lost the other changes on the form with it.
+    const el = document.getElementById('notifyPrefAdmin_' + k);
+    if(el) prefs[k] = el.checked;
+  });
   record.notifyPrefs = prefs;
   await saveCollection(targetType==='student' ? 'students' : 'co-supervisors', targetType==='student' ? state.students : state.coSupervisors);
   closeModal(); renderView();
@@ -5147,6 +5265,38 @@ function reminderSettingsSection(){
       <div class="comment-box" style="margin-top:14px;" id="reminderSummary">${reminderSummaryHtml_(st)}</div>
       <div class="entry-actions"><button class="small-btn" onclick="saveReminderSettings()">Save reminder settings</button></div>
     </div>
+    ${alertCategorySection_()}
+    ${connectionsCheckHtml_()}
+  `;
+}
+
+/* Which dated things raise an alert, and how far ahead. These are the same
+   switches the Alerts page and the calendar read, so turning one off here
+   removes that category from the alerts without hiding it on the calendar —
+   the calendar always shows everything for the month you are looking at. */
+function alertCategorySection_(){
+  const S = agendaCatSettings_();
+  const rows = Object.keys(AGENDA_CATS).map(c => `
+    <tr>
+      <td style="vertical-align:middle;"><span class="dot" style="background:var(--stat-${AGENDA_CATS[c].dot});"></span> ${escapeHtml(AGENDA_CATS[c].label)}</td>
+      <td style="vertical-align:middle;"><input type="checkbox" id="agc_${c}_on" ${S[c].on?'checked':''}></td>
+      <td><label class="rem-cell"><input class="text-input rem-num" type="number" min="0" max="365" id="agc_${c}_lead" value="${S[c].lead}"> days ahead</label></td>
+    </tr>`).join('');
+  return `
+    <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Alerts — what counts, and how far ahead</h3>
+    <div class="entry-card">
+      <div class="entry-block" style="margin-bottom:12px;">The <b>Alerts</b> page gathers every date in the app. A category appears there once its date is within the number of days set here — a conference deadline is worth knowing weeks out, a planner task is not. Anything already past its date is shown as overdue whatever the setting. These change what the <i>Alerts page</i> shows; the calendar always shows the whole month.</div>
+      <table class="report-table" style="margin:0;">
+        <thead><tr><th style="width:46%;">Category</th><th style="width:14%;">Alert</th><th>Start showing</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; margin-top:14px; padding-top:12px; border-top:1px solid var(--border);">
+        <input type="checkbox" id="agc_emailOn" ${reminderSettings_().alertEmailOn === false ? '' : 'checked'}>
+        <span>Also send each person a daily email of their own upcoming items</span>
+      </label>
+      <div class="entry-meta" style="margin-top:4px;">This permits the email for the group. Nobody receives it until you switch it on for them one by one, under <b>Members</b> → a person's row → <b>Email notifications</b>; they cannot change it themselves. Once on, they get one email on days they have something coming up, listing only their own items, using the categories and lead days above. Turning this off stops it for everybody regardless.</div>
+      <div class="entry-actions"><button class="small-btn" onclick="saveReminderSettings()">Save alert settings</button></div>
+    </div>
   `;
 }
 
@@ -5174,6 +5324,20 @@ function readReminderForm_(modeOverride){
       repeatDays: reminderDays_(el('repeatDays').value, c.repeatDays)
     } : c;
   });
+  // The alert categories. If their table is not on screen (the mode was just
+  // switched, say) keep what is already stored rather than writing {} over it.
+  const probe = document.getElementById('agc_meeting_on');
+  if(probe){
+    out.cats = {};
+    Object.keys(AGENDA_CATS).forEach(c => {
+      const on = document.getElementById('agc_' + c + '_on');
+      const lead = document.getElementById('agc_' + c + '_lead');
+      if(!on) return;
+      out.cats[c] = { on: on.checked, lead: reminderDays_(lead.value, AGENDA_CATS[c].lead, 0) };
+    });
+  } else out.cats = current.cats || {};
+  const emailEl = document.getElementById('agc_emailOn');
+  out.alertEmailOn = emailEl ? emailEl.checked : (current.alertEmailOn !== false);
   return out;
 }
 
@@ -6740,61 +6904,504 @@ function weekDates(monday){
   for(let i=0;i<7;i++) out.push(shiftDate(monday, i));
   return out;
 }
-// Every deadline source in the app, in one chronological list from today
-// forward — the same sources eventsForDate() shows on the calendar grid,
-// just flattened into a scannable list instead of needing to browse month
-// by month for what's coming up.
-function upcomingDeadlines_(limit){
-  const today = todayStr();
-  const items = [];
-  scopedMeetings_().forEach(m=>{ if(m.plannedDate>=today) items.push({ date:m.plannedDate, type:'meeting', id:m.id, studentId:m.studentId, title:`${m.type}: ${m.title}`, category:'Meeting' }); });
-  scopedList(state.conferences).forEach(c=>{ if(c.startDate>=today) items.push({ date:c.startDate, type:'conference', id:c.id, studentId:c.studentId, title:c.eventName, category:'Conference' }); });
-  scopedList(state.fabricationItems).forEach(it=>{ if(it.targetDate && it.targetDate>=today && it.stage!=='completed') items.push({ date:it.targetDate, type:'fabrication', id:it.id, studentId:it.studentId, title:fabricationLabel(it), category:'Lab Work' }); });
-  scopedList(state.resultsAnalysis).forEach(a=>{ if(a.targetDate && a.targetDate>=today && a.status!=='completed') items.push({ date:a.targetDate, type:'analysis', id:a.id, studentId:a.studentId, title:a.title, category:'Results Analysis' }); });
-  scopedList(state.papers).forEach(p=>{ if(p.targetDate && p.targetDate>=today && p.stage!=='Published') items.push({ date:p.targetDate, type:'paper', id:p.id, studentId:p.studentId, title:p.title, category:'Paper Pipeline' }); });
-  scopedList(state.thesisPlans).forEach(tp=>{
-    (tp.chapters||[]).forEach(ch=>{ if(ch.targetDate && ch.targetDate>=today && ch.status!=='done') items.push({ date:ch.targetDate, type:'thesis', id:tp.id, studentId:tp.studentId, title:`Chapter: ${ch.title}`, category:'Thesis Plan' }); });
+/* ============================ CONNECTIONS ============================
+   Sections used to be islands. A meeting about a paper, a discussion about a
+   batch of lab work and a reminder about a conference deadline all existed in
+   their own lists with nothing tying them to the work they were about, so the
+   only way to reconstruct "everything that happened around this paper" was to
+   remember it.
+
+   A connected record carries one extra optional string, `linkedTo`, of the
+   form "type:id" — "paper:pp_17". It is deliberately NOT called `link`:
+   discussions, conferences and events already store a web address in a field
+   of that name, and quietly overloading it would have corrupted them.
+   From it both directions follow: the child can
+   name its parent, and the parent can find its children. One field, no
+   schema, and a record without it behaves exactly as it always has, which
+   matters because every record already in the app is a record without it.
+
+   Nothing here writes to an existing record unless a person edits that record
+   and chooses a parent.                                                     */
+const LINK_PARENTS = [
+  { type:'paper',       label:'Paper',              list:()=>state.papers,           title:p=>p.title },
+  { type:'proposal',    label:'Work Plan',          list:()=>state.proposals,        title:p=>p.title },
+  { type:'thesis',      label:'Thesis Plan',        list:()=>state.thesisPlans,      title:p=>p.title || 'Thesis plan' },
+  { type:'fabrication', label:'Lab Work',           list:()=>state.fabricationItems, title:p=>fabricationLabel(p) },
+  { type:'sample',      label:'Characterization',   list:()=>state.samples,          title:p=>p.sampleName },
+  { type:'analysis',    label:'Results Analysis',   list:()=>state.resultsAnalysis,  title:p=>p.title },
+  { type:'conference',  label:'Conference',         list:()=>state.conferences,      title:p=>p.eventName },
+  { type:'rac',         label:'RAC Review',         list:()=>state.racReviews,       title:p=>p.title },
+  { type:'financial',   label:'Proposal',           list:()=>state.financialApps,    title:p=>p.title },
+  { type:'course',      label:'Course',             list:()=>state.courses,          title:p=>p.title },
+  { type:'event',       label:'Event',              list:()=>state.events,           title:p=>p.title }
+];
+// The record kinds that can carry a link. Each names the collection it lives
+// in so the broken-link check knows where to look.
+const LINK_CHILDREN = [
+  // `mine` is how each kind decides what this person may see. Meetings are not
+  // scopedList(): a person invited to someone else's meeting can open it, and
+  // the panel has to agree with the Meetings page rather than quietly hide it.
+  // Reminders are personal notes with an owner and no studentId at all.
+  { type:'meeting',    label:'Meetings',    coll:'meetings',    list:()=>state.meetings,    mine:()=>scopedMeetings_(),
+    title:m=>[m.type, m.title].filter(Boolean).join(': '), date:m=>m.plannedDate },
+  { type:'discussion', label:'Discussions', coll:'discussions', list:()=>state.discussions, mine:()=>scopedDiscussions_(),
+    title:d=>d.title,  date:d=>d.date },
+  { type:'instruction',label:'Reminders',   coll:'reminders',   list:()=>state.reminders,   mine:()=>state.reminders.filter(r=>r.ownerId===state.identity.id),
+    title:r=>r.text,   date:r=>r.date }
+];
+function linkParentDef_(type){ return LINK_PARENTS.find(p => p.type === type) || null; }
+/* "paper:pp_17" -> { type, id, rec } — rec is null when the parent was deleted. */
+function linkTarget_(linkedTo){
+  if(!linkedTo || typeof linkedTo !== 'string') return null;
+  const i = linkedTo.indexOf(':');
+  if(i < 1) return null;
+  const type = linkedTo.slice(0, i), id = linkedTo.slice(i+1);
+  const def = linkParentDef_(type);
+  if(!def) return null;
+  return { type, id, def, rec: def.list().find(x => x.id === id) || null };
+}
+function linkName_(linkedTo){
+  const t = linkTarget_(linkedTo);
+  if(!t || !t.rec) return '';
+  return (t.def.title(t.rec) || '').trim();
+}
+/* The picker. Only records this person can already see are offered — the list
+   is built from scopedList(), so choosing a parent can never be a way to learn
+   that somebody else's record exists. */
+function linkPickerHtml_(currentLink, labelText){
+  const groups = LINK_PARENTS.map(def => {
+    const rows = scopedList(def.list())
+      .map(r => ({ id:def.type + ':' + r.id, label:(def.title(r) || '').trim() }))
+      .filter(r => r.label)
+      .slice(0, 60);
+    if(!rows.length) return '';
+    return `<optgroup label="${escapeHtml(def.label)}">${rows.map(r =>
+      `<option value="${escapeHtml(r.id)}" ${r.id === currentLink ? 'selected' : ''}>${escapeHtml(r.label.length > 70 ? r.label.slice(0,70)+'…' : r.label)}</option>`).join('')}</optgroup>`;
+  }).join('');
+  if(!groups) return '';
+  return `
+    <label class="field-label">${escapeHtml(labelText || 'Connected to (optional)')}</label>
+    <select class="text-input" id="f_link">
+      <option value="">— not connected to anything —</option>
+      ${groups}
+    </select>
+    <div class="entry-meta" style="margin-top:4px;">Connecting this to the work it belongs to makes it appear on that record too.</div>`;
+}
+function readLinkField_(){
+  const el = document.getElementById('f_link');
+  return el ? el.value : '';
+}
+/* Everything connected to one parent record, by kind. */
+function linkedChildren_(type, id){
+  const key = type + ':' + id;
+  const out = {};
+  LINK_CHILDREN.forEach(c => { out[c.type] = c.mine().filter(r => r.linkedTo === key); });
+  return out;
+}
+function linkedChildCount_(type, id){
+  const L = linkedChildren_(type, id);
+  return Object.keys(L).reduce((a,k) => a + L[k].length, 0);
+}
+/* The panel shown on a parent record. Deliberately quiet when there is nothing
+   connected: an empty panel on every record in the app would be noise. */
+function connectedPanel_(type, id){
+  const L = linkedChildren_(type, id);
+  if(!linkedChildCount_(type, id)) return '';
+  const secs = LINK_CHILDREN.map(c => {
+    const rows = L[c.type].slice().sort((a,b) => ((c.date(b)||'')).localeCompare(c.date(a)||''));
+    if(!rows.length) return '';
+    return `<div style="margin-top:7px;">
+      <div class="entry-meta" style="font-weight:600;">${escapeHtml(c.label)} <span style="opacity:.6;">${rows.length}</span></div>
+      ${rows.slice(0,8).map(r => `
+        <div class="ag-row" onclick="goToItem('${c.type}','${r.id}','${r.studentId||''}')">
+          <div class="ag-when">${escapeHtml(fmtDate(c.date(r)) || '')}</div>
+          <div class="ag-bd"><div class="ag-title">${escapeHtml((c.title(r)||'').slice(0,90))}</div></div>
+        </div>`).join('')}
+      ${rows.length > 8 ? `<div class="entry-meta">+${rows.length-8} more</div>` : ''}
+    </div>`;
+  }).join('');
+  return `<div class="comment-box connected-panel" style="margin-top:12px;">
+    <span class="lbl">Connected to this record</span>
+    ${secs}
+  </div>`;
+}
+/* Rather than thread this panel through every card template by hand — four
+   different renderers, each with its own closing structure — it is painted on
+   after the view is drawn. Every card already carries id="item-<type>-<id>",
+   which is the same handle goToItem() scrolls to, so one pass covers every
+   section including the generic ones, and a template nobody has touched
+   cannot be broken by it. */
+function paintConnections_(){
+  const main = document.getElementById('main');
+  if(!main) return;
+  main.querySelectorAll('[id^="item-"]').forEach(el => {
+    const m = el.id.match(/^item-([A-Za-z]+)-(.+)$/);
+    if(!m) return;
+    const type = m[1], id = m[2];
+    // A parent lists what points at it...
+    if(linkParentDef_(type)){
+      if(el.querySelector('.connected-panel')) return;
+      const html = connectedPanel_(type, id);
+      if(html) el.insertAdjacentHTML('beforeend', html);
+      return;
+    }
+    // ...and a child says what it is about. Without this only half the
+    // connection was visible: you could see a paper's meetings, but opening
+    // the meeting told you nothing about which paper it belonged to.
+    const kid = LINK_CHILDREN.find(c => c.type === type);
+    if(!kid || el.querySelector('.connected-to')) return;
+    const rec = kid.mine().find(x => x.id === id);
+    if(!rec || !rec.linkedTo) return;
+    const t = linkTarget_(rec.linkedTo);
+    const name = linkName_(rec.linkedTo);
+    if(!t) return;
+    el.insertAdjacentHTML('beforeend', name
+      ? `<div class="entry-meta connected-to" style="margin-top:8px;">About: <span class="task-link" onclick="goToItem('${t.type}','${t.id}','${rec.studentId||''}')">${escapeHtml(t.def.label)} — ${escapeHtml(name)}</span></div>`
+      : `<div class="entry-meta connected-to" style="margin-top:8px;">Was connected to a ${escapeHtml(t.def.label.toLowerCase())} that has since been deleted.</div>`);
   });
-  visibleEvents().forEach(ev=>{ if(ev.date && ev.date>=today) items.push({ date:ev.date, type:'event', id:ev.id, studentId:ev.assignedStudentId, title:ev.title, category:'Event' }); });
-  return items.sort((a,b)=>(a.date||'').localeCompare(b.date||'')).slice(0, limit||10);
+}
+/* A parent can be deleted while things still point at it. Nothing breaks — a
+   dangling link simply shows no name — but the supervisor should be able to
+   see and clear them rather than wonder. */
+function brokenLinks_(){
+  const out = [];
+  LINK_CHILDREN.forEach(c => c.list().forEach(r => {
+    if(!r.linkedTo) return;
+    const t = linkTarget_(r.linkedTo);
+    if(!t || !t.rec) out.push({ kind:c, rec:r });
+  }));
+  return out;
+}
+function connectionsCheckHtml_(){
+  if(!isTrueSupervisor()) return '';
+  const broken = brokenLinks_();
+  const total = LINK_CHILDREN.reduce((a,c) => a + c.list().filter(r => r.linkedTo).length, 0);
+  return `
+    <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">Connections</h3>
+    <div class="entry-card">
+      <div class="entry-block">${total} item${total===1?' is':'s are'} connected to the work ${total===1?'it belongs':'they belong'} to.</div>
+      ${broken.length ? `
+        <div class="entry-block" style="margin-top:8px; color:var(--danger); font-weight:600;">${broken.length} point${broken.length===1?'s':''} at a record that has since been deleted.</div>
+        ${broken.slice(0,10).map(b => `<div class="entry-meta">${escapeHtml(b.kind.label)}: ${escapeHtml((b.kind.title(b.rec)||'').slice(0,70))}</div>`).join('')}
+        <div class="entry-actions"><button class="small-btn danger" onclick="clearBrokenLinks()">Clear the broken connections</button></div>`
+        : `<div class="entry-block" style="margin-top:8px;">All connections are intact.</div>`}
+    </div>`;
+}
+async function clearBrokenLinks(){
+  return runOnce_('clearBrokenLinks', async () => {
+    if(!isTrueSupervisor()){ alert('Only the supervisor can do this.'); return; }
+    const broken = brokenLinks_();
+    if(!broken.length) return;
+    if(!confirm(`Clear ${broken.length} broken connection${broken.length===1?'':'s'}? The records themselves are not touched — only the link to the deleted parent is removed.`)) return;
+    const touched = new Set();
+    broken.forEach(b => { b.rec.linkedTo = ''; touched.add(b.kind.type); });
+    for(const c of LINK_CHILDREN){
+      if(!touched.has(c.type)) continue;
+      await saveCollection(c.coll, c.list());
+    }
+    renderView();
+  });
+}
+
+/* ============================ THE AGENDA ENGINE ============================
+   Dates live in every section of this app: a conference has an abstract
+   deadline, a sample has a date its results were expected, a scholar has a
+   synopsis-eligible date, a chemical has an expiry. Each section used to show
+   its own dates and nothing else, and the calendar walked its own private list
+   of five or six sources — so most of these dates existed in the app without
+   ever appearing anywhere a person would look before the day arrived.
+
+   buildAgenda_() walks every section once and returns one flat list of dated
+   items in a single shape. The calendar grid, the day panel, the upcoming-
+   deadlines list and the alerts page are all views of that one list, so they
+   can never drift apart again or disagree about what is due.
+
+   It reads. It never writes, and it adds no field to any record, so it cannot
+   affect data already in the app.
+
+   An item:
+     { date, endDate, cat, title, detail, type, id, studentId,
+       overdue, spanDay, spanDays }
+   `type` + `id` + `studentId` are exactly what goToItem() takes, so every
+   entry the engine produces is clickable straight through to its record.
+
+   Scope is not optional here. Every source below is read through scopedList(),
+   scopedMeetings_() or visibleEvents() — the same filters the sections
+   themselves use — so a scholar's agenda can only ever contain a scholar's own
+   dates. A date is as revealing as the record behind it.                    */
+const AGENDA_CATS = {
+  meeting:    { label:'Meetings',                   dot:'indigo', lead:3  },
+  conference: { label:'Conferences & deadlines',    dot:'purple', lead:14 },
+  rac:        { label:'RAC reviews',                dot:'rose',   lead:14 },
+  paper:      { label:'Paper milestones',           dot:'purple', lead:7  },
+  labwork:    { label:'Lab work targets',           dot:'teal',   lead:7  },
+  sample:     { label:'Characterization results',   dot:'cyan',   lead:7  },
+  analysis:   { label:'Results analysis',           dot:'rose',   lead:7  },
+  thesis:     { label:'Thesis chapters',            dot:'purple', lead:14 },
+  goal:       { label:'Work plan goals',            dot:'teal',   lead:7  },
+  task:       { label:'Planner tasks',              dot:'blue',   lead:2  },
+  course:     { label:'Courses ending',             dot:'blue',   lead:7  },
+  proposalRes:{ label:'Proposal results expected',  dot:'teal',   lead:7  },
+  event:      { label:'Events',                     dot:'purple', lead:7  },
+  leave:      { label:'Leave / OD',                 dot:'blue',   lead:3  },
+  expiry:     { label:'Consumables expiring',       dot:'rose',   lead:30 },
+  milestone:  { label:'Programme milestones',       dot:'indigo', lead:30 },
+  reminder:   { label:'Reminders',                  dot:'blue',   lead:0  }
+};
+/* What the supervisor has turned on, merged over the defaults above. Reading a
+   setting that was never saved must give the default, not undefined, or a
+   whole category silently disappears. */
+function agendaCatSettings_(){
+  const saved = (reminderSettings_() || {}).cats || {};
+  const out = {};
+  Object.keys(AGENDA_CATS).forEach(c => {
+    const s = saved[c] || {};
+    out[c] = {
+      on:   s.on === undefined ? true : !!s.on,
+      lead: (s.lead === undefined || s.lead === '' || isNaN(+s.lead)) ? AGENDA_CATS[c].lead : Math.max(0, +s.lead)
+    };
+  });
+  return out;
+}
+function buildAgenda_(opts){
+  opts = opts || {};
+  const today = todayStr();
+  const from = opts.from || today;
+  const to   = opts.to   || shiftDate(today, 60);
+  // The calendar wants everything that falls in the month it is showing. The
+  // alerts page wants only what is close enough to act on, which is what the
+  // per-category lead days decide.
+  const ignoreLead = !!opts.ignoreLead;
+  const spans = !!opts.spans;
+  const S = agendaCatSettings_();
+  const items = [];
+
+  function wants(cat, date, open){
+    if(!date) return false;
+    if(opts.allCats !== true && !S[cat].on) return false;
+    // An overdue item is still bound by the window it was asked for. This
+    // returned before the range check, so a caller asking for next month got
+    // last month's overdue items too.
+    if(open && date < today){
+      if(ignoreLead) return date >= from && date <= to;
+      if(opts.includeOverdue === false) return false;
+      // Overdue means "before today and still open", so it only belongs to a
+      // window that actually reaches back to today. A caller asking about
+      // next month is not asking about last month's arrears.
+      if(from > today) return false;
+      return date >= shiftDate(today, -365) && date <= to;
+    }
+    if(date < from || date > to) return false;
+    if(ignoreLead) return true;
+    return daysBetween_(today, date) <= S[cat].lead;
+  }
+  function push(cat, date, title, detail, type, id, studentId, open){
+    if(!wants(cat, date, open)) return;
+    items.push({ date, endDate:'', cat, title, detail: detail || '', type, id,
+                 studentId: studentId || '', overdue: !!open && date < today,
+                 spanDay:1, spanDays:1 });
+  }
+  // Conferences and leave run over several days. On the calendar each day of
+  // the run gets its own entry so every day shows what is on; everywhere else
+  // one entry on the first day is enough.
+  function pushSpan(cat, start, end, title, detail, type, id, studentId){
+    if(!start) return;
+    const last = (end && end > start) ? end : start;
+    if(last === start){ push(cat, start, title, detail, type, id, studentId, false); return; }
+    const n = (daysBetween_(start, last) || 0) + 1;
+    if(!spans){
+      const before = items.length;
+      push(cat, start, title, detail, type, id, studentId, false);
+      if(items.length > before){ const it = items[items.length-1]; it.endDate = last; it.spanDays = n; }
+      return;
+    }
+    if(opts.allCats !== true && !S[cat].on) return;
+    for(let d = start, g = 0; d <= last && g < 400; d = shiftDate(d, 1), g++){
+      if(d < from || d > to) continue;
+      items.push({ date:d, endDate:last, cat, title,
+                   detail: [detail, `day ${(daysBetween_(start, d)||0)+1} of ${n}`].filter(Boolean).join(' · '),
+                   type, id, studentId: studentId || '', overdue:false,
+                   spanDay:(daysBetween_(start, d)||0)+1, spanDays:n });
+    }
+  }
+  const who = sid => (isSupervisorLike() && sid) ? studentName(sid) : '';
+
+  // ---- Meetings. A meeting still only proposed is something somebody has to
+  // act on, so it stays on the list after its date until it is confirmed.
+  scopedMeetings_().forEach(m => {
+    const t = [m.type, m.title].filter(Boolean).join(': ') || 'Meeting';
+    const time = [m.startTime, m.endTime].filter(Boolean).join('–');
+    push('meeting', m.plannedDate, (m.status === 'proposed' ? 'To confirm — ' : '') + t,
+         [time, m.venue, who(m.studentId)].filter(Boolean).join(' · '),
+         'meeting', m.id, m.studentId, m.status === 'proposed');
+  });
+  // ---- Conferences: the three deadlines, then the event itself.
+  scopedList(state.conferences).forEach(c => {
+    const n = c.eventName || 'Conference';
+    push('conference', c.abstractDeadline, 'Abstract deadline: ' + n, who(c.studentId), 'conference', c.id, c.studentId, true);
+    push('conference', c.registrationDeadline, 'Registration deadline: ' + n, [c.registrationFee ? '₹'+c.registrationFee : '', who(c.studentId)].filter(Boolean).join(' · '), 'conference', c.id, c.studentId, true);
+    pushSpan('conference', c.startDate, c.endDate, (c.eventType || 'Conference') + ': ' + n,
+             [c.venue, who(c.studentId)].filter(Boolean).join(' · '), 'conference', c.id, c.studentId);
+  });
+  // ---- Reviews, papers, lab work, analyses, samples, chapters, goals, tasks.
+  scopedList(state.racReviews).forEach(r => {
+    push('rac', r.reviewDate, 'RAC review: ' + (r.title || ''), who(r.studentId), 'rac', r.id, r.studentId, r.status === 'pending');
+  });
+  scopedList(state.papers).forEach(p => {
+    if(p.stage === 'Published') return;
+    push('paper', p.targetDate, 'Paper milestone: ' + (p.title || ''), [p.stage, p.journal, who(p.studentId)].filter(Boolean).join(' · '), 'paper', p.id, p.studentId, true);
+  });
+  scopedList(state.fabricationItems).forEach(it => {
+    if(it.stage === 'completed') return;
+    push('labwork', it.targetDate, 'Lab work due: ' + fabricationLabel(it), [it.stage, who(it.studentId)].filter(Boolean).join(' · '), 'fabrication', it.id, it.studentId, true);
+  });
+  scopedList(state.resultsAnalysis).forEach(a => {
+    if(a.status === 'completed') return;
+    push('analysis', a.targetDate, 'Analysis due: ' + (a.title || ''), who(a.studentId), 'analysis', a.id, a.studentId, true);
+  });
+  // A sample sent out for characterization whose results never came back is
+  // the quietest way for work to stall, and nothing surfaced it before.
+  scopedList(state.samples).forEach(s => {
+    if(s.resultsReceivedDate) return;
+    push('sample', s.expectedDate, 'Results expected: ' + (s.sampleName || ''), [s.technique, s.facility, who(s.studentId)].filter(Boolean).join(' · '), 'sample', s.id, s.studentId, true);
+  });
+  scopedList(state.thesisPlans).forEach(tp => {
+    (tp.chapters || []).forEach(ch => {
+      if(ch.status === 'done') return;
+      push('thesis', ch.targetDate, 'Chapter due: ' + (ch.title || ''), who(tp.studentId), 'thesis', tp.id, tp.studentId, true);
+    });
+  });
+  scopedList(state.proposals).forEach(pr => {
+    (pr.goals || []).forEach(g => {
+      if(g.done) return;
+      push('goal', g.targetDate, 'Goal: ' + (g.text || ''), who(pr.studentId), 'proposal', pr.id, pr.studentId, true);
+    });
+  });
+  scopedList(state.plannerTasks).forEach(t => {
+    if(t.done) return;
+    push('task', t.date, t.text || 'Task', who(t.studentId), 'weekly', t.id, t.studentId, true);
+  });
+  // ---- Courses, proposals awaiting a result, events, leave.
+  scopedList(state.courses).forEach(c => {
+    if(c.status === 'completed') return;
+    push('course', c.endDate, 'Course ends: ' + (c.title || ''), [c.provider, who(c.studentId)].filter(Boolean).join(' · '), 'course', c.id, c.studentId, true);
+  });
+  scopedList(state.financialApps).forEach(f => {
+    if(f.outcomeStatus && f.outcomeStatus !== 'awaiting_result') return;
+    push('proposalRes', f.resultDate, 'Result expected: ' + (f.title || ''), [f.hostInstitution, who(f.studentId)].filter(Boolean).join(' · '), 'financial', f.id, f.studentId, true);
+  });
+  visibleEvents().forEach(ev => {
+    push('event', ev.date, 'Event: ' + (ev.title || ''), [ev.type, who(ev.assignedStudentId)].filter(Boolean).join(' · '), 'event', ev.id, ev.assignedStudentId, false);
+  });
+  scopedList(state.leaveRecords).forEach(l => {
+    pushSpan('leave', l.fromDate, l.toDate, (l.leaveType || 'Leave') + (who(l.studentId) ? ' — ' + who(l.studentId) : ''), l.reason || '', 'leave', l.id, l.studentId);
+  });
+  // ---- Consumables with an expiry date. Shared stock, so everyone who can
+  // see the consumables list sees these.
+  if(!isMentorOnly_()) state.consumables.forEach(it => {
+    push('expiry', it.expiryDate, 'Expires: ' + (it.itemName || it.name || ''), [it.location, it.quantity ? it.quantity + ' ' + (it.unit||'') : ''].filter(Boolean).join(' · ').trim(), 'consumable', it.id, '', true);
+  });
+  // ---- Programme milestones, straight from the dates recorded against each
+  // scholar. These are months away, which is exactly why they need to appear
+  // somewhere long before they arrive.
+  // visibleStudentsForIdentity() answers "who may this person see", which is
+  // not the same question as "who is the calendar filtered to". Every other
+  // category reads through scopedList(), which honours the filter, so without
+  // this a calendar filtered to one scholar still showed everyone's
+  // milestones.
+  visibleStudentsForIdentity().forEach(s => {
+    if(s.studentType !== 'research') return;
+    // 'all' is the filter's show-everyone value, not an id. Treating it as
+    // one filtered every scholar out and the category vanished entirely.
+    if(state.filterStudentId && state.filterStudentId !== 'all' && s.id !== state.filterStudentId) return;
+    push('milestone', s.courseWorkDate, 'Course work completion — ' + s.name, '', 'milestone', s.id, s.id, false);
+    push('milestone', s.synopsisEligibleDate, 'Synopsis eligible — ' + s.name, '', 'milestone', s.id, s.id, false);
+    push('milestone', s.thesisEligibleDate, 'Thesis eligible — ' + s.name, '', 'milestone', s.id, s.id, false);
+  });
+  // ---- Supervisor reminders.
+  state.reminders.filter(r => r.ownerId === state.identity.id).forEach(r => {
+    if(r.done) return;
+    push('reminder', r.date, r.text || 'Reminder', '', 'instruction', r.id, '', true);
+  });
+
+  return items.sort((a,b) => (a.date||'').localeCompare(b.date||'') ||
+                             (a.cat||'').localeCompare(b.cat||'') ||
+                             (a.title||'').localeCompare(b.title||''));
+}
+/* Everything dated between two days, grouped by day — what the calendar grid
+   and its day panel both read. */
+function agendaByDate_(from, to){
+  const by = {};
+  buildAgenda_({ from, to, ignoreLead:true, allCats:true, spans:true, includeOverdue:false })
+    .forEach(i => (by[i.date] = by[i.date] || []).push(i));
+  return by;
+}
+// Every deadline source in the app, in one chronological list from today
+// forward — now a view of the agenda engine rather than its own private walk
+// of half the sections.
+function upcomingDeadlines_(limit){
+  return buildAgenda_({ to: shiftDate(todayStr(), 120), ignoreLead:true, includeOverdue:false })
+    .filter(i => i.spanDay === 1)
+    .map(i => ({ date:i.date, type:i.type, id:i.id, studentId:i.studentId,
+                 title:i.title, category: AGENDA_CATS[i.cat].label }))
+    .slice(0, limit || 10);
 }
 function eventsForDate(dateStr){
-  const out = [];
-  scopedMeetings_().forEach(m=>{ if(m.plannedDate===dateStr) out.push({ type:'meeting', label:`${m.type}: ${m.title}`, cls:'indigo' }); });
-  scopedList(state.conferences).forEach(c=>{
-    const end = c.endDate || c.startDate;
-    if(c.startDate<=dateStr && dateStr<=end) out.push({ type:'conference', label:c.eventName, cls:'purple' });
-  });
-  scopedList(state.proposals).forEach(pr=>{
-    (pr.goals||[]).forEach(g=>{ if(g.targetDate===dateStr) out.push({ type:'goal', label:g.text, cls:'teal' }); });
-  });
-  scopedList(state.plannerTasks).forEach(t=>{ if(t.date===dateStr) out.push({ type:'task', label:t.text, cls:'blue' }); });
-  scopedList(state.fabricationItems).forEach(it=>{ if(it.targetDate===dateStr && it.stage!=='completed') out.push({ type:'fabrication', label:`Sample due: ${fabricationLabel(it)}`, cls:'teal' }); });
-  scopedList(state.resultsAnalysis).forEach(a=>{ if(a.targetDate===dateStr && a.status!=='completed') out.push({ type:'analysis', label:`Analysis due: ${a.title}`, cls:'rose' }); });
-  scopedList(state.papers).forEach(p=>{ if(p.targetDate===dateStr && p.stage!=='Published') out.push({ type:'paper', label:`Paper milestone: ${p.title}`, cls:'purple' }); });
-  scopedList(state.thesisPlans).forEach(tp=>{
-    (tp.chapters||[]).forEach(ch=>{ if(ch.targetDate===dateStr && ch.status!=='done') out.push({ type:'thesis', label:`Chapter due: ${ch.title}`, cls:'purple' }); });
-  });
-  visibleEvents().forEach(ev=>{ if(ev.date===dateStr) out.push({ type:'event', label:ev.title, cls:'purple' }); });
-  return out;
+  // `cat` is carried through as well as `type`: callers that want to leave a
+  // category out — the weekly planner, which lists its own tasks as tickable
+  // checkboxes — need the category, because `type` is the goToItem target and
+  // several categories share one.
+  return buildAgenda_({ from:dateStr, to:dateStr, ignoreLead:true, allCats:true, spans:true, includeOverdue:false })
+    .map(i => ({ type:i.type, cat:i.cat, label:i.title, cls: AGENDA_CATS[i.cat].dot }));
+}
+/* One shared row renderer, so the calendar's day panel and the alerts page
+   cannot drift into looking like two different features. Every row is
+   clickable straight through to the record behind it. */
+function agendaRowHtml_(i, showDate){
+  const cat = AGENDA_CATS[i.cat] || { label:i.cat, dot:'blue' };
+  const when = showDate ? fmtDate(i.date) : (i.spanDays > 1 ? 'day ' + i.spanDay : '');
+  return `<div class="ag-row ${i.overdue?'overdue':''}" onclick="goToItem('${i.type}','${i.id}','${i.studentId||''}')">
+    <div class="ag-when">${escapeHtml(when || '')}</div>
+    <div class="ag-bd">
+      <div class="ag-title">${escapeHtml(i.title)}</div>
+      ${i.detail ? `<div class="ag-detail">${escapeHtml(i.detail)}</div>` : ''}
+    </div>
+    <div class="ag-cat" style="color:var(--stat-${cat.dot});">${escapeHtml(cat.label)}</div>
+  </div>`;
+}
+function agendaListHtml_(items, showDate, emptyText){
+  if(!items.length) return `<div class="entry-meta">${escapeHtml(emptyText || 'Nothing here.')}</div>`;
+  return `<div class="ag-list">${items.map(i => agendaRowHtml_(i, showDate)).join('')}</div>`;
 }
 function viewCalendar(){
   if(!state.calendarMonth) state.calendarMonth = todayStr().slice(0,7);
   if(!state.plannerWeekStart) state.plannerWeekStart = getMondayStr();
   const cells = buildMonthCells(state.calendarMonth);
   const weekdayLabels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const real = cells.filter(Boolean);
+  // One pass over the whole grid rather than one per day: with every section
+  // feeding the calendar, calling the engine 42 times was the difference
+  // between a calendar that opens instantly and one that stutters.
+  const byDate = real.length ? agendaByDate_(real[0], real[real.length-1]) : {};
+  const sel = state.calendarSel && byDateHas_(cells, state.calendarSel) ? state.calendarSel
+            : (cells.includes(todayStr()) ? todayStr() : (real[0] || todayStr()));
+  const selItems = byDate[sel] || [];
+  const usedCats = [...new Set(Object.keys(byDate).flatMap(d => byDate[d].map(i => i.cat)))];
   return `
     <div class="view-header">
       <div>
         <div class="view-title">Calendar &amp; Weekly Planner</div>
-        <div class="view-sub">All scheduled meetings, conferences, and goal deadlines at a glance — plus a day-by-day planner for the week ahead.</div>
+        <div class="view-sub">Every date in the app on one calendar — meetings, conference and submission deadlines, lab and analysis targets, thesis chapters, courses, leave, expiries and programme milestones.</div>
       </div>
     </div>
     ${supervisorFilterBar()}
     <div class="cal-header">
       <button class="small-btn" onclick="shiftCalendarMonth(-1)">‹ Prev</button>
       <h3 class="panel-title" style="margin:0;"><span class="dot" style="background:var(--navy);"></span>${monthLabel(state.calendarMonth)}</h3>
-      <button class="small-btn" onclick="shiftCalendarMonth(1)">Next ›</button>
+      <div style="display:flex; gap:8px;">
+        <button class="small-btn" onclick="goToToday()">Today</button>
+        <button class="small-btn" onclick="shiftCalendarMonth(1)">Next ›</button>
+      </div>
     </div>
     <div class="cal-grid cal-grid-labels">
       ${weekdayLabels.map(l=>`<div class="cal-day-label">${l}</div>`).join('')}
@@ -6802,34 +7409,42 @@ function viewCalendar(){
     <div class="cal-grid">
       ${cells.map(dateStr=>{
         if(!dateStr) return `<div class="cal-day other-month"></div>`;
-        const evts = eventsForDate(dateStr);
+        const evts = byDate[dateStr] || [];
         const isToday = dateStr === todayStr();
         const dayNum = parseInt(dateStr.slice(8,10),10);
-        return `<div class="cal-day ${isToday?'today':''}" onclick="jumpToWeekOf('${dateStr}')" title="${evts.length} item(s)">
+        return `<div class="cal-day ${isToday?'today':''} ${dateStr===sel?'sel':''}" onclick="selectCalendarDay('${dateStr}')" title="${evts.length} item(s)">
           <div class="cal-day-num">${dayNum}</div>
-          <div class="cal-dots">${evts.slice(0,5).map(e=>`<span class="cal-dot ${e.cls}" title="${escapeHtml(e.label)}"></span>`).join('')}</div>
+          <div class="cal-chips">
+            ${evts.slice(0,3).map(e=>`<div class="cal-chip ${AGENDA_CATS[e.cat].dot} ${e.spanDay>1?'cont':''}" title="${escapeHtml(e.title)}">${e.spanDay>1?'↳ ':''}${escapeHtml(e.title)}</div>`).join('')}
+            ${evts.length>3 ? `<div class="cal-more">+${evts.length-3} more</div>` : ''}
+          </div>
         </div>`;
       }).join('')}
     </div>
     <div class="cal-legend">
-      <span><span class="cal-dot indigo"></span> Meetings</span>
-      <span><span class="cal-dot purple"></span> Conferences</span>
-      <span><span class="cal-dot teal"></span> Goal deadlines</span>
-      <span><span class="cal-dot blue"></span> Planner tasks</span>
+      ${usedCats.map(c=>`<span><span class="cal-dot ${AGENDA_CATS[c].dot}"></span> ${escapeHtml(AGENDA_CATS[c].label)}</span>`).join('')
+        || '<span class="entry-meta">Nothing dated this month.</span>'}
     </div>
-    <div class="entry-meta" style="margin-bottom:10px;">Click any day to jump the planner below to that week.</div>
 
-    <h3 class="panel-title"><span class="dot" style="background:var(--navy);"></span>Upcoming deadlines</h3>
+    <h3 class="panel-title"><span class="dot" style="background:var(--navy);"></span>${escapeHtml(fmtDate(sel))}</h3>
+    <div class="entry-card compact-card" style="margin-bottom:18px;">
+      ${agendaListHtml_(selItems, false, 'Nothing on this day.')}
+      <div style="margin-top:10px;">
+        <button class="small-btn" onclick="jumpToWeekOf('${sel}')">Open this week in the planner ↓</button>
+      </div>
+    </div>
+
+    <h3 class="panel-title"><span class="dot" style="background:var(--navy);"></span>Coming up</h3>
     <div class="entry-card compact-card" style="margin-bottom:18px;">
       ${(() => {
-        const deadlines = upcomingDeadlines_(10);
-        if(deadlines.length===0) return `<div class="entry-meta">Nothing due soon.</div>`;
+        const deadlines = upcomingDeadlines_(12);
+        if(deadlines.length===0) return `<div class="entry-meta">Nothing due in the next four months.</div>`;
         return deadlines.map((d,idx)=>`
           <div style="display:flex; align-items:center; gap:12px; padding:10px 4px; ${idx>0?'border-top:1px solid var(--border);':''}">
             <div class="mono" style="font-size:12px; color:var(--ink-soft); width:78px; flex-shrink:0;">${fmtDate(d.date)}</div>
             <div style="flex:1; min-width:0;">
               <span class="task-link" style="font-weight:600; font-size:13.5px;" onclick="goToItem('${d.type}','${d.id}','${d.studentId||''}')">${escapeHtml(d.title)}</span>
-              <div class="entry-meta">${escapeHtml(d.category)}${isSupervisorLike() && d.studentId ? ' · '+escapeHtml(studentName(d.studentId)) : ''}</div>
+              <div class="entry-meta">${escapeHtml(d.category)}</div>
             </div>
           </div>
         `).join('');
@@ -6839,6 +7454,42 @@ function viewCalendar(){
     ${weeklyPlannerPanel()}
   `;
 }
+/* ---------------- ALERTS ----------------
+   The same engine, asked a different question: not "what is on this month"
+   but "what needs me, now". Each category decides how many days ahead it is
+   worth mentioning — a conference deadline two weeks out is worth knowing,
+   a planner task two weeks out is not — and the supervisor can change every
+   one of those in Account → Reminder settings. */
+function viewAlerts(){
+  const today = todayStr();
+  const items = buildAgenda_({ to: shiftDate(today, 400), includeOverdue:true });
+  const overdue = items.filter(i => i.overdue);
+  const todayItems = items.filter(i => !i.overdue && i.date === today);
+  const soon = items.filter(i => !i.overdue && i.date > today);
+  let lastDay = '', soonHtml = '';
+  soon.forEach(i => {
+    if(i.date !== lastDay){ soonHtml += `<div class="ag-day">${escapeHtml(fmtDate(i.date))}</div>`; lastDay = i.date; }
+    soonHtml += agendaRowHtml_(i, false);
+  });
+  const card = (title, count, body, danger) => `
+    <h3 class="panel-title"><span class="dot" style="background:${danger && count ? 'var(--danger)' : 'var(--navy)'};"></span>${title} <span style="opacity:.6; font-weight:500;">${count}</span></h3>
+    <div class="entry-card compact-card" style="margin-bottom:18px;">${body}</div>`;
+  return `
+    <div class="view-header">
+      <div>
+        <div class="view-title">Alerts</div>
+        <div class="view-sub">Everything dated across the whole app that is overdue, due today, or close enough to need you. ${isTrueSupervisor() ? 'Which categories appear, and how far ahead, is set in Account → Alerts.' : ''}</div>
+      </div>
+    </div>
+    ${supervisorFilterBar()}
+    ${card('Overdue', overdue.length, agendaListHtml_(overdue, true, 'Nothing is overdue.'), true)}
+    ${card('Today', todayItems.length, agendaListHtml_(todayItems, false, 'Nothing today.'))}
+    ${card('Coming up', soon.length, soonHtml || '<div class="entry-meta">Nothing coming up within the alert window.</div>')}
+  `;
+}
+function byDateHas_(cells, d){ return cells.indexOf(d) !== -1; }
+function selectCalendarDay(dateStr){ state.calendarSel = dateStr; renderView(); }
+function goToToday(){ state.calendarMonth = todayStr().slice(0,7); state.calendarSel = todayStr(); renderView(); }
 function shiftCalendarMonth(delta){ state.calendarMonth = shiftMonth(state.calendarMonth, delta); renderView(); }
 function jumpToWeekOf(dateStr){
   state.plannerWeekStart = mondayOf(dateStr);
@@ -6868,7 +7519,12 @@ function plannerDayCard(dateStr, canAdd){
   const dayNum = parseInt(dateStr.slice(8,10),10);
   const isToday = dateStr === todayStr();
   const tasks = scopedList(state.plannerTasks).filter(t=>t.date===dateStr);
-  const evts = eventsForDate(dateStr).filter(e=>e.type!=='task');
+  // A planner day cell is a few centimetres wide, so it shows the handful of
+  // categories a week is planned around, not all seventeen — the calendar and
+  // the Alerts page are where everything lives. Planner tasks are excluded
+  // because the checkboxes below already list them.
+  const PLANNER_CATS = ['meeting','conference','rac','paper','labwork','analysis','thesis','event','leave'];
+  const evts = eventsForDate(dateStr).filter(e => e.cat !== 'task' && PLANNER_CATS.indexOf(e.cat) !== -1);
   return `
     <div class="planner-day ${isToday?'today':''}">
       <div class="planner-day-head">${dayName} <span class="mono">${dayNum}</span></div>
@@ -8808,12 +9464,17 @@ function openAddReminderModal(){
   showModal('Add reminder', `
     <label class="field-label">Note</label>
     <input class="text-input" id="f_reminderText" placeholder="e.g. Order more Super P carbon black" autofocus>
+    <label class="field-label">Remind me on (optional)</label>
+    <input type="date" class="text-input" id="f_reminderDate">
+    <div class="entry-meta" style="margin-top:4px;">Give it a date and it appears on the calendar and in Alerts. Leave it blank and it stays a plain note, as before.</div>
+    ${linkPickerHtml_('', 'What is it about? (optional)')}
   `, submitAddReminder);
 }
 async function submitAddReminder(){
   const text = document.getElementById('f_reminderText').value.trim();
+  const date = (document.getElementById('f_reminderDate')||{}).value || '';
   if(!text){ alert('Please add a note.'); return; }
-  state.reminders.push({ id: uid('rem'), ownerId: state.identity.id, text, createdAt: nowIST() });
+  state.reminders.push({ id: uid('rem'), ownerId: state.identity.id, text, date, linkedTo: readLinkField_(), createdAt: nowIST() });
   await saveCollection('reminders', state.reminders);
   closeModal(); renderView();
 }
@@ -10529,6 +11190,7 @@ function openMeetingModal(){
     </div>
     <label class="field-label">Agenda / discussion points (optional)</label>
     <textarea class="text-input" id="f_meetAgenda" rows="4" placeholder="What do you want to cover or discuss?"></textarea>
+    ${linkPickerHtml_('', 'What is this meeting about? (optional)')}
   `, submitMeeting);
 }
 function toggleMeetWhoPicker_(){
@@ -10562,7 +11224,7 @@ async function submitMeeting(){
   const invitedStudentIds = attendees.filter(id => id !== studentId);
   const caller = reviewerIdentity(null);
   state.meetings.push({
-    id: uid('mtg'), studentId, invitedStudentIds, type, title, plannedDate, startTime, endTime, agenda, outcomeNotes:'', minutes:[],
+    id: uid('mtg'), studentId, invitedStudentIds, type, title, plannedDate, startTime, endTime, agenda, linkedTo: readLinkField_(), outcomeNotes:'', minutes:[],
     status: isSupervisorLike() ? 'confirmed' : 'proposed',
     // Who called it. Invitees need to know this, and until now nothing recorded it.
     calledByName: state.identity.name, calledByRole: caller.roleLabel, calledById: state.identity.id || '',
