@@ -9,10 +9,10 @@
      decide whether to offer "Update now". Bump it on every deployment; if it's
      ever left unchanged, no banner appears and the app simply updates silently
      on the next open, exactly as it did before this existed. -->
-<meta name="app-build" content="2026-11-23-8">
+<meta name="app-build" content="2026-11-24-1">
 <!-- The version people see. This and app-build above are the only two
      places either value is written; everything on screen reads them. -->
-<meta name="app-version" content="1.10">
+<meta name="app-version" content="1.11">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1F3A5F">
 <link rel="icon" href="icons/icon-192.png">
@@ -602,6 +602,27 @@
     .preview-bar{ padding:8px 12px; gap:8px; font-size:12.5px; }
     .preview-sub{ display:block; }
   }
+  .diary-bell{
+    position:relative; display:inline-flex; align-items:center; line-height:0; cursor:pointer;
+    background:var(--warning-wash); border:1px solid var(--warning); color:var(--ink);
+    border-radius:8px; padding:8px 11px; font-family:inherit;
+  }
+  .diary-bell:hover{ background:var(--warning); }
+  .diary-bell:focus-visible{ outline:2px solid var(--navy); outline-offset:2px; }
+  .diary-badge{
+    position:absolute; top:-6px; right:-6px; min-width:18px; height:18px; border-radius:9px;
+    background:var(--danger); color:#fff; font-size:11px; font-weight:700; line-height:18px;
+    text-align:center; padding:0 5px;
+  }
+  .entry-card.diary-gaps{ display:none; border-left:3px solid var(--warning); margin-bottom:16px; }
+  .entry-card.diary-gaps.open{ display:block; }
+  .appr-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:4px 18px; }
+  .appr-row{ display:flex; align-items:center; gap:8px; padding:5px 0; font-size:13.5px; cursor:pointer; }
+  .appr-name{ flex:1; min-width:0; }
+  .appr-waiting{
+    flex-shrink:0; font-size:11px; font-weight:700; color:var(--warning);
+    background:var(--warning-wash); border-radius:4px; padding:1px 6px;
+  }
   .nav-group-body{ display:none; }
   .nav-group-body.open{ display:block; padding-bottom:4px; }
   /* A hairline spine down the open group's items, so at a glance you can see
@@ -892,6 +913,10 @@ const state = {
   previewAs: null,
   previewSnapshot: null,
   previewReturn: null,
+  // { types: { sample:true, ... } } — the sections the supervisor has said
+  // need approving. null until they first save it; the default is in
+  // approvalRequired_().
+  approvalSettings: null,
   // One object, not a list: how long before a scholar is reminded, set by the
   // supervisor on the Account page. null means nothing has been saved yet, and
   // reminderSettings_() supplies the defaults.
@@ -1226,8 +1251,8 @@ const PREVIEW_DATA_FIELDS = ['students','weekly','samples','papers','instruction
   'financialApps','courses','fabricationItems','events','resultsAnalysis','deletionLog',
   'newsUpdates','patents','plagiarismReports','awards','collaborators','leaveRecords',
   'activityLogExclusions','consumables','workDiary','reminders','discussions','congratulations',
-  'emailTemplates','reminderSettings','supervisorPinHash','supervisorEmail','supervisorName',
-  'supervisorNotifyPrefs'];
+  'emailTemplates','reminderSettings','approvalSettings','supervisorPinHash','supervisorEmail',
+  'supervisorName','supervisorNotifyPrefs'];
 
 function inPreview_(){ return !!(state && state.previewAs); }
 function previewDataSnapshot_(){
@@ -1323,7 +1348,7 @@ function previewBlockedNotice_(){
 
 /* ============================ INIT ============================ */
 // Every collection key the app needs at startup, fetched in one batched request.
-const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','deletion-log','news-updates','patents','plagiarism-reports','awards','collaborators','leave-records','activity-log-exclusions','consumables','work-diary','reminders','discussions','congratulations','email-templates','reminder-settings','supervisor-pin'];
+const ALL_DATA_KEYS = ['students','weekly-reports','samples','papers','instructions','meetings','co-supervisors','proposals','conferences','planner-tasks','thesis-plans','rac-reviews','financial-applications','courses','fabrication-items','events','results-analysis','deletion-log','news-updates','patents','plagiarism-reports','awards','collaborators','leave-records','activity-log-exclusions','consumables','work-diary','reminders','discussions','congratulations','email-templates','reminder-settings','approval-settings','supervisor-pin'];
 
 async function init(){
   paintVersion_();
@@ -1402,6 +1427,10 @@ function applyDataValues(values){
   // through arr().
   try { state.reminderSettings = values['reminder-settings'] ? JSON.parse(values['reminder-settings']) : null; }
   catch(e){ state.reminderSettings = null; }
+  // Which sections require the supervisor's approval. null means nothing has
+  // been saved yet, and approvalRequired_() supplies the default.
+  try { state.approvalSettings = values['approval-settings'] ? JSON.parse(values['approval-settings']) : null; }
+  catch(e){ state.approvalSettings = null; }
   let supervisorProfile = {};
   try{ supervisorProfile = values['supervisor-pin'] ? JSON.parse(values['supervisor-pin']) : {}; }catch(e){ supervisorProfile = {}; }
   state.supervisorPinHash = supervisorProfile.hash || null;
@@ -2592,7 +2621,7 @@ function navBadges_(){
     }
     // Overdue only — the alerts page shows plenty that is merely upcoming,
     // and a badge that is never zero is a badge nobody reads.
-    const overdue = buildAgenda_({ to: todayStr(), includeOverdue:true }).filter(i => i.overdue).length;
+    const overdue = buildAgenda_({ to: todayStr(), includeOverdue:true, mine:true }).filter(i => i.overdue).length;
     num('alerts', overdue, overdue + ' overdue item' + (overdue===1?'':'s'));
     // A meeting nobody has confirmed is waiting on whoever can confirm it.
     const toConfirm = scopedMeetings_().filter(m => m.status === 'proposed').length;
@@ -3661,6 +3690,49 @@ const REVIEWABLE_COLLECTIONS = {
   collaborator: { list: () => state.collaborators,     key: 'collaborators' },
   leave:        { list: () => state.leaveRecords,      key: 'leave-records' },
 };
+/* ---------------- WHICH SECTIONS NEED APPROVING ----------------
+   A work plan is a commitment, so it is agreed before the work starts and
+   always needs approving. The rest are records of work already done, and
+   making each one wait on a decision turned the supervisor into a bottleneck
+   for things nobody was really deciding. So the other fifteen sections record
+   straight away, and the supervisor can switch approval back on for any of
+   them from Account.
+
+   Two deliberate properties:
+     - Anything already waiting for a decision stays waiting. The setting
+       governs what happens to NEW submissions, so nothing in the queue is
+       stranded or silently marked approved.
+     - Switching a section on later does not reach back and demand approval
+       for records already logged under the old setting. */
+const APPROVAL_DEFAULT_ON = ['proposal'];
+const APPROVAL_SECTION_LABEL = {
+  weekly:'Weekly Plan', sample:'Characterization', fabrication:'Lab Work',
+  proposal:'Work Plan (Proposal)', thesis:'Thesis Plan', rac:'RAC Reviews',
+  conference:'Conferences', financial:'Funding Proposals', course:'Learning & Courses',
+  analysis:'Results Analysis', paper:'Paper Pipeline', patent:'Patents',
+  plagiarism:'Similarity Reports', award:'Awards & Recognitions',
+  collaborator:'Collaborators', leave:'Leave / OD'
+};
+// A record is open to a comment once it is settled — approved, or simply
+// recorded because its section needs no approval. Before this, a section with
+// approval switched off could never be commented on at all, because the only
+// way to reach the comment button was to approve something first.
+function settledForComment_(status){
+  return status === 'approved' || status === 'not_required';
+}
+function approvalRequired_(type){
+  const set = state.approvalSettings && state.approvalSettings.types;
+  if(set && Object.prototype.hasOwnProperty.call(set, type)) return set[type] === true;
+  return APPROVAL_DEFAULT_ON.includes(type);
+}
+// The state a newly submitted record of this type starts in. Staff entries are
+// not reviewed, as before. 'not_required' is the new resting state: recorded,
+// nobody waiting on it, and distinct from 'approved' because nobody approved
+// it. Legacy records with no status still read as pending, as they always did.
+function newItemStatus_(type){
+  if(isSupervisorLike()) return 'approved';
+  return approvalRequired_(type) ? 'pending' : 'not_required';
+}
 function titleForReviewable(type, entry){
   switch(type){
     case 'weekly': return `Week of ${fmtDate(entry.weekStart)}`;
@@ -3843,12 +3915,15 @@ function viewGenericSection(type){
   // takes the whole view down rather than the one section.
   if(!cfg || !REVIEWABLE_COLLECTIONS[type]) return emptyState('Section not available', 'That section does not exist in this version of the app.');
   const list = scopedList(REVIEWABLE_COLLECTIONS[type].list()).sort((a,b)=>(b.lastUpdate||'').localeCompare(a.lastUpdate||''));
-  const approvalMap = { pending:{label:'Pending Approval',cls:'warn'}, approved:{label:'Approved',cls:'good'}, changes_requested:{label:'Changes Requested',cls:'bad'} };
+  const approvalMap = { pending:{label:'Pending Approval',cls:'warn'}, approved:{label:'Approved',cls:'good'}, changes_requested:{label:'Changes Requested',cls:'bad'}, not_required:{label:'Recorded',cls:'neutral'} };
   return `
     <div class="view-header">
       <div>
         <div class="view-title">${escapeHtml(cfg.label)}</div>
-        <div class="view-sub">${type==='collaborator' ? 'External collaborators and a record of visits to their lab.' : type==='leave' ? "Leave and On-Duty requests, with the supervisor's approval." : 'Logged and tracked with the same approval workflow as the rest of the group.'}</div>
+        <div class="view-sub">${type==='collaborator' ? 'External collaborators and a record of visits to their lab.'
+          : type==='leave' ? (approvalRequired_('leave') ? "Leave and On-Duty requests, with the supervisor's approval." : 'Leave and On-Duty records. These are recorded, not sent for approval.')
+          : approvalRequired_(type) ? 'Logged here and sent to the supervisor for approval.'
+          : 'Logged here. These are recorded as you enter them — nothing waits for approval.'}</div>
       </div>
       <button class="action-btn" onclick="openGenericFormModal('${type}')">+ Add</button>
     </div>
@@ -3891,7 +3966,7 @@ function genericCard(type, entry, i, total, approvalMap){
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${type==='collaborator' && canEdit ? `<button class="small-btn" onclick="openAddVisitModal('${entry.id}')">+ Log visit</button>` : ''}
-        ${(isSupervisorLike() && entry.approvalStatus==='approved') ? `<button class="small-btn" onclick="addAdditionalComment('${type}','${entry.id}')">+ Add comment</button>` : ''}
+        ${(isSupervisorLike() && settledForComment_(entry.approvalStatus)) ? `<button class="small-btn" onclick="addAdditionalComment('${type}','${entry.id}')">+ Add comment</button>` : ''}
         ${canReview_(entry) ? `<button class="small-btn" onclick="openGenericReviewBox('${type}','${entry.id}')">Review</button>` : (isSupervisorLike() && entry.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(entry.assignedReviewerName)} for review</span>` : '')}
         ${canEdit ? `<button class="small-btn" onclick="openGenericFormModal('${type}','${entry.id}')">Edit</button>` : ''}
         ${isTrueSupervisor() ? `<button class="small-btn" onclick="openMoveToSectionModal('${type}','${entry.id}')">Move to another section</button>` : ''}
@@ -4063,9 +4138,14 @@ async function submitGenericForm(type, id){
     Object.assign(entry, values);
     entry.lastUpdate = todayStr();
     if(state.identity.id === entry.studentId){
-      entry.approvalStatus = 'pending';
+      // Editing your own record only puts it back in the queue if this
+      // section actually needs approving — and the "please review" email is
+      // only sent when there is in fact something to review.
+      entry.approvalStatus = newItemStatus_(type);
       await saveCollection(coll.key, coll.list());
-      apiNotify(REVIEW_NOTIFY_EVENT[type].replace('Reviewed','Submitted'), { studentId: entry.studentId, title: titleForReviewable(type, entry) });
+      if(approvalRequired_(type)){
+        apiNotify(REVIEW_NOTIFY_EVENT[type].replace('Reviewed','Submitted'), { studentId: entry.studentId, title: titleForReviewable(type, entry) });
+      }
     } else {
       logStaffEdit_(entry, titleForReviewable(type, entry), type);
       await saveCollection(coll.key, coll.list());
@@ -4073,13 +4153,13 @@ async function submitGenericForm(type, id){
   } else {
     const studentId = isSupervisorLike() ? (document.getElementById('f_gen_studentId')?.value || state.filterStudentId) : resolveCreateStudentId_();
     if(!studentId || studentId==='all'){ alert('Please choose a research scholar.'); return; }
-    const newEntry = { id: uid('gen'), studentId, ...values, approvalStatus: isSupervisorLike()?'approved':'pending', supervisorNote:'', lastUpdate: todayStr() };
+    const newEntry = { id: uid('gen'), studentId, ...values, approvalStatus: newItemStatus_(type), supervisorNote:'', lastUpdate: todayStr() };
     if(type==='collaborator') newEntry.visits = [];
     coll.list().push(newEntry);
     await saveCollection(coll.key, coll.list());
-    if(state.identity.id === studentId){
+    if(state.identity.id === studentId && approvalRequired_(type)){
       apiNotify(REVIEW_NOTIFY_EVENT[type].replace('Reviewed','Submitted'), { studentId, title: titleForReviewable(type, newEntry) });
-    } else {
+    } else if(state.identity.id !== studentId){
       logStaffCreate_(newEntry, titleForReviewable(type, newEntry), type);
     }
   }
@@ -5656,6 +5736,51 @@ async function submitEditNotifyPrefs(targetType, id, keys){
    The thresholds used to be constants in this file and in Code.gs, which meant
    changing them took a redeployment. They are now one stored object that both
    halves read; what is written here is what the daily email job uses too. */
+// The tick list for which sections need approving. Supervisor only, and it is
+// deliberately a list of all sixteen rather than only the ones switched on, so
+// the answer to "does this need my approval?" is visible for every section in
+// one place.
+function approvalSettingsSection(){
+  if(!isTrueSupervisor()) return '';
+  const types = Object.keys(APPROVAL_SECTION_LABEL);
+  const pendingByType = {};
+  types.forEach(t => {
+    const coll = REVIEWABLE_COLLECTIONS[t];
+    if(!coll) return;
+    pendingByType[t] = coll.list().filter(e => reviewStatusOf_(t, e) === 'pending').length;
+  });
+  const rows = types.map(t => {
+    const waiting = pendingByType[t] || 0;
+    return `
+      <label class="appr-row">
+        <input type="checkbox" id="appr_${t}" ${approvalRequired_(t)?'checked':''}>
+        <span class="appr-name">${escapeHtml(APPROVAL_SECTION_LABEL[t])}</span>
+        ${waiting ? `<span class="appr-waiting">${waiting} waiting</span>` : ''}
+      </label>`;
+  }).join('');
+  return `
+    <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin:22px 0 6px;">What needs your approval</h3>
+    <div class="entry-card">
+      <div class="entry-block" style="margin-bottom:12px;">A work plan is a commitment, so it is agreed before the work starts and is ticked by default. The rest are records of work already done; leave them unticked and they are simply recorded, with no queue and no “please review” email. You can still review or comment on anything, whether or not it was sent to you.</div>
+      <div class="appr-grid">${rows}</div>
+      <div class="entry-block" style="margin-top:12px; color:var(--ink-soft); font-size:12.5px;">Anything already waiting for a decision stays in Pending Approval, whatever you set here — unticking a section does not clear its queue or mark anything approved. Changes apply to what is submitted from now on.</div>
+      <div class="entry-actions">
+        <button class="small-btn" onclick="guardedClick(this, saveApprovalSettings)">Save</button>
+      </div>
+    </div>`;
+}
+async function saveApprovalSettings(){
+  if(!isTrueSupervisor()) return;
+  const types = {};
+  Object.keys(APPROVAL_SECTION_LABEL).forEach(t => {
+    const el = document.getElementById('appr_' + t);
+    if(el) types[t] = el.checked;   // a missing box leaves that section as it was
+  });
+  state.approvalSettings = Object.assign({}, state.approvalSettings, { types });
+  await saveCollection('approval-settings', state.approvalSettings);
+  renderSidebar();
+  renderView();
+}
 function reminderSettingsSection(){
   if(!isTrueSupervisor()) return '';
   const st = reminderSettings_();
@@ -5902,6 +6027,7 @@ function accessSection(){
       </div>
     </div>
     ${notificationPrefsSection()}
+    ${approvalSettingsSection()}
     ${reminderSettingsSection()}
     ${coSupervisorAdminSection()}
     ${backupSection()}
@@ -7752,9 +7878,46 @@ function buildAgenda_(opts){
     push('reminder', r.date, r.text || 'Reminder', '', 'reminder', r.id, '', true);
   });
 
-  return items.sort((a,b) => (a.date||'').localeCompare(b.date||'') ||
+  // opts.mine narrows the list to this reader's own business: their work, the
+  // things waiting on their decision, and the dates that belong to the group
+  // as a whole. The bell and the Alerts page use it; the calendar and the
+  // dashboard do not, because those are where the supervisor looks at the
+  // group. Without it the supervisor's bell counted every scholar's deadlines
+  // — dozens of items, none of them theirs to do, which is the fastest way to
+  // make a badge worth ignoring.
+  const out = opts.mine ? items.filter(ownAgendaItem_) : items;
+  return out.sort((a,b) => (a.date||'').localeCompare(b.date||'') ||
                              (a.cat||'').localeCompare(b.cat||'') ||
                              (a.title||'').localeCompare(b.title||''));
+}
+// Is this date mine to act on? Three ways it can be:
+//   1. it is my own work;
+//   2. it belongs to the group and not to any one person (an event, the
+//      consumables stock, a reminder I wrote myself);
+//   3. it is someone else's work that is waiting for MY decision — which is
+//      exactly how a supervisor's own alerts stay useful without carrying
+//      everyone's deadlines.
+// A meeting counts because the scope filter has already limited it to meetings
+// I called or was invited to.
+function ownAgendaItem_(i){
+  const me = state.identity.id;
+  if(!i.studentId) return true;
+  if(i.studentId === me) return true;
+  if(i.type === 'meeting') return true;
+  const coll = REVIEWABLE_COLLECTIONS[i.type];
+  if(coll){
+    const entry = coll.list().find(x => x.id === i.id);
+    if(entry && reviewStatusOf_(i.type, entry) === 'pending' && canReview_(entry)) return true;
+  }
+  return false;
+}
+// Which field holds a type's review state. The older sections use `status`,
+// the newer ones `approvalStatus`; this is the one place that difference is
+// resolved, so nothing else has to know about it.
+function reviewStatusOf_(type, entry){
+  if(!entry) return '';
+  const field = REVIEW_STATUS_FIELD[type] || 'approvalStatus';
+  return entry[field] || '';
 }
 /* Everything dated between two days, grouped by day — what the calendar grid
    and its day panel both read. */
@@ -7900,7 +8063,7 @@ function viewCalendar(){
    calendar and the daily email can never disagree with each other. */
 function alertsBellData_(){
   const t = todayStr();
-  const items = buildAgenda_({ to: shiftDate(t, 400), includeOverdue:true });
+  const items = buildAgenda_({ to: shiftDate(t, 400), includeOverdue:true, mine:true });
   return {
     overdue: items.filter(i => i.overdue),
     today:   items.filter(i => !i.overdue && i.date === t),
@@ -7973,7 +8136,7 @@ function openAlertsDrawer(){
 }
 function viewAlerts(){
   const today = todayStr();
-  const items = buildAgenda_({ to: shiftDate(today, 400), includeOverdue:true });
+  const items = buildAgenda_({ to: shiftDate(today, 400), includeOverdue:true, mine:true });
   const overdue = items.filter(i => i.overdue);
   const todayItems = items.filter(i => !i.overdue && i.date === today);
   const soon = items.filter(i => !i.overdue && i.date > today);
@@ -7989,7 +8152,11 @@ function viewAlerts(){
     <div class="view-header">
       <div>
         <div class="view-title">Alerts</div>
-        <div class="view-sub">Everything dated across the whole app that is overdue, due today, or close enough to need you. ${isTrueSupervisor() ? 'Which categories appear, and how far ahead, is set in Account → Alerts.' : ''}</div>
+        <div class="view-sub">What is waiting on you — overdue, due today, or close enough to need you.
+          ${isSupervisorLike()
+            ? 'Each person\u2019s own deadlines go to them, not here; what reaches you is work waiting for your decision, meetings, and dates that belong to the group. The Calendar and the Dashboard show the whole group.'
+            : 'These are your own dates, and the group\u2019s.'}
+          ${isTrueSupervisor() ? 'Which categories appear, and how far ahead, is set in Account → Alerts.' : ''}</div>
       </div>
     </div>
     ${supervisorFilterBar()}
@@ -8106,7 +8273,8 @@ function proposalStatusMap(){
   return {
     pending: { label:'Pending Approval', cls:'warn' },
     approved: { label:'Approved', cls:'good' },
-    changes_requested: { label:'Changes Requested', cls:'bad' }
+    changes_requested: { label:'Changes Requested', cls:'bad' },
+    not_required: { label:'Recorded', cls:'neutral' }
   };
 }
 function goalRow(pr, g, canEdit, canManage, isOwner){
@@ -8190,7 +8358,7 @@ function proposalCard(pr, i, total){
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved plans are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${canReview_(pr) ? `<button class="small-btn" onclick="openProposalReviewBox('${pr.id}')">Review</button>` : (isSupervisorLike() && pr.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(pr.assignedReviewerName)} for review</span>` : '')}
-        ${(isSupervisorLike() && pr.status==='approved') ? `<button class="small-btn" onclick="addAdditionalComment('proposal','${pr.id}')">+ Add comment</button>` : ''}
+        ${(isSupervisorLike() && settledForComment_(pr.status)) ? `<button class="small-btn" onclick="addAdditionalComment('proposal','${pr.id}')">+ Add comment</button>` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openEditProposalModal('${pr.id}')">Edit</button>` : ''}
         ${isTrueSupervisor() ? `<button class="small-btn" onclick="openMoveToSectionModal('proposal','${pr.id}')">Move to another section</button>` : ''}
         ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteProposal('${pr.id}')">Delete</button>` : ''}
@@ -8368,7 +8536,8 @@ function thesisStatusMap(){
   return {
     pending: { label:'Pending Approval', cls:'warn' },
     approved: { label:'Approved', cls:'good' },
-    changes_requested: { label:'Changes Requested', cls:'bad' }
+    changes_requested: { label:'Changes Requested', cls:'bad' },
+    not_required: { label:'Recorded', cls:'neutral' }
   };
 }
 function thesisProgress(tp){
@@ -8495,7 +8664,7 @@ function thesisCard(tp, i, total){
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved thesis plans are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${canReview_(tp) ? `<button class="small-btn" onclick="openThesisReviewBox('${tp.id}')">Review</button>` : (isSupervisorLike() && tp.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(tp.assignedReviewerName)} for review</span>` : '')}
-        ${(isSupervisorLike() && tp.status==='approved') ? `<button class="small-btn" onclick="addAdditionalComment('thesis','${tp.id}')">+ Add comment</button>` : ''}
+        ${(isSupervisorLike() && settledForComment_(tp.status)) ? `<button class="small-btn" onclick="addAdditionalComment('thesis','${tp.id}')">+ Add comment</button>` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openEditThesisModal('${tp.id}')">Edit</button>` : ''}
         ${isTrueSupervisor() ? `<button class="small-btn" onclick="openMoveToSectionModal('thesis','${tp.id}')">Move to another section</button>` : ''}
         ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteThesis('${tp.id}')">Delete</button>` : ''}
@@ -8703,7 +8872,8 @@ function racStatusMap(){
   return {
     pending: { label:'Pending Approval', cls:'warn' },
     approved: { label:'Approved', cls:'good' },
-    changes_requested: { label:'Changes Requested', cls:'bad' }
+    changes_requested: { label:'Changes Requested', cls:'bad' },
+    not_required: { label:'Recorded', cls:'neutral' }
   };
 }
 function viewRac(){
@@ -8763,7 +8933,7 @@ function racCard(r, i, total){
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved reviews are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${canReview_(r) ? `<button class="small-btn" onclick="openRacReviewBox('${r.id}')">Review</button>` : (isSupervisorLike() && r.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(r.assignedReviewerName)} for review</span>` : '')}
-        ${(isSupervisorLike() && r.status==='approved') ? `<button class="small-btn" onclick="addAdditionalComment('rac','${r.id}')">+ Add comment</button>` : ''}
+        ${(isSupervisorLike() && settledForComment_(r.status)) ? `<button class="small-btn" onclick="addAdditionalComment('rac','${r.id}')">+ Add comment</button>` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openEditRacModal('${r.id}')">Edit</button>` : ''}
         ${isTrueSupervisor() ? `<button class="small-btn" onclick="openMoveToSectionModal('rac','${r.id}')">Move to another section</button>` : ''}
         ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteRac('${r.id}')">Delete</button>` : ''}
@@ -8934,7 +9104,8 @@ function financialStatusMap(){
   return {
     pending: { label:'Pending Approval', cls:'warn' },
     approved: { label:'Approved', cls:'good' },
-    changes_requested: { label:'Changes Requested', cls:'bad' }
+    changes_requested: { label:'Changes Requested', cls:'bad' },
+    not_required: { label:'Recorded', cls:'neutral' }
   };
 }
 function viewFinancial(){
@@ -9002,7 +9173,7 @@ function financialCard(f, i, total){
         ${canEdit ? `<button class="small-btn" onclick="openEditFinancialModal('${f.id}')">Edit application</button>` : ''}
         ${canRecordOutcome ? `<button class="small-btn" onclick="openFinancialOutcomeModal('${f.id}')">Record outcome</button>` : ''}
         ${canReview_(f) ? `<button class="small-btn" onclick="openFinancialReviewBox('${f.id}')">Review</button>` : (isSupervisorLike() && f.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(f.assignedReviewerName)} for review</span>` : '')}
-        ${(isSupervisorLike() && f.approvalStatus==='approved') ? `<button class="small-btn" onclick="addAdditionalComment('financial','${f.id}')">+ Add comment</button>` : ''}
+        ${(isSupervisorLike() && settledForComment_(f.approvalStatus)) ? `<button class="small-btn" onclick="addAdditionalComment('financial','${f.id}')">+ Add comment</button>` : ''}
         ${isTrueSupervisor() ? `<button class="small-btn" onclick="openMoveToSectionModal('financial','${f.id}')">Move to another section</button>` : ''}
         ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteFinancial('${f.id}')">Delete</button>` : ''}
       </div>
@@ -9161,7 +9332,8 @@ function learningApprovalMap(){
   return {
     pending: { label:'Pending Approval', cls:'warn' },
     approved: { label:'Approved', cls:'good' },
-    changes_requested: { label:'Changes Requested', cls:'bad' }
+    changes_requested: { label:'Changes Requested', cls:'bad' },
+    not_required: { label:'Recorded', cls:'neutral' }
   };
 }
 function viewLearning(){
@@ -9218,7 +9390,7 @@ function courseCard(c, i, total){
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${canReview_(c) ? `<button class="small-btn" onclick="openCourseReviewBox('${c.id}')">Review</button>` : (isSupervisorLike() && c.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(c.assignedReviewerName)} for review</span>` : '')}
-        ${(isSupervisorLike() && c.approvalStatus==='approved') ? `<button class="small-btn" onclick="addAdditionalComment('course','${c.id}')">+ Add comment</button>` : ''}
+        ${(isSupervisorLike() && settledForComment_(c.approvalStatus)) ? `<button class="small-btn" onclick="addAdditionalComment('course','${c.id}')">+ Add comment</button>` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openEditCourseModal('${c.id}')">Edit</button>` : ''}
         ${isTrueSupervisor() ? `<button class="small-btn" onclick="openMoveToSectionModal('course','${c.id}')">Move to another section</button>` : ''}
         ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteCourse('${c.id}')">Delete</button>` : ''}
@@ -9366,7 +9538,8 @@ function fabricationApprovalMap(){
   return {
     pending: { label:'Pending Approval', cls:'warn' },
     approved: { label:'Approved', cls:'good' },
-    changes_requested: { label:'Changes Requested', cls:'bad' }
+    changes_requested: { label:'Changes Requested', cls:'bad' },
+    not_required: { label:'Recorded', cls:'neutral' }
   };
 }
 function viewFabrication(){
@@ -9466,7 +9639,7 @@ function fabricationCard(it, i, total){
           </select>
         ` : ''}
         ${canReview_(it) ? `<button class="small-btn" onclick="openFabricationReviewBox('${it.id}')">Review</button>` : (isSupervisorLike() && it.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(it.assignedReviewerName)} for review</span>` : '')}
-        ${(isSupervisorLike() && it.approvalStatus==='approved') ? `<button class="small-btn" onclick="addAdditionalComment('fabrication','${it.id}')">+ Add comment</button>` : ''}
+        ${(isSupervisorLike() && settledForComment_(it.approvalStatus)) ? `<button class="small-btn" onclick="addAdditionalComment('fabrication','${it.id}')">+ Add comment</button>` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openEditFabricationModal('${it.id}')">Edit</button>` : ''}
         ${isTrueSupervisor() ? `<button class="small-btn" onclick="openMoveToSectionModal('fabrication','${it.id}')">Move to another section</button>` : ''}
         ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteFabrication('${it.id}')">Delete</button>` : ''}
@@ -9829,6 +10002,79 @@ function goToMyProjectStudentSection(studentId, viewKey){
   state.filterStudentId = studentId;
   goView(viewKey);
 }
+/* ---------------- DAYS WITH NOTHING WRITTEN ----------------
+   The reminder system already says "it has been N days since your last
+   entry", which tells a scholar they are behind but not which days to fill
+   in. This names the days.
+
+   Only a scholar or a project student sees it: the work diary is theirs, and
+   there is no sense nudging a supervisor or a mentor about a diary they do
+   not keep.
+
+   Two things it deliberately does not count, because a nudge that is wrong is
+   a nudge people learn to ignore: Sundays, and any day covered by leave or OD
+   that has not been refused. */
+const DIARY_GAP_WINDOW = 14;
+function diaryGapDays_(){
+  if(!state.identity || state.identity.role !== 'student') return [];
+  const me = state.students.find(s => s.id === state.identity.id);
+  if(!me || me.frozen) return [];
+  const mine = state.workDiary.filter(d => d.studentId === me.id);
+  const logged = new Set(mine.map(d => d.date));
+  // Nothing before the day they joined, and nothing before their first entry
+  // if that is later — a scholar added this morning is not met with a
+  // fortnight of blame.
+  const floor = me.joiningDate || '';
+  const onLeave = state.leaveRecords
+    .filter(l => l.studentId === me.id && l.approvalStatus !== 'changes_requested')
+    .map(l => ({ from: l.fromDate || '', to: l.toDate || l.fromDate || '' }));
+  const covered = d => onLeave.some(l => l.from && d >= l.from && d <= l.to);
+  const out = [];
+  // From yesterday backwards: today is not a gap until the day is over.
+  for(let i = 1; i <= DIARY_GAP_WINDOW; i++){
+    const d = shiftDate(todayStr(), -i);
+    if(!d) break;
+    if(floor && d < floor) break;
+    if(new Date(d + 'T00:00:00').getDay() === 0) continue;   // Sunday
+    if(logged.has(d)) continue;
+    if(covered(d)) continue;
+    out.push(d);
+  }
+  return out;
+}
+function toggleDiaryGaps(){
+  const el = document.getElementById('diaryGapPanel');
+  if(el) el.classList.toggle('open');
+}
+function diaryGapBellHtml_(){
+  const gaps = diaryGapDays_();
+  if(gaps.length === 0) return '';
+  const label = gaps.length + ' day' + (gaps.length===1?'':'s') + ' with nothing written';
+  return `
+    <button class="diary-bell" onclick="toggleDiaryGaps()" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">
+      <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+        ><path d="M5 13V9a5 5 0 0110 0v4l1.5 1.5h-13L5 13z"/><path d="M8 17a2 2 0 004 0"/></svg>
+      <span class="diary-badge">${gaps.length}</span>
+    </button>`;
+}
+function diaryGapPanelHtml_(){
+  const gaps = diaryGapDays_();
+  if(gaps.length === 0) return '';
+  return `
+    <div id="diaryGapPanel" class="entry-card compact-card diary-gaps">
+      <div class="entry-block" style="margin-bottom:8px;">
+        ${gaps.length} day${gaps.length===1?'':'s'} in the last fortnight with nothing written.
+        Sundays and days you were on leave are not counted.
+      </div>
+      ${gaps.map(d => `
+        <div class="ag-row" onclick="openAddDiaryEntryModal('${d}')">
+          <div class="ag-when">${escapeHtml(fmtDate(d))}</div>
+          <div class="ag-bd"><div class="ag-title">Nothing written</div></div>
+          <div class="ag-cat" style="color:var(--navy);">Add entry</div>
+        </div>`).join('')}
+    </div>`;
+}
 function viewWorkDiary(){
   const items = scopedList(state.workDiary).slice().sort((a,b)=> (b.date||'').localeCompare(a.date||''));
   return `
@@ -9837,8 +10083,12 @@ function viewWorkDiary(){
         <div class="view-title">Work Diary</div>
         <div class="view-sub">A quick day-by-day log of what you worked on — no approval needed, just a running record.</div>
       </div>
-      <button class="action-btn" onclick="openAddDiaryEntryModal()">+ Add entry</button>
+      <div style="display:flex; align-items:center; gap:9px;">
+        ${diaryGapBellHtml_()}
+        <button class="action-btn" onclick="openAddDiaryEntryModal()">+ Add entry</button>
+      </div>
     </div>
+    ${diaryGapPanelHtml_()}
     ${supervisorFilterBar()}
     ${items.length===0 ? emptyState('Nothing logged yet', 'Add a quick note about what you worked on today.') :
       items.map(entry=>{
@@ -9870,16 +10120,18 @@ function viewWorkDiary(){
       `;}).join('')}
   `;
 }
-function diaryEntryFields(entry){
+function diaryEntryFields(entry, forDate){
+  const value = entry ? entry.date : (forDate || todayStr());
   return `
     <label class="field-label">Date</label>
-    <input type="date" class="text-input" id="f_diaryDate" value="${entry?entry.date:todayStr()}" min="${shiftDate(todayStr(), -30)}" max="${todayStr()}">
+    <input type="date" class="text-input" id="f_diaryDate" value="${escapeHtml(value)}" min="${shiftDate(todayStr(), -30)}" max="${todayStr()}">
     <label class="field-label">What did you work on?</label>
     <textarea class="text-input" id="f_diaryText" rows="5" placeholder="Quick notes — no need for full sentences.">${entry?escapeHtml(entry.entryText):''}</textarea>
   `;
 }
-function openAddDiaryEntryModal(){
-  showModal('Add diary entry', diaryEntryFields(null), submitAddDiaryEntry);
+// A date can be handed in, so a day named in the gap list opens ready to fill.
+function openAddDiaryEntryModal(forDate){
+  showModal('Add diary entry', diaryEntryFields(null, forDate), submitAddDiaryEntry);
 }
 async function submitAddDiaryEntry(){
   const date = document.getElementById('f_diaryDate').value;
@@ -10043,7 +10295,8 @@ function weeklyCard(w, i, total){
   const statusMap = {
     pending: { label:'Pending Approval', cls:'warn' },
     approved: { label:'Approved', cls:'good' },
-    changes_requested: { label:'Changes Requested', cls:'bad' }
+    changes_requested: { label:'Changes Requested', cls:'bad' },
+    not_required: { label:'Recorded', cls:'neutral' }
   };
   const st = statusMap[w.status] || statusMap.pending;
   return `
@@ -10102,7 +10355,7 @@ function weeklyCard(w, i, total){
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">${w.status==='approved' ? 'Approved entries are locked' : 'This week has ended, so this entry is locked'} — ask your supervisor to request changes if this needs to be corrected.</div>` : ''}
       <div class="entry-actions">
         ${canReview_(w) ? `<button class="small-btn" onclick="openReviewBox('${w.id}')">Review</button>` : (isSupervisorLike() && w.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(w.assignedReviewerName)} for review</span>` : '')}
-        ${(isSupervisorLike() && w.status==='approved') ? `<button class="small-btn" onclick="addAdditionalComment('weekly','${w.id}')">+ Add comment</button>` : ''}
+        ${(isSupervisorLike() && settledForComment_(w.status)) ? `<button class="small-btn" onclick="addAdditionalComment('weekly','${w.id}')">+ Add comment</button>` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openEditWeeklyModal('${w.id}')">Edit</button>` : ''}
         ${canDelete ? `<button class="small-btn" onclick="openMoveToSectionModal('weekly','${w.id}')">Move to another section</button>` : ''}
         ${canDelete ? `<button class="small-btn danger" onclick="deleteWeekly('${w.id}')">Delete</button>` : ''}
@@ -10180,10 +10433,12 @@ async function submitWeekly(){
   const linkedFabricationIds = fabSelect ? Array.from(fabSelect.selectedOptions).map(el=>el.value) : [];
   state.weekly.push({
     id: uid('wk'), studentId: state.identity.id, weekStart, workDone, planNext, challenges, linkedPaperIds, linkedProposalIds, linkedFabricationIds,
-    status:'pending', supervisorComment:''
+    status: newItemStatus_('weekly'), supervisorComment:''
   });
   await saveCollection('weekly-reports', state.weekly);
-  apiNotify('weeklySubmitted', { studentId: state.identity.id, weekStart, workDone });
+  if(approvalRequired_('weekly')){
+    apiNotify('weeklySubmitted', { studentId: state.identity.id, weekStart, workDone });
+  }
   closeModal(); renderView();
 }
 function openReviewBox(id){
@@ -10355,7 +10610,8 @@ function sampleCard(s, i, total){
   const approvalMap = {
     pending: { label:'Pending Approval', cls:'warn' },
     approved: { label:'Approved', cls:'good' },
-    changes_requested: { label:'Changes Requested', cls:'bad' }
+    changes_requested: { label:'Changes Requested', cls:'bad' },
+    not_required: { label:'Recorded', cls:'neutral' }
   };
   const ap = approvalMap[s.approvalStatus] || approvalMap.pending;
   return `
@@ -10407,7 +10663,7 @@ function sampleCard(s, i, total){
         ${canMarkResults && !s.resultsReceivedDate ? `<button class="small-btn" onclick="openReceiveModal('${s.id}')">Mark results received</button>` : ''}
         ${canMarkResults && s.resultsReceivedDate ? `<button class="small-btn" onclick="openReceiveModal('${s.id}')">${s.dataLink ? 'Edit data entry' : 'Add data entry'}</button>` : ''}
         ${canReview_(s) ? `<button class="small-btn" onclick="openSampleReviewBox('${s.id}')">Review</button>` : (isSupervisorLike() && s.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(s.assignedReviewerName)} for review</span>` : '')}
-        ${(isSupervisorLike() && s.approvalStatus==='approved') ? `<button class="small-btn" onclick="addAdditionalComment('sample','${s.id}')">+ Add comment</button>` : ''}
+        ${(isSupervisorLike() && settledForComment_(s.approvalStatus)) ? `<button class="small-btn" onclick="addAdditionalComment('sample','${s.id}')">+ Add comment</button>` : ''}
         ${canDelete ? `<button class="small-btn" onclick="openMoveToSectionModal('sample','${s.id}')">Move to another section</button>` : ''}
         ${canDelete ? `<button class="small-btn danger" onclick="deleteSample('${s.id}')">Delete</button>` : ''}
       </div>
@@ -10607,7 +10863,8 @@ function analysisApprovalMap(){
   return {
     pending: { label:'Pending Approval', cls:'warn' },
     approved: { label:'Approved', cls:'good' },
-    changes_requested: { label:'Changes Requested', cls:'bad' }
+    changes_requested: { label:'Changes Requested', cls:'bad' },
+    not_required: { label:'Recorded', cls:'neutral' }
   };
 }
 function viewResultsAnalysis(){
@@ -10712,7 +10969,7 @@ function analysisCard(a, i, total){
           </select>
         ` : ''}
         ${canReview_(a) ? `<button class="small-btn" onclick="openAnalysisReviewBox('${a.id}')">Review</button>` : (isSupervisorLike() && a.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(a.assignedReviewerName)} for review</span>` : '')}
-        ${(isSupervisorLike() && a.approvalStatus==='approved') ? `<button class="small-btn" onclick="addAdditionalComment('analysis','${a.id}')">+ Add comment</button>` : ''}
+        ${(isSupervisorLike() && settledForComment_(a.approvalStatus)) ? `<button class="small-btn" onclick="addAdditionalComment('analysis','${a.id}')">+ Add comment</button>` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openEditAnalysisModal('${a.id}')">Edit</button>` : ''}
         ${isTrueSupervisor() ? `<button class="small-btn" onclick="openMoveToSectionModal('analysis','${a.id}')">Move to another section</button>` : ''}
         ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteAnalysis('${a.id}')">Delete</button>` : ''}
@@ -11321,7 +11578,8 @@ function conferenceStatusMap(){
   return {
     pending: { label:'Pending Approval', cls:'warn' },
     approved: { label:'Approved', cls:'good' },
-    changes_requested: { label:'Changes Requested', cls:'bad' }
+    changes_requested: { label:'Changes Requested', cls:'bad' },
+    not_required: { label:'Recorded', cls:'neutral' }
   };
 }
 function viewConferences(){
@@ -11377,7 +11635,7 @@ function conferenceCard(c, i, total){
       ${locked ? `<div class="entry-meta" style="margin-top:10px;">Approved entries are locked — contact your supervisor if this needs to change.</div>` : ''}
       <div class="entry-actions">
         ${canReview_(c) ? `<button class="small-btn" onclick="openConferenceReviewBox('${c.id}')">Review</button>` : (isSupervisorLike() && c.assignedReviewerId ? `<span class="entry-meta">Assigned to ${escapeHtml(c.assignedReviewerName)} for review</span>` : '')}
-        ${(isSupervisorLike() && c.approvalStatus==='approved') ? `<button class="small-btn" onclick="addAdditionalComment('conference','${c.id}')">+ Add comment</button>` : ''}
+        ${(isSupervisorLike() && settledForComment_(c.approvalStatus)) ? `<button class="small-btn" onclick="addAdditionalComment('conference','${c.id}')">+ Add comment</button>` : ''}
         ${canEdit ? `<button class="small-btn" onclick="openEditConferenceModal('${c.id}')">Edit</button>` : ''}
         ${isTrueSupervisor() ? `<button class="small-btn" onclick="openMoveToSectionModal('conference','${c.id}')">Move to another section</button>` : ''}
         ${isTrueSupervisor() ? `<button class="small-btn danger" onclick="deleteConference('${c.id}')">Delete</button>` : ''}
